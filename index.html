@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1317,13 +1316,19 @@
         .modal-news .modal-btn:hover {
             background: #8e44ad;
         }
-        /* Modal de ayuda */
+        /* Modal de ayuda (fullscreen) */
         .modal-help .modal-box {
             border-color: #2ecc71;
             box-shadow: 0 0 40px rgba(46, 204, 113, 0.3);
             background: linear-gradient(145deg, #1a2a22, #0b0e14);
-            max-width: 550px;
+            max-width: 100%;
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+            border-radius: 0;
+            overflow-y: auto;
             text-align: left;
+            padding: 2rem;
         }
         body.theme-light .modal-help .modal-box {
             border-color: #2ecc71;
@@ -1720,11 +1725,12 @@
         #importFileInput {
             display: none;
         }
+        /* Asegurar que los modales de backup estén por encima de todo */
         #exportModalOverlay, #importModalOverlay {
-            z-index: 10002 !important;
+            z-index: 999999 !important;
         }
         .backup-modal .modal-box {
-            z-index: 10003 !important;
+            z-index: 999999 !important;
         }
         .settings-panel .alarm-toggle {
             display: flex;
@@ -2102,6 +2108,14 @@
             cursor: not-allowed;
             transform: none;
         }
+        .btn-sell-business {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .btn-sell-business:hover {
+            background: #c0392b;
+            transform: scale(1.02);
+        }
         .business-card .max-level {
             color: #e74c3c;
             font-weight: 700;
@@ -2234,6 +2248,7 @@
                 <button data-filter="crypto">🪙 Spot</button>
                 <button data-filter="futures">⚡ Futuros</button>
                 <button data-filter="positions" id="marketPositionsTab" style="display:none;">📊 Posiciones</button>
+                <button data-filter="watchlist">⭐ Siguiendo</button>
             </div>
             <div class="market-searches" id="marketSearchContainer">
                 <div class="search-group">
@@ -2290,7 +2305,7 @@
                 <h3 style="color:#f1c40f; margin:0.5rem 0;">🤝 Prestar a terceros</h3>
                 <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.5rem;">
                     <span style="color:#aab3c5;">Cuotas:</span>
-                    <input type="number" id="cuotasPrestamo" class="input-tiempo" value="3" step="1" min="1" style="width:70px;">
+                    <input type="number" id="cuotasPrestamo" class="input-tiempo" value="4" step="1" min="1" style="width:70px;">
                 </div>
 
                 <div id="prestamoStats" style="margin:0.5rem 0; font-size:0.95rem; color:#e0e6ed;">
@@ -2370,7 +2385,7 @@
     </div>
 </div>
 
-<!-- MODAL DE AYUDA Y DESCARGO -->
+<!-- MODAL DE AYUDA (fullscreen) -->
 <div class="modal-overlay" id="helpModalOverlay">
     <div class="modal-box modal-help">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
@@ -2397,7 +2412,7 @@
             </ul>
             <p style="margin-top:0.5rem;">💡 <em>Consejo: Exporta tu cartera periódicamente (en Configuración) para no perder tu progreso.</em></p>
         </div>
-        <button class="modal-btn" id="closeHelpBtn">Entendido</button>
+        <button class="modal-btn" id="closeHelpBtn">Atrás</button>
     </div>
 </div>
 
@@ -2490,6 +2505,19 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
+
+    <!-- Exportar/Importar arriba -->
+    <div class="commission-group" style="border-color: #2ecc71; margin-top: 0.5rem;">
+        <h4 style="color:#2ecc71;">💾 Copia de seguridad</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+            <button id="exportBtn" class="btn-buy" style="padding:0.4rem 1.2rem;">⬆ Exportar</button>
+            <button id="importBtn" class="btn-buy" style="padding:0.4rem 1.2rem; background:#3498db; color:#fff;">⬇ Importar</button>
+        </div>
+        <div style="font-size:0.75rem; color:#8d9bb5; text-align:center; margin-top:4px;">
+            Exporta tu cartera (opcionalmente encriptada) o importa desde un archivo.
+        </div>
+    </div>
+
     <div class="theme-toggle">
         <label>🌙 Oscuro</label>
         <div class="switch" id="themeSwitch">
@@ -2509,6 +2537,36 @@
         </div>
     </div>
 
+    <!-- Botón Comisión (se mantiene) -->
+    <div class="commission-group" style="border-color: #f1c40f;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h4 style="margin:0;">📊 Comisiones</h4>
+            <button id="toggleComisionesBtn" class="btn-buy" style="padding:0.3rem 1rem; font-size:0.8rem;">Mostrar</button>
+        </div>
+        <div id="comisionesPanel" style="display:none; margin-top:0.5rem;">
+            <div class="commission-row">
+                <label>Compra Acciones</label>
+                <input type="number" id="commStockBuy" step="0.01" min="0" max="100" value="0.05">
+                <span>%</span>
+            </div>
+            <div class="commission-row">
+                <label>Venta Acciones</label>
+                <input type="number" id="commStockSell" step="0.01" min="0" max="100" value="0.05">
+                <span>%</span>
+            </div>
+            <div class="commission-row">
+                <label>Compra Criptos</label>
+                <input type="number" id="commCryptoBuy" step="0.01" min="0" max="100" value="0.05">
+                <span>%</span>
+            </div>
+            <div class="commission-row">
+                <label>Venta Criptos</label>
+                <input type="number" id="commCryptoSell" step="0.01" min="0" max="100" value="0.05">
+                <span>%</span>
+            </div>
+        </div>
+    </div>
+
     <div class="commission-group" style="border-color: #f1c40f;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h4 style="margin:0;">📊 Indicadores</h4>
@@ -2516,33 +2574,6 @@
         </div>
         <div style="font-size:0.8rem; color:#8d9bb5; text-align:center; margin-top:4px;">
             Activa/desactiva y edita cada indicador
-        </div>
-    </div>
-
-    <div class="commission-group">
-        <h4>📊 Comisión Acciones</h4>
-        <div class="commission-row">
-            <label>Compra</label>
-            <input type="number" id="commStockBuy" step="0.01" min="0" max="100" value="0.05">
-            <span>%</span>
-        </div>
-        <div class="commission-row">
-            <label>Venta</label>
-            <input type="number" id="commStockSell" step="0.01" min="0" max="100" value="0.05">
-            <span>%</span>
-        </div>
-    </div>
-    <div class="commission-group">
-        <h4>🪙 Comisión Criptos</h4>
-        <div class="commission-row">
-            <label>Compra</label>
-            <input type="number" id="commCryptoBuy" step="0.01" min="0" max="100" value="0.05">
-            <span>%</span>
-        </div>
-        <div class="commission-row">
-            <label>Venta</label>
-            <input type="number" id="commCryptoSell" step="0.01" min="0" max="100" value="0.05">
-            <span>%</span>
         </div>
     </div>
 
@@ -2558,30 +2589,18 @@
         </div>
     </div>
 
-    <div class="commission-group" style="border-color: #2ecc71;">
-        <h4 style="color:#2ecc71;">💾 Copia de seguridad</h4>
-        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
-            <button id="exportBtn" class="btn-buy" style="padding:0.4rem 1.2rem;">⬆ Exportar</button>
-            <button id="importBtn" class="btn-buy" style="padding:0.4rem 1.2rem; background:#3498db; color:#fff;">⬇ Importar</button>
-        </div>
-        <div style="font-size:0.75rem; color:#8d9bb5; text-align:center; margin-top:4px;">
-            Exporta tu cartera (opcionalmente encriptada) o importa desde un archivo.
+    <div class="alarm-toggle">
+        <label for="alarmSwitch">🔔 Beep de Alarma</label>
+        <div class="switch active" id="alarmSwitch">
+            <div class="slider"></div>
         </div>
     </div>
-
-    <button class="reset-btn" id="resetBtn">🔄 RESETAR</button>
 
     <div class="exchange-visibility" id="exchangeVisibilityContainer">
         <h4>📋 Bolsas</h4>
     </div>
 
-    <div class="alarm-toggle">
-        <label for="alarmSwitch">🔔 Beep de Alarma</label>
-        <div class="switch" id="alarmSwitch">
-            <div class="slider"></div>
-        </div>
-    </div>
-
+    <button class="reset-btn" id="resetBtn">🔄 RESETAR</button>
     <button class="close-settings" id="closeSettings">Cerrar</button>
 </div>
 
@@ -2682,10 +2701,13 @@
             return CURRENCIES[code] ? CURRENCIES[code].symbol : 'Bs';
         }
 
+        // ----- FORMATO DE NÚMERO (REDONDEO ESTÁNDAR A 2 DECIMALES) -----
         function formatNumber(num, decimals = 2, showSymbol = true) {
             if (num === undefined || num === null) return '0,00';
             let n = typeof num === 'string' ? parseFloat(num.replace(/\./g, '').replace(',', '.')) : num;
             if (isNaN(n)) return '0,00';
+            const factor = Math.pow(10, decimals);
+            n = Math.round(n * factor) / factor;
             const formatted = new Intl.NumberFormat('es-ES', {
                 minimumFractionDigits: decimals,
                 maximumFractionDigits: decimals,
@@ -3499,17 +3521,17 @@
                         macd: { active: false, fast: 12, slow: 26, signal: 9, color: '#2ecc71', signalColor: '#e67e22', histogramColor: '#3498db' }
                     }
                 },
-                alarmEnabled: false,
+                alarmEnabled: true,
                 futuresPositions: [],
                 futuresDefaults: { tp: 0, sl: 0 },
                 prestamos: [],
                 personas: [],
-                businesses: []   // array de { id, level } para negocios comprados
+                businesses: [],
+                watchlist: []
             };
             const allExchanges = [...new Set(assets.filter(a => a.type === 'stock').map(a => a.exchange))];
             allExchanges.forEach(ex => { state.exchangeVisibility[ex] = true; });
             inicializarPersonas();
-            // Inicializar negocios vacíos
             state.businesses = [];
             saveState();
         } else {
@@ -3641,7 +3663,7 @@
             }
 
             if (state.alarmEnabled === undefined) {
-                state.alarmEnabled = false;
+                state.alarmEnabled = true;
             }
 
             if (!state.futuresPositions) {
@@ -3659,22 +3681,20 @@
                 state.prestamos = [];
             }
 
-            // Inicializar negocios si no existe
             if (!state.businesses || !Array.isArray(state.businesses)) {
                 state.businesses = [];
             }
-            // Asegurar que todos los negocios tengan un nivel (0 = no comprado)
             const existingIds = state.businesses.map(b => b.id);
             BUSINESSES.forEach(b => {
                 if (!existingIds.includes(b.id)) {
                     state.businesses.push({ id: b.id, level: 0 });
                 }
             });
-            // Si algún negocio tiene level 0, se considera no comprado (pero lo mantenemos)
+            if (!state.watchlist) state.watchlist = [];
             saveState();
         }
 
-        // ----- FUNCIONES DE PRÉSTAMOS P2P (sin cambios) -----
+        // ----- FUNCIONES DE PRÉSTAMOS P2P -----
         function inicializarPersonas() {
             const nombresMujeres = [
                 "Ana Lucía Pérez", "María Fernanda Gómez", "Carmen Elena Rodríguez", "Laura Sofía Fernández",
@@ -3726,12 +3746,14 @@
             if (!persona) { showModal('❌', 'Error', 'Persona no encontrada.'); return; }
 
             const cuotasInput = document.getElementById('cuotasPrestamo');
-            let totalCuotas = parseInt(cuotasInput.value) || 3;
+            let totalCuotas = parseInt(cuotasInput.value) || 4; // por defecto 4
             if (totalCuotas < 1) totalCuotas = 1;
 
             const tasa = calcularTasa(persona.confianza, totalCuotas);
-            const montoTotal = monto * (1 + tasa / 100);
+            const montoTotal = Math.round(monto * (1 + tasa / 100) * 100) / 100;
             const montoCuota = Math.round((montoTotal / totalCuotas) * 100) / 100;
+
+            const garantia = Math.round(monto * 0.1 * 100) / 100;
 
             state.cash -= monto;
 
@@ -3748,7 +3770,9 @@
                 fechaInicio: new Date().toLocaleString(),
                 ultimaCuota: Date.now(),
                 historialCuotas: [],
-                moraAcumulada: 0
+                moraAcumulada: 0,
+                garantia: garantia,
+                fallosConsecutivos: 0
             };
             state.prestamos.push(prestamo);
             state.transactions.push({
@@ -3763,12 +3787,12 @@
                 commission: 0,
                 timestamp: new Date().toLocaleString()
             });
-            cuotasInput.value = 3;
+            cuotasInput.value = 4;
             document.querySelectorAll('#prestatariosLista input[type="number"]').forEach(inp => inp.value = 0);
             saveState();
             renderAll();
             renderCredit();
-            showModal('✅', 'Préstamo concedido', `Has prestado ${formatNumber(monto)} a ${personaNombre} al ${tasa}% de interés. Recibirás ${totalCuotas} cuotas de ${formatNumber(montoCuota)}.`);
+            showModal('✅', 'Préstamo concedido', `Has prestado ${formatNumber(monto)} a ${personaNombre} al ${tasa}% de interés. Recibirás ${totalCuotas} cuotas de ${formatNumber(montoCuota)}. (Garantía retenida: ${formatNumber(garantia)})`);
         }
 
         function procesarCuotasPrestamos() {
@@ -3787,7 +3811,7 @@
 
                 let montoCuota = prestamo.montoCuota;
                 if (prestamo.estado === 'mora') {
-                    const mora = prestamo.saldoPendiente * 0.05;
+                    const mora = Math.round(prestamo.saldoPendiente * 0.05 * 100) / 100;
                     montoCuota += mora;
                     prestamo.moraAcumulada += mora;
                 }
@@ -3804,6 +3828,7 @@
                         fecha: new Date().toLocaleString(),
                         estado: 'pagado'
                     });
+                    prestamo.fallosConsecutivos = 0;
                     if (prestamo.saldoPendiente <= 0.01) {
                         prestamo.estado = 'finalizado';
                         prestamo.saldoPendiente = 0;
@@ -3814,11 +3839,15 @@
                     }
                     showToast(`💰 ${prestamo.persona} pagó cuota de ${formatNumber(pago)}. Saldo restante: ${formatNumber(prestamo.saldoPendiente)}`);
                 } else {
-                    if (prestamo.estado === 'mora') {
+                    prestamo.fallosConsecutivos += 1;
+                    // Umbral de impago = ceil(2/3 * totalCuotas), mínimo 1
+                    const defaultThreshold = Math.max(1, Math.ceil(prestamo.totalCuotas * 2 / 3));
+                    if (prestamo.fallosConsecutivos >= defaultThreshold) {
                         prestamo.estado = 'impago';
                         prestamo.saldoPendiente = 0;
                         persona.confianza = Math.max(0, persona.confianza - 15);
-                        showToast(`❌ ${prestamo.persona} no pagó la cuota en mora. Préstamo declarado en IMPAGO. Pierdes el capital restante.`);
+                        state.cash += prestamo.garantia;
+                        showToast(`❌ ${prestamo.persona} no pagó la cuota (${prestamo.fallosConsecutivos} fallos consecutivos, umbral ${defaultThreshold}). Préstamo declarado en IMPAGO. Se devuelve la garantía de ${formatNumber(prestamo.garantia)} a tu cartera.`);
                     } else {
                         prestamo.estado = 'mora';
                         prestamo.ultimaCuota = now;
@@ -3828,7 +3857,7 @@
                             fecha: new Date().toLocaleString(),
                             estado: 'mora'
                         });
-                        showToast(`⚠️ ${prestamo.persona} no pagó la cuota. Entra en MORA. Próxima cuota con 5% de interés adicional.`);
+                        showToast(`⚠️ ${prestamo.persona} no pagó la cuota. Entra en MORA (fallo #${prestamo.fallosConsecutivos}). Próxima cuota con 5% de interés adicional.`);
                     }
                 }
                 saveState();
@@ -3847,16 +3876,25 @@
                 container.innerHTML = '<div class="empty-msg">No hay personas disponibles para prestar.</div>';
                 return;
             }
-            const cuotasActuales = parseInt(document.getElementById('cuotasPrestamo').value) || 3;
+            const cuotasActuales = parseInt(document.getElementById('cuotasPrestamo').value) || 4;
+            const maxPrestamo = Math.round(state.cash * 100) / 100;
+
             let html = '<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">';
             prestatarios.forEach(p => {
                 const tasa = calcularTasa(p.confianza, cuotasActuales);
+                let randomAmount = 0;
+                if (maxPrestamo > 1) {
+                    randomAmount = Math.round((Math.random() * (maxPrestamo - 1) + 1) * 100) / 100;
+                } else if (maxPrestamo >= 1) {
+                    randomAmount = 1;
+                }
+                randomAmount = Math.min(randomAmount, maxPrestamo);
                 html += `
                     <div class="prestamo-card" style="flex:1; min-width:200px;">
                         <div><strong>${p.nombre}</strong></div>
                         <div style="font-size:0.85rem; color:#8d9bb5;">Confianza: ${p.confianza.toFixed(0)}% | Tasa: ${tasa.toFixed(2)}%</div>
                         <div style="display:flex; align-items:center; gap:0.3rem; margin-top:0.3rem;">
-                            <input type="number" id="montoPrestamo_${p.nombre.replace(/\s/g,'_')}" class="input-tiempo" style="width:80px;" placeholder="Monto" min="1" step="1" value="0">
+                            <input type="number" id="montoPrestamo_${p.nombre.replace(/\s/g,'_')}" class="input-tiempo" style="width:80px;" placeholder="Monto" min="1" step="1" value="${randomAmount}" max="${maxPrestamo}">
                             <button class="btn-prestar" data-persona="${p.nombre}">Prestar</button>
                         </div>
                     </div>
@@ -3889,6 +3927,7 @@
             [...activos, ...finalizados].forEach(pre => {
                 const estadoClass = pre.estado === 'activo' ? 'al-dia' : (pre.estado === 'mora' ? 'mora' : (pre.estado === 'impago' ? 'impago' : 'finalizado'));
                 const estadoLabel = pre.estado === 'activo' ? '✅ Al día' : (pre.estado === 'mora' ? '⚠️ Mora' : (pre.estado === 'impago' ? '❌ Impago' : '📌 Finalizado'));
+                const defaultThreshold = Math.max(1, Math.ceil(pre.totalCuotas * 2 / 3));
                 html += `
                     <div class="prestamo-item">
                         <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
@@ -3896,8 +3935,9 @@
                             <span class="estado-prestamo ${estadoClass}">${estadoLabel}</span>
                         </div>
                         <div style="font-size:0.85rem; color:#8d9bb5;">
-                            Cuotas: ${pre.cuotasPagadas}/${pre.totalCuotas} | Restante: ${formatNumber(pre.saldoPendiente)} | Mora acumulada: ${formatNumber(pre.moraAcumulada)}
+                            Cuotas: ${pre.cuotasPagadas}/${pre.totalCuotas} | Restante: ${formatNumber(pre.saldoPendiente)} | Mora acumulada: ${formatNumber(pre.moraAcumulada)} | Garantía: ${formatNumber(pre.garantia)} | Fallos: ${pre.fallosConsecutivos}/${defaultThreshold}
                             ${pre.estado === 'mora' ? ' <span style="color:#f39c12;">(Interés de mora 5% aplicado)</span>' : ''}
+                            ${pre.estado === 'impago' ? ' <span style="color:#e74c3c;">(Garantía devuelta al prestamista)</span>' : ''}
                         </div>
                         <div class="detalle-cuota">
                             ${pre.historialCuotas.map(c => `Cuota ${c.cuota}: ${formatNumber(c.monto)} (${c.estado})`).join(' | ')}
@@ -3938,15 +3978,13 @@
 
         function getBusinessCost(business) {
             const level = getBusinessLevel(business.id);
-            if (level === 0) return business.costBase; // compra
-            // mejora: costBase * 2^(level-1)
+            if (level === 0) return business.costBase;
             return business.costBase * Math.pow(2, level - 1);
         }
 
         function getBusinessIncome(business) {
             const level = getBusinessLevel(business.id);
             if (level === 0) return 0;
-            // incomeBase * 1.5^(level-1)
             return business.incomeBase * Math.pow(1.5, level - 1);
         }
 
@@ -3963,15 +4001,28 @@
             BUSINESSES.forEach(b => {
                 const level = getBusinessLevel(b.id);
                 if (level > 0) {
-                    // Suma de compra + mejoras
-                    let cost = b.costBase;
-                    for (let i = 1; i < level; i++) {
-                        cost += b.costBase * Math.pow(2, i - 1);
+                    let cost = 0;
+                    for (let i = 1; i <= level; i++) {
+                        if (i === 1) cost += b.costBase;
+                        else cost += b.costBase * Math.pow(2, i - 1);
                     }
                     total += cost;
                 }
             });
             return total;
+        }
+
+        function calcularTotalInvertidoNegocio(businessId) {
+            const business = BUSINESSES.find(b => b.id === businessId);
+            if (!business) return 0;
+            const level = getBusinessLevel(businessId);
+            if (level === 0) return 0;
+            let total = 0;
+            for (let i = 1; i <= level; i++) {
+                if (i === 1) total += business.costBase;
+                else total += business.costBase * Math.pow(2, i - 1);
+            }
+            return Math.round(total * 100) / 100;
         }
 
         function buyBusiness(businessId) {
@@ -4018,7 +4069,7 @@
                 showModal('🛑', 'Nivel máximo', 'Este negocio ya está en nivel 10 (máximo).');
                 return;
             }
-            const cost = getBusinessCost(business); // cost para subir al siguiente nivel
+            const cost = getBusinessCost(business);
             if (state.cash < cost) {
                 showModal('💰', 'Fondos insuficientes', `Mejorar a nivel ${level+1} cuesta ${formatNumber(cost)} y tienes ${formatNumber(state.cash)}.`);
                 return;
@@ -4044,13 +4095,41 @@
             showModal('⬆️', 'Mejora exitosa', `Has mejorado "${business.name}" a nivel ${newLevel}. Ingreso actual: ${formatNumber(newIncome)} Bs/min.`);
         }
 
+        function sellBusiness(businessId) {
+            const business = BUSINESSES.find(b => b.id === businessId);
+            if (!business) return;
+            const level = getBusinessLevel(businessId);
+            if (level === 0) {
+                showModal('⚠️', 'No posees este negocio', 'No puedes vender algo que no tienes.');
+                return;
+            }
+            const totalInvertido = calcularTotalInvertidoNegocio(businessId);
+            const precioVenta = Math.round(totalInvertido * 0.8 * 100) / 100;
+            state.cash += precioVenta;
+            setBusinessLevel(businessId, 0);
+            state.transactions.push({
+                id: Date.now(),
+                type: 'business_sell',
+                assetId: null,
+                symbol: '🏢',
+                name: 'Venta: ' + business.name,
+                quantity: 1,
+                price: precioVenta,
+                total: precioVenta,
+                commission: 0,
+                timestamp: new Date().toLocaleString()
+            });
+            saveState();
+            renderAll();
+            showModal('✅', 'Negocio vendido', `Has vendido "${business.name}" por ${formatNumber(precioVenta)} (80% del total invertido).`);
+        }
+
         function renderBusiness() {
             const container = document.getElementById('businessList');
             const summary = document.getElementById('businessSummary');
             const searchInput = document.getElementById('businessSearch');
             const filterBtns = document.querySelectorAll('.business-search .filter-btns button');
 
-            // Resumen
             const totalIncome = getTotalBusinessIncome();
             const totalInvested = getTotalBusinessInvested();
             const ownedCount = state.businesses.filter(b => b.level > 0).length;
@@ -4060,7 +4139,6 @@
                 <div class="item">📊 Total invertido: <strong>${formatNumber(totalInvested)}</strong></div>
             `;
 
-            // Filtros
             let filter = 'all';
             filterBtns.forEach(btn => {
                 btn.classList.remove('active');
@@ -4073,17 +4151,24 @@
                 };
             });
 
-            // Búsqueda
             const searchTerm = searchInput.value.toLowerCase();
+            const sortedBusinesses = [...BUSINESSES].sort((a,b) => a.costBase - b.costBase);
+            const firstNotOwned = sortedBusinesses.find(b => getBusinessLevel(b.id) === 0);
 
-            let filtered = BUSINESSES.filter(b => {
+            let filtered = sortedBusinesses.filter(b => {
                 const level = getBusinessLevel(b.id);
-                const nameMatch = b.name.toLowerCase().includes(searchTerm);
-                if (!nameMatch) return false;
-                if (filter === 'owned') return level > 0;
-                if (filter === 'available') return level === 0;
-                return true;
+                if (level > 0) return true;
+                return b.id === firstNotOwned?.id;
             });
+
+            if (searchTerm) {
+                filtered = filtered.filter(b => b.name.toLowerCase().includes(searchTerm));
+            }
+            if (filter === 'owned') {
+                filtered = filtered.filter(b => getBusinessLevel(b.id) > 0);
+            } else if (filter === 'available') {
+                filtered = filtered.filter(b => getBusinessLevel(b.id) === 0);
+            }
 
             if (filtered.length === 0) {
                 container.innerHTML = '<div class="empty-msg">No hay negocios que coincidan con los filtros.</div>';
@@ -4099,9 +4184,14 @@
                 const maxLevel = 10;
                 const canUpgrade = owned && level < maxLevel;
                 const isMax = owned && level >= maxLevel;
+                const totalInv = calcularTotalInvertidoNegocio(b.id);
+                const sellPrice = Math.round(totalInv * 0.8 * 100) / 100;
+
+                let cardClass = 'business-card';
+                if (owned) cardClass += ' owned';
 
                 html += `
-                    <div class="business-card ${owned ? 'owned' : ''}">
+                    <div class="${cardClass}">
                         <div class="business-header">
                             <span class="business-name">${b.name}</span>
                             <span class="business-level">${owned ? 'Nivel ' + level + '/' + maxLevel : 'Disponible'}</span>
@@ -4109,18 +4199,19 @@
                         <div class="business-details">
                             <span>💰 Costo: ${formatNumber(cost)}</span>
                             <span>📈 Ingreso: ${owned ? formatNumber(income) + ' Bs/min' : '—'}</span>
+                            ${owned ? `<span>💲 Total invertido: ${formatNumber(totalInv)}</span>` : ''}
                         </div>
                         <div class="business-actions">
                             ${!owned ? `<button class="btn-buy-business" data-id="${b.id}">Comprar</button>` : ''}
                             ${canUpgrade ? `<button class="btn-upgrade-business" data-id="${b.id}">Mejorar (Nv. ${level} → ${level+1})</button>` : ''}
                             ${isMax ? `<span class="max-level">🛑 Nivel máximo</span>` : ''}
+                            ${owned ? `<button class="btn-sell-business" data-id="${b.id}">Vender (${formatNumber(sellPrice)})</button>` : ''}
                         </div>
                     </div>
                 `;
             });
             container.innerHTML = html;
 
-            // Event listeners
             container.querySelectorAll('.btn-buy-business').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const id = this.dataset.id;
@@ -4131,6 +4222,12 @@
                 btn.addEventListener('click', function() {
                     const id = this.dataset.id;
                     upgradeBusiness(id);
+                });
+            });
+            container.querySelectorAll('.btn-sell-business').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    sellBusiness(id);
                 });
             });
         }
@@ -4162,11 +4259,11 @@
         let newsTimeout = null;
         let newsTimestamp = null;
         let sortColumn = 'name';
-        let sortAsc = false;
+        let sortAsc = true;
         let searchTerm = '';
 
         let portfolioSortColumn = 'name';
-        let portfolioSortAsc = false;
+        let portfolioSortAsc = true;
 
         let futuresSortColumn = 'name';
         let futuresSortAsc = false;
@@ -4378,7 +4475,7 @@
             }
         }
 
-        // ========== FUTUROS (sin cambios) ==========
+        // ========== FUTUROS ==========
         function openFuture(assetId, direction, leverage, margin, tp, sl) {
             const asset = state.assets.find(a => a.id === assetId);
             if (!asset) return;
@@ -4532,7 +4629,7 @@
                         reason = 'sl';
                     }
 
-                } else { // short
+                } else {
                     pnl = (pos.entryPrice - currentPrice) * pos.size;
                     liquidationPrice = pos.entryPrice * (1 + 1 / pos.leverage);
                     if (currentPrice >= liquidationPrice) {
@@ -4576,8 +4673,6 @@
                 pos._currentPrice = currentPrice;
             });
         }
-
-        // ========== FIN FUTUROS ==========
 
         function buyAsset(assetId, quantity) {
             if (quantity <= 0) return;
@@ -4700,7 +4795,6 @@
                     total += pos.margin + pnl;
                 }
             });
-            // Incluir el valor invertido en negocios (como activo)
             total += getTotalBusinessInvested();
             return total;
         }
@@ -5036,7 +5130,7 @@
                                 <th data-sort="name">Activo <span class="sort-icon">▼</span></th>
                                 <th data-sort="quantity">Cantidad <span class="sort-icon">▼</span></th>
                                 <th data-sort="invested">Invertido <span class="sort-icon">▼</span></th>
-                                <th data-sort="current">Precio Actual <span class="sort-icon">▼</span></th>
+                                <th data-sort="current">Actual <span class="sort-icon">▼</span></th>
                                 <th data-sort="avgPrice">Precio Promedio <span class="sort-icon">▼</span></th>
                                 <th data-sort="gain">G/P <span class="sort-icon">▼</span></th>
                                 <th data-sort="roi">ROI <span class="sort-icon">▼</span></th>
@@ -5099,6 +5193,7 @@
             renderPortfolio();
         }
 
+        // Función para dibujar gráfico (sin cambios)
         function drawChart(source, assetId, history, customCanvasId, posData) {
             const canvasId = customCanvasId || (source === 'portfolio' ? 'chart_portfolio_' + assetId : 'chart_' + assetId);
             const canvas = document.getElementById(canvasId);
@@ -5116,7 +5211,9 @@
             const ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
+            // --- NÚMERO DE VELAS FIJO EN 100 ---
             const data = history.slice(-100);
+
             if (data.length < 2) {
                 ctx.fillStyle = '#5a6a82';
                 ctx.font = '14px sans-serif';
@@ -5545,8 +5642,9 @@
                     const scaleRSI = (val) => {
                         return indStartY + indPadding.top + (indChartHeight) * (1 - (val - rsiMin) / (rsiMax - rsiMin));
                     };
+                    // Líneas horizontales 30 y 70 (valores configurados)
                     ctx.save();
-                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
                     ctx.lineWidth = 1;
                     ctx.setLineDash([2, 2]);
                     const yOverbought = scaleRSI(cfg.rsi.overbought || 70);
@@ -5561,21 +5659,37 @@
                     ctx.stroke();
                     ctx.restore();
 
+                    // Etiquetas con los valores configurados (no fijos)
+                    ctx.save();
+                    ctx.font = '9px sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = cfg.rsi.color || '#e74c3c';
+                    ctx.fillText(cfg.rsi.overbought || 70, padding.left + chartWidth - 2, yOverbought);
+                    ctx.fillText(cfg.rsi.oversold || 30, padding.left + chartWidth - 2, yOversold);
+                    ctx.restore();
+
+                    // Línea RSI (cubre desde el borde izquierdo)
                     ctx.save();
                     ctx.strokeStyle = cfg.rsi.color;
                     ctx.lineWidth = cfg.rsi.width || 1.5;
                     ctx.setLineDash([]);
                     ctx.beginPath();
                     const offset = prices.length - rsiData.length;
+                    if (rsiData.length > 0) {
+                        const firstY = scaleRSI(rsiData[0]);
+                        ctx.moveTo(padding.left, firstY);
+                    }
                     for (let i = 0; i < rsiData.length; i++) {
                         const idx = i + offset;
                         const x = padding.left + idx * spacing + spacing/2;
                         const y = scaleRSI(rsiData[i]);
-                        if (i === 0) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
+                        ctx.lineTo(x, y);
                     }
                     ctx.stroke();
                     ctx.restore();
+
+                    // Etiqueta del indicador
                     ctx.save();
                     ctx.fillStyle = cfg.rsi.color;
                     ctx.font = '9px sans-serif';
@@ -5653,7 +5767,6 @@
                 }
             }
 
-            // Línea de entrada para futuros
             if (source === 'position' && posData && posData.entryPrice) {
                 const entryPrice = posData.entryPrice;
                 const yEntry = scalePrice(entryPrice);
@@ -5692,7 +5805,6 @@
             ctx.restore();
         }
 
-        // ========== RENDER FUTUROS POSITIONS ==========
         function renderFuturesPositions() {
             const container = document.getElementById('futuresPositionsContainer');
             const list = document.getElementById('futuresPositionsList');
@@ -5799,6 +5911,19 @@
             });
         }
 
+        // Función para alternar watchlist
+        function toggleWatchlist(assetId) {
+            if (!state.watchlist) state.watchlist = [];
+            const index = state.watchlist.indexOf(assetId);
+            if (index > -1) {
+                state.watchlist.splice(index, 1);
+            } else {
+                state.watchlist.push(assetId);
+            }
+            saveState();
+            renderMarket();
+        }
+
         function buildMarketRow(asset, showDiv, colCount) {
             const change = calculateChange(asset);
             const changeClass = change >= 0 ? 'up' : 'down';
@@ -5815,10 +5940,16 @@
                 infoIcon = `<span class="info-icon" data-id="${asset.id}">ⓘ</span>`;
             }
 
+            // Estrella de seguimiento
+            const isWatched = state.watchlist && state.watchlist.includes(asset.id);
+            const starIcon = isWatched ? '★' : '☆';
+            const starHtml = `<span class="watchlist-star" data-id="${asset.id}" style="cursor:pointer; margin-right:5px; color:#f1c40f;">${starIcon}</span>`;
+
             let rowHtml = `
                 <tr class="asset-row" data-id="${asset.id}">
                     <td>
                         ${infoIcon}
+                        ${starHtml}
                         ${asset.name}
                     </td>
                     <td>${formatNumber(asset.price)}</td>
@@ -5873,7 +6004,7 @@
                 return;
             } else {
                 tableWrap.style.display = '';
-                if (currentFilter === 'futures') {
+                if (currentFilter === 'futures' || currentFilter === 'watchlist') {
                     searchContainer.style.display = 'none';
                 } else {
                     searchContainer.style.display = 'flex';
@@ -5881,7 +6012,10 @@
                 posContainer.style.display = 'none';
             }
 
-            const showDiv = (currentFilter === 'stock');
+            const showDiv = (currentFilter === 'stock' || currentFilter === 'watchlist');
+
+            // Para watchlist mostramos 4 columnas (si showDiv=true)
+            let colCount = showDiv ? 4 : 3;
 
             let headerHtml = `<tr>
                 <th data-sort="name">Nombre <span class="sort-icon">▼</span></th>
@@ -5893,6 +6027,7 @@
             headerHtml += `</tr>`;
             thead.innerHTML = headerHtml;
 
+            // Eventos de ordenación
             document.querySelectorAll('.market-table th').forEach(th => {
                 th.addEventListener('click', function() {
                     const col = this.dataset.sort;
@@ -5906,34 +6041,53 @@
                 });
             });
 
-            let filtered = state.assets;
-            if (currentFilter === 'stock') {
-                filtered = state.assets.filter(a => a.type === 'stock');
-                filtered = filtered.filter(asset => {
-                    return state.exchangeVisibility[asset.exchange] !== false;
-                });
-                if (searchTerm) {
-                    const term = searchTerm.toLowerCase();
-                    filtered = filtered.filter(asset =>
-                        asset.name.toLowerCase().includes(term) ||
-                        asset.symbol.toLowerCase().includes(term)
-                    );
+            let filtered = [];
+
+            if (currentFilter === 'watchlist') {
+                const watchlistIds = state.watchlist || [];
+                filtered = state.assets.filter(a => watchlistIds.includes(a.id));
+                // Ordenar: primero acciones, luego criptos
+                const stocks = filtered.filter(a => a.type === 'stock');
+                const cryptos = filtered.filter(a => a.type === 'crypto');
+                // Ordenar por nombre
+                stocks.sort((a,b) => a.name.localeCompare(b.name));
+                cryptos.sort((a,b) => a.name.localeCompare(b.name));
+                filtered = [...stocks, ...cryptos];
+                // No agrupar por bolsa
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${colCount}" class="empty-msg">No tienes activos en seguimiento.</td></tr>`;
+                    window.scrollTo(0, scrollY);
+                    return;
                 }
-            } else if (currentFilter === 'crypto') {
-                filtered = state.assets.filter(a => a.type === 'crypto');
-                if (searchTerm) {
-                    const term = searchTerm.toLowerCase();
-                    filtered = filtered.filter(asset =>
-                        asset.name.toLowerCase().includes(term) ||
-                        asset.symbol.toLowerCase().includes(term)
-                    );
+            } else {
+                filtered = state.assets;
+                if (currentFilter === 'stock') {
+                    filtered = state.assets.filter(a => a.type === 'stock');
+                    filtered = filtered.filter(asset => {
+                        return state.exchangeVisibility[asset.exchange] !== false;
+                    });
+                    if (searchTerm) {
+                        const term = searchTerm.toLowerCase();
+                        filtered = filtered.filter(asset =>
+                            asset.name.toLowerCase().includes(term) ||
+                            asset.symbol.toLowerCase().includes(term)
+                        );
+                    }
+                } else if (currentFilter === 'crypto') {
+                    filtered = state.assets.filter(a => a.type === 'crypto');
+                    if (searchTerm) {
+                        const term = searchTerm.toLowerCase();
+                        filtered = filtered.filter(asset =>
+                            asset.name.toLowerCase().includes(term) ||
+                            asset.symbol.toLowerCase().includes(term)
+                        );
+                    }
+                } else if (currentFilter === 'futures') {
+                    filtered = state.assets.filter(a => a.type === 'crypto' || a.type === 'stock');
                 }
-            } else if (currentFilter === 'futures') {
-                filtered = state.assets.filter(a => a.type === 'crypto' || a.type === 'stock');
             }
 
             if (filtered.length === 0) {
-                const colCount = showDiv ? 4 : 3;
                 let msg = searchTerm ? 'No se encontraron activos para "' + searchTerm + '"' :
                           'No hay activos en esta categoría';
                 tbody.innerHTML = `<tr><td colspan="${colCount}" class="empty-msg">${msg}</td></tr>`;
@@ -5941,6 +6095,7 @@
                 return;
             }
 
+            // Ordenar según sortColumn y sortAsc
             const sorted = [...filtered].sort((a, b) => {
                 let valA, valB;
                 switch (sortColumn) {
@@ -5969,6 +6124,7 @@
                 return 0;
             });
 
+            // Actualizar iconos de ordenación
             document.querySelectorAll('.market-table th').forEach(th => {
                 const col = th.dataset.sort;
                 const icon = th.querySelector('.sort-icon');
@@ -5979,10 +6135,14 @@
                 }
             });
 
-            const colCount = showDiv ? 4 : 3;
             let html = '';
 
-            if (currentFilter === 'futures') {
+            if (currentFilter === 'watchlist') {
+                // Mostrar todos los activos en una sola tabla, sin agrupar por bolsa
+                sorted.forEach(asset => {
+                    html += buildMarketRow(asset, true, colCount);
+                });
+            } else if (currentFilter === 'futures') {
                 sorted.forEach(asset => {
                     const changeVal = calculateChange(asset);
                     const changeClass = changeVal >= 0 ? 'up' : 'down';
@@ -6050,53 +6210,52 @@
                     });
                 }, 100);
 
-            } else {
-                if (currentFilter === 'stock') {
-                    const exchangeMap = {};
-                    sorted.forEach(asset => {
-                        const ex = asset.exchange || 'Otros';
-                        if (!exchangeMap[ex]) exchangeMap[ex] = [];
-                        exchangeMap[ex].push(asset);
-                    });
-                    const order = Object.keys(exchangeMap).sort();
-                    const exchangeIcons = {
-                        'ASX (Australia)': '🇦🇺',
-                        'B3 (Brasil)': '🇧🇷',
-                        'BMV (México)': '🇲🇽',
-                        'BSE (India)': '🇮🇳',
-                        'BVCC': '🇻🇪',
-                        'Deutsche Börse (Frankfurt)': '🇩🇪',
-                        'Euronext': '🇪🇺',
-                        'HKEX (Hong Kong)': '🇭🇰',
-                        'LSE (Londres)': '🇬🇧',
-                        'NASDAQ': '💻',
-                        'NSE (India)': '🇮🇳',
-                        'NYSE': '🇺🇸',
-                        'SSE (Shanghái)': '🇨🇳',
-                        'SZSE (Shenzhen)': '🇨🇳',
-                        'TSX (Toronto)': '🇨🇦',
-                        'TSE (Japón)': '🇯🇵'
-                    };
-                    order.forEach(ex => {
-                        if (exchangeMap[ex] && exchangeMap[ex].length > 0) {
-                            const icon = exchangeIcons[ex] || '🏦';
-                            html += `<tr class="exchange-header"><td colspan="${colCount}"><span class="exchange-icon">${icon}</span> ${ex} <span style="font-weight:400;color:#8d9bb5;font-size:0.85rem;">(${exchangeMap[ex].length} activos)</span></td></tr>`;
-                            exchangeMap[ex].forEach(asset => {
-                                html += buildMarketRow(asset, showDiv, colCount);
-                            });
-                        }
-                    });
-                    if (exchangeMap['Otros']) {
-                        html += `<tr class="exchange-header"><td colspan="${colCount}"><span class="exchange-icon">🌐</span> Otros <span style="font-weight:400;color:#8d9bb5;font-size:0.85rem;">(${exchangeMap['Otros'].length} activos)</span></td></tr>`;
-                        exchangeMap['Otros'].forEach(asset => {
-                            html += buildMarketRow(asset, showDiv, colCount);
+            } else if (currentFilter === 'stock') {
+                // Agrupar por bolsa
+                const exchangeMap = {};
+                sorted.forEach(asset => {
+                    const ex = asset.exchange || 'Otros';
+                    if (!exchangeMap[ex]) exchangeMap[ex] = [];
+                    exchangeMap[ex].push(asset);
+                });
+                const order = Object.keys(exchangeMap).sort();
+                const exchangeIcons = {
+                    'ASX (Australia)': '🇦🇺',
+                    'B3 (Brasil)': '🇧🇷',
+                    'BMV (México)': '🇲🇽',
+                    'BSE (India)': '🇮🇳',
+                    'BVCC': '🇻🇪',
+                    'Deutsche Börse (Frankfurt)': '🇩🇪',
+                    'Euronext': '🇪🇺',
+                    'HKEX (Hong Kong)': '🇭🇰',
+                    'LSE (Londres)': '🇬🇧',
+                    'NASDAQ': '💻',
+                    'NSE (India)': '🇮🇳',
+                    'NYSE': '🇺🇸',
+                    'SSE (Shanghái)': '🇨🇳',
+                    'SZSE (Shenzhen)': '🇨🇳',
+                    'TSX (Toronto)': '🇨🇦',
+                    'TSE (Japón)': '🇯🇵'
+                };
+                order.forEach(ex => {
+                    if (exchangeMap[ex] && exchangeMap[ex].length > 0) {
+                        const icon = exchangeIcons[ex] || '🏦';
+                        html += `<tr class="exchange-header"><td colspan="${colCount}"><span class="exchange-icon">${icon}</span> ${ex} <span style="font-weight:400;color:#8d9bb5;font-size:0.85rem;">(${exchangeMap[ex].length} activos)</span></td></tr>`;
+                        exchangeMap[ex].forEach(asset => {
+                            html += buildMarketRow(asset, true, colCount);
                         });
                     }
-                } else {
-                    sorted.forEach(asset => {
-                        html += buildMarketRow(asset, showDiv, colCount);
+                });
+                if (exchangeMap['Otros']) {
+                    html += `<tr class="exchange-header"><td colspan="${colCount}"><span class="exchange-icon">🌐</span> Otros <span style="font-weight:400;color:#8d9bb5;font-size:0.85rem;">(${exchangeMap['Otros'].length} activos)</span></td></tr>`;
+                    exchangeMap['Otros'].forEach(asset => {
+                        html += buildMarketRow(asset, true, colCount);
                     });
                 }
+            } else { // crypto
+                sorted.forEach(asset => {
+                    html += buildMarketRow(asset, false, colCount);
+                });
             }
 
             tbody.innerHTML = html;
@@ -6118,7 +6277,7 @@
 
             document.querySelectorAll('.market-table .asset-row').forEach(row => {
                 row.addEventListener('click', function(e) {
-                    if (e.target.closest('.controls') || e.target.closest('.chart-container') || e.target.closest('.info-icon') || e.target.closest('.futures-controls') || e.target.closest('.btn-buy') || e.target.closest('.btn-sell')) return;
+                    if (e.target.closest('.controls') || e.target.closest('.chart-container') || e.target.closest('.info-icon') || e.target.closest('.futures-controls') || e.target.closest('.btn-buy') || e.target.closest('.btn-sell') || e.target.closest('.watchlist-star')) return;
                     const assetId = this.dataset.id;
                     const detailRow = document.getElementById('detail_market_' + assetId);
                     if (detailRow) {
@@ -6441,9 +6600,9 @@
                     priceDisplay = '-';
                     totalDisplay = formatNumber(tx.total);
                     commDisplay = '0,00';
-                } else if (tx.type === 'business_buy' || tx.type === 'business_upgrade') {
+                } else if (tx.type === 'business_buy' || tx.type === 'business_upgrade' || tx.type === 'business_sell') {
                     typeClass = 'dividend';
-                    typeText = tx.type === 'business_buy' ? 'Compra negocio' : 'Mejora negocio';
+                    typeText = tx.type === 'business_buy' ? 'Compra negocio' : (tx.type === 'business_sell' ? 'Venta negocio' : 'Mejora negocio');
                     qtyDisplay = '-';
                     priceDisplay = '-';
                     totalDisplay = formatNumber(tx.total);
@@ -6574,10 +6733,9 @@
             const netWorth = calculateNetWorth();
             summary.innerHTML = `
                 <div class="item">💳 Deuda: <strong>${formatNumber(balance)}</strong></div>
-                <div class="item">📊 Límite (40% patrimonio): <strong>${formatNumber(limit)}</strong></div>
+                <div class="item">📊 Límite: <strong>${formatNumber(limit)}</strong></div>
                 <div class="item">💰 Crédito disponible: <strong>${formatNumber(available)}</strong></div>
                 <div class="item">🏆 Patrimonio actual: <strong>${formatNumber(netWorth)}</strong></div>
-                <div class="item">📈 Interés compuesto: <strong>0.5% por cada pago de salario</strong></div>
             `;
 
             const autoCheck = document.getElementById('autoPayMinCheck');
@@ -6631,7 +6789,6 @@
 
             state.job.totalTaxesPaid = (state.job.totalTaxesPaid || 0) + taxAmount;
 
-            // Ingreso por negocios
             const businessIncome = getTotalBusinessIncome();
             const businessNet = businessIncome * accumulatedMin;
 
@@ -6929,13 +7086,18 @@
             try {
                 const stateStr = JSON.stringify(state);
                 let blobData;
-                let filename = 'richman_backup.richman';
+                const now = new Date();
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yyyy = now.getFullYear();
+                const fechaStr = dd + '_' + mm + '_' + yyyy;
+                let filename = 'Finanzas_' + fechaStr + '.richman';
                 if (encrypt) {
                     const encrypted = await encryptData(stateStr, password);
                     blobData = JSON.stringify(encrypted);
                 } else {
                     blobData = stateStr;
-                    filename = 'richman_backup.json';
+                    filename = 'Finanzas_' + fechaStr + '.json';
                 }
                 const blob = new Blob([blobData], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
@@ -7061,13 +7223,13 @@
                 if (!state.businesses || !Array.isArray(state.businesses)) {
                     state.businesses = [];
                 }
-                // Asegurar que todos los negocios existan en el estado
                 const existingIds = state.businesses.map(b => b.id);
                 BUSINESSES.forEach(b => {
                     if (!existingIds.includes(b.id)) {
                         state.businesses.push({ id: b.id, level: 0 });
                     }
                 });
+                if (!state.watchlist) state.watchlist = [];
                 state.assets.forEach(a => {
                     if (a.type === 'stock' && (a.dividendYield === undefined || a.dividendYield === 0)) {
                         a.dividendYield = calculateDividendYield(a.price);
@@ -7092,7 +7254,7 @@
             }
         }
 
-        // --- CONFIGURACIÓN DE INDICADORES (sin cambios) ---
+        // --- CONFIGURACIÓN DE INDICADORES ---
         function resetIndicatorsToDefault() {
             const defaultGlobal = {
                 bollinger: { active: true, period: 20, std: 2, color: '#5a6a82', width: 0.8 },
@@ -7362,6 +7524,9 @@
 
         function closeHelpModal() {
             document.getElementById('helpModalOverlay').classList.remove('active');
+            if (!settingsPanel.classList.contains('active')) {
+                toggleSettings(true);
+            }
         }
 
         // --- EVENTOS GLOBALES ---
@@ -7435,6 +7600,14 @@
                     renderAll();
                     showModal('🎉', '¡Ascenso!', `Has subido a Nivel ${state.job.level}. Tu salario bruto ahora es de ${formatNumber(state.job.baseSalary * (1 + state.job.level * 0.15))} Bs/min.`);
                 }
+
+                // Manejar clic en estrella de watchlist (delegado)
+                const star = e.target.closest('.watchlist-star');
+                if (star) {
+                    e.stopPropagation();
+                    const assetId = star.dataset.id;
+                    toggleWatchlist(assetId);
+                }
             });
 
             jobSwitch.addEventListener('click', function() {
@@ -7462,6 +7635,15 @@
                     location.reload();
                 }
             });
+
+            const toggleComisionesBtn = document.getElementById('toggleComisionesBtn');
+            const comisionesPanel = document.getElementById('comisionesPanel');
+            toggleComisionesBtn.addEventListener('click', function() {
+                const isHidden = comisionesPanel.style.display === 'none';
+                comisionesPanel.style.display = isHidden ? 'block' : 'none';
+                this.textContent = isHidden ? 'Ocultar' : 'Mostrar';
+            });
+            comisionesPanel.style.display = 'none';
 
             document.getElementById('openIndicatorsBtn').addEventListener('click', openIndicatorsModal);
             document.getElementById('closeIndicatorsModal').addEventListener('click', closeIndicatorsModal);
@@ -7538,10 +7720,11 @@
                 renderPrestatarios();
             });
 
-            // Búsqueda en negocios
             document.getElementById('businessSearch').addEventListener('input', function() {
                 renderBusiness();
             });
+
+            // NOTA: Se ha eliminado el listener para número de velas
         }
 
         function updateJobSwitchUI() {
@@ -7586,6 +7769,7 @@
                             });
                             currentFilter = 'stock';
                             renderMarket();
+                            window.scrollTo(0, 0);
                         }
                         if (sectionName === 'portfolio') {
                             document.querySelectorAll('.portfolio-table .detail-row.expanded').forEach(row => {
@@ -7641,6 +7825,7 @@
                     this.classList.add('active');
                     currentFilter = filter;
                     renderMarket();
+                    window.scrollTo(0, 0);
                 });
             });
         }

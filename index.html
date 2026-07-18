@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -57,7 +56,6 @@
         (function() {
             new TradingView.widget({
                 "container_id": "tv_chart",
-                // 🟢 CAMBIO #1: Símbolo CORRECTO para la Bolsa de Caracas
                 "symbol": "BVCV:BPV",  
                 "interval": "D",
                 "theme": "dark",
@@ -72,22 +70,17 @@
                 "hotlist": false,
                 "calendar": false,
                 "news": [],
-
-                // 🟢 CAMBIO #2: SOLO Volumen (arriba) y RSI Amarillo (abajo)
-                // He eliminado los 13 indicadores pesados para que cargue RÁPIDO
                 "studies": [
-                    // 1️⃣ Volumen – panel superior
                     {
                         "name": "Volume@tv-basicstudies",
                         "position": "top"
                     },
-                    // 2️⃣ RSI – panel inferior, amarillo y editable
                     {
                         "name": "RSI@tv-basicstudies",
                         "inputs": { "length": 14 },
                         "styles": {
                             "RSI": {
-                                "color": "#F0B90B",  // Amarillo
+                                "color": "#F0B90B",
                                 "linestyle": 0,
                                 "linewidth": 2
                             },
@@ -114,6 +107,25 @@
             });
         })();
     </script>
+
+    <!-- Configuración de Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlbKvvEH2ad0iKKyFAqP8tzqKzPIe1qFk",
+            authDomain: "juego-financiero.firebaseapp.com",
+            projectId: "juego-financiero",
+            storageBucket: "juego-financiero.firebasestorage.app",
+            messagingSenderId: "1016511710595",
+            appId: "1:1016511710595:web:421730a945cadc8c2fa2b6",
+            measurementId: "G-6TT7HNS2NF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        console.log("Firebase conectado correctamente.");
+    </script>
 </body>
 </html>
-

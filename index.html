@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Posicion  RichMan Web - Mi Cartera</title>
+    <title>Ordenamiento RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -204,6 +204,13 @@
             padding: 0.6rem 0.5rem;
             background: #1a2230;
             color: #aab3c5;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        .portfolio-table th:hover, .market-table th:hover {
+            background: #253042;
+            color: #f1c40f;
         }
         .portfolio-table td, .market-table td, .history-table td {
             padding: 0.6rem 0.5rem;
@@ -353,13 +360,13 @@
                     <table class="portfolio-table" style="margin-top: 1rem; min-width: 700px;">
                         <thead>
                             <tr>
-                                <th>Activo</th>
-                                <th>Cantidad</th>
-                                <th>Precio Promedio</th>
-                                <th>Precio Actual</th>
-                                <th>Posición</th>
-                                <th>G/P</th>
-                                <th>ROI (%)</th>
+                                <th onclick="sortPortfolio('activo')">Activo ↕</th>
+                                <th onclick="sortPortfolio('cantidad')">Cantidad ↕</th>
+                                <th onclick="sortPortfolio('precioPromedio')">Precio Promedio ↕</th>
+                                <th onclick="sortPortfolio('precioActual')">Precio Actual ↕</th>
+                                <th onclick="sortPortfolio('posicion')">Posición ↕</th>
+                                <th onclick="sortPortfolio('gp')">G/P ↕</th>
+                                <th onclick="sortPortfolio('roi')">ROI (%) ↕</th>
                             </tr>
                         </thead>
                         <tbody id="portfolioCryptoBody">
@@ -376,7 +383,13 @@
             <h2>📈 Mercado (Criptomonedas Binance)</h2>
             <div id="marketTableWrap">
                 <table class="market-table">
-                    <thead><tr><th>Nombre / Símbolo</th><th>Precio (Bs)</th><th>Acciones</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th onclick="sortMarket('nombre')">Nombre / Símbolo ↕</th>
+                            <th onclick="sortMarket('precio')">Precio (Bs) ↕</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
                     <tbody id="marketBody"></tbody>
                 </table>
             </div>
@@ -440,6 +453,12 @@
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
     let financialModalTimer = null;
     let cryptoListCache = [];
+
+    // Estados de ordenamiento
+    let portfolioSortField = null;
+    let portfolioSortAsc = true;
+    let marketSortField = null;
+    let marketSortAsc = true;
 
     let state = {
         cash: 100,
@@ -705,6 +724,17 @@
         }
     }
 
+    // --- FUNCION DE ORDENAMIENTO DE MERCADO ---
+    function sortMarket(field) {
+        if (marketSortField === field) {
+            marketSortAsc = !marketSortAsc;
+        } else {
+            marketSortField = field;
+            marketSortAsc = true;
+        }
+        renderMarketTable();
+    }
+
     function renderMarketTable() {
         const tbody = document.getElementById('marketBody');
         if (!tbody) return;
@@ -712,9 +742,26 @@
             tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1rem;">No hay criptomonedas cargadas en Firebase.</td></tr>`;
             return;
         }
-        tbody.innerHTML = cryptoListCache.map(crypto => `
+
+        let sortedList = [...cryptoListCache];
+        if (marketSortField) {
+            sortedList.sort((a, b) => {
+                let valA, valB;
+                if (marketSortField === 'nombre') {
+                    valA = (a.nombre || a.id).toLowerCase();
+                    valB = (b.nombre || b.id).toLowerCase();
+                    return marketSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else if (marketSortField === 'precio') {
+                    valA = Number(a.precio || 0);
+                    valB = Number(b.precio || 0);
+                    return marketSortAsc ? valA - valB : valB - valA;
+                }
+            });
+        }
+
+        tbody.innerHTML = sortedList.map(crypto => `
             <tr>
-                <td><strong>${crypto.nombre}</strong></td>
+                <td><strong>${crypto.nombre || crypto.id}</strong></td>
                 <td>${formatNumber(crypto.precio)}</td>
                 <td>
                     <button class="btn-buy" onclick="comprarCripto('${crypto.id}', ${crypto.precio})">Comprar</button>
@@ -842,12 +889,23 @@
         }
     }
 
+    // --- FUNCION DE ORDENAMIENTO DE CARTERA ---
+    function sortPortfolio(field) {
+        if (portfolioSortField === field) {
+            portfolioSortAsc = !portfolioSortAsc;
+        } else {
+            portfolioSortField = field;
+            portfolioSortAsc = true;
+        }
+        renderPortfolioCryptoTable();
+    }
+
     function renderPortfolioCryptoTable() {
         const tbody = document.getElementById('portfolioCryptoBody');
         if (!tbody) return;
 
         const cryptoPortfolio = state.portfolio_crypto || {};
-        const keys = Object.keys(cryptoPortfolio);
+        let keys = Object.keys(cryptoPortfolio);
 
         if (keys.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
@@ -855,36 +913,50 @@
             return;
         }
 
-        let html = '';
-        let totalCryptoWorth = 0;
-
-        keys.forEach(id => {
+        // Construir array de objetos para poder ordenar fácilmente
+        let items = keys.map(id => {
             const item = cryptoPortfolio[id];
             const cantidad = item.cantidad || 0;
             const costoTotal = item.costoTotal || 0;
             const precioPromedio = cantidad > 0 ? costoTotal / cantidad : 0;
-
             const cryptoObj = cryptoListCache.find(c => c.id === id);
             const precioActual = cryptoObj ? cryptoObj.precio : precioPromedio;
-            
-            const valorActualTotal = cantidad * precioActual;
-            totalCryptoWorth += valorActualTotal;
+            const posicion = cantidad * precioActual;
+            const gp = posicion - costoTotal;
+            const roi = costoTotal > 0 ? (gp / costoTotal) * 100 : 0;
+            return { id, cantidad, precioPromedio, precioActual, posicion, gp, roi };
+        });
 
-            const gananciaPerdida = valorActualTotal - costoTotal;
-            const roi = costoTotal > 0 ? (gananciaPerdida / costoTotal) * 100 : 0;
+        if (portfolioSortField) {
+            items.sort((a, b) => {
+                let valA = a[portfolioSortField];
+                let valB = b[portfolioSortField];
+                if (portfolioSortField === 'activo') {
+                    valA = a.id.toLowerCase();
+                    valB = b.id.toLowerCase();
+                    return portfolioSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+                return portfolioSortAsc ? valA - valB : valB - valA;
+            });
+        }
 
-            const gpClass = gananciaPerdida >= 0 ? 'text-green' : 'text-red';
-            const roiClass = roi >= 0 ? 'text-green' : 'text-red';
+        let html = '';
+        let totalCryptoWorth = 0;
+
+        items.forEach(item => {
+            totalCryptoWorth += item.posicion;
+            const gpClass = item.gp >= 0 ? 'text-green' : 'text-red';
+            const roiClass = item.roi >= 0 ? 'text-green' : 'text-red';
 
             html += `
                 <tr>
-                    <td><strong>${id}</strong></td>
-                    <td>${cantidad}</td>
-                    <td>${formatNumber(precioPromedio)}</td>
-                    <td>${formatNumber(precioActual)}</td>
-                    <td><strong>${formatNumber(valorActualTotal)}</strong></td>
-                    <td class="${gpClass}">${gananciaPerdida >= 0 ? '+' : ''}${formatNumber(gananciaPerdida)}</td>
-                    <td class="${roiClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
+                    <td><strong>${item.id}</strong></td>
+                    <td>${item.cantidad}</td>
+                    <td>${formatNumber(item.precioPromedio)}</td>
+                    <td>${formatNumber(item.precioActual)}</td>
+                    <td><strong>${formatNumber(item.posicion)}</strong></td>
+                    <td class="${gpClass}">${item.gp >= 0 ? '+' : ''}${formatNumber(item.gp)}</td>
+                    <td class="${roiClass}">${item.roi >= 0 ? '+' : ''}${item.roi.toFixed(2)}%</td>
                 </tr>
             `;
         });

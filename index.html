@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Max c MAx v  RichMan Web - Mi Cartera</title>
+    <title>Max  RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -271,13 +271,11 @@
             padding: 1rem;
             border: 1px solid #2a3442;
         }
-        .btn-buy, .btn-sell, .btn-max-buy, .btn-max-sell, .btn-upgrade-business {
+        .btn-buy, .btn-sell, .btn-upgrade-business {
             padding: 0.4rem 0.8rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; margin-right: 3px;
         }
         .btn-buy { background: #2ecc71; color: #0b0e14; }
         .btn-sell { background: #e74c3c; color: #fff; }
-        .btn-max-buy { background: #3498db; color: #fff; }
-        .btn-max-sell { background: #e67e22; color: #fff; }
         .btn-upgrade-business { background: #f39c12; color: #0b0e14; }
 
         /* --- ESTILOS DEL MODAL FINANCIERO INFERIOR DERECHO --- */
@@ -394,11 +392,12 @@
         <div class="portfolio-section">
             <h2>📈 Mercado (Criptomonedas Binance)</h2>
             <div id="marketTableWrap" style="overflow-x: auto;">
-                <table class="market-table" style="min-width: 700px;">
+                <table class="market-table" style="min-width: 750px;">
                     <thead>
                         <tr>
                             <th onclick="sortMarket('nombre')">Nombre / Símbolo ↕</th>
                             <th onclick="sortMarket('precio')">Precio (Bs) ↕</th>
+                            <th onclick="sortMarket('maxCompra')">Máximo a Comprar ↕</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -775,11 +774,15 @@
         const tbody = document.getElementById('marketBody');
         if (!tbody) return;
         if (cryptoListCache.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1rem;">No hay criptomonedas cargadas en Firebase.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 1rem;">No hay criptomonedas cargadas en Firebase.</td></tr>`;
             return;
         }
 
-        let sortedList = [...cryptoListCache];
+        let sortedList = cryptoListCache.map(crypto => {
+            let maxCompra = Number(crypto.precio) > 0 ? state.cash / Number(crypto.precio) : 0;
+            return { ...crypto, maxCompra };
+        });
+
         if (marketSortField) {
             sortedList.sort((a, b) => {
                 let valA, valB;
@@ -791,6 +794,10 @@
                     valA = Number(a.precio || 0);
                     valB = Number(b.precio || 0);
                     return marketSortAsc ? valA - valB : valB - valA;
+                } else if (marketSortField === 'maxCompra') {
+                    valA = Number(a.maxCompra || 0);
+                    valB = Number(b.maxCompra || 0);
+                    return marketSortAsc ? valA - valB : valB - valA;
                 }
             });
         }
@@ -799,34 +806,13 @@
             <tr>
                 <td><strong>${crypto.nombre || crypto.id}</strong></td>
                 <td>${formatNumber(crypto.precio)}</td>
+                <td><strong>${formatCryptoQty(crypto.maxCompra)}</strong></td>
                 <td>
-                    <button class="btn-max-buy" onclick="maxComprarCripto('${crypto.id}', ${crypto.precio})">Max Compra</button>
                     <button class="btn-buy" onclick="comprarCripto('${crypto.id}', ${crypto.precio})">Comprar</button>
-                    <button class="btn-max-sell" onclick="maxVenderCripto('${crypto.id}', ${crypto.precio})">Max Venta</button>
                     <button class="btn-sell" onclick="venderCripto('${crypto.id}', ${crypto.precio})">Venta</button>
                 </td>
             </tr>
         `).join('');
-    }
-
-    // --- ACCIÓN DE MÁXIMO Y COMPRA/VENTA FRACCIONADA (HASTA 8 DECIMALES) ---
-    function maxComprarCripto(id, precio) {
-        let maxCantidad = state.cash / precio;
-        if (maxCantidad <= 0) {
-            showModal("Fondos insuficientes", `No tienes suficiente efectivo para comprar unidades de ${id}.`);
-            return;
-        }
-        showModal("Cantidad Máxima", `Puedes comprar un máximo de ${formatCryptoQty(maxCantidad)} unidades de ${id} por ${formatNumber(state.cash)}.`);
-    }
-
-    function maxVenderCripto(id, precio) {
-        let asset = state.portfolio_crypto[id];
-        let cantidadPoseida = asset ? asset.cantidad : 0;
-        if (cantidadPoseida <= 0) {
-            showModal("Sin tenencias", `No posees unidades de ${id} para vender.`);
-            return;
-        }
-        showModal("Tenencia Máxima", `Tienes un total de ${formatCryptoQty(cantidadPoseida)} unidades de ${id} disponibles para vender por ${formatNumber(cantidadPoseida * precio)}.`);
     }
 
     async function comprarCripto(id, precio) {
@@ -853,7 +839,7 @@
                     throw new Error("Fondos insuficientes");
                 }
 
-                let costoTotalGasto = cash; // Gasta todo el efectivo disponible al dar clic en "Comprar"
+                let costoTotalGasto = cash; 
                 let cantidadFraccionada = costoTotalGasto / precio;
 
                 cash = 0;
@@ -1124,6 +1110,7 @@
         `).join('');
 
         renderPortfolioCryptoTable();
+        renderMarketTable(); // Actualiza los valores máximos a comprar si cambia el efectivo
     }
 
     function upgradeJob() {

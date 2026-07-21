@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>1000 trabajos RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -843,7 +843,6 @@
                             if (cantidad > 0) {
                                 let stockObj = stocksListCache.find(s => s.id === stockId);
                                 let precioActual = stockObj ? stockObj.precio : 100;
-                                // RANGO ALEATORIO ENTRE 0.00001 Y 0.000015
                                 let factorAleatorio = 0.00001 + Math.random() * (0.000015 - 0.00001);
                                 dividendosOfflineTotal += (cantidad * precioActual) * factorAleatorio * diffMinutes;
                             }
@@ -982,7 +981,6 @@
                         if (cantidad > 0) {
                             let stockObj = stocksListCache.find(s => s.id === stockId);
                             let precioActual = stockObj ? stockObj.precio : 100;
-                            // RANGO ALEATORIO ENTRE 0.00001 Y 0.000015
                             let factorAleatorio = 0.00001 + Math.random() * (0.000015 - 0.00001);
                             acumuladoMinuto += (cantidad * precioActual) * factorAleatorio;
                         }
@@ -1015,7 +1013,7 @@
 
             await runTransaction(window.db, async (transaction) => {
                 const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) return;
+                if (!userDoc.exists()) throw new Error("No existe la partida");
 
                 let data = userDoc.data();
                 let pendingDiv = Number(data.pending_dividends || 0);
@@ -1026,24 +1024,25 @@
 
                 montoCobrado = pendingDiv;
                 let cash = Number(data.cash || 0) + montoCobrado;
+                let listaTransacciones = Array.isArray(data.transactions) ? data.transactions : [];
 
-                if (!data.transactions) data.transactions = [];
-                data.transactions.push({
+                listaTransacciones.push({
                     id: Date.now(),
                     type: `Cobro de Dividendos`,
-                    total: montoCobrado,
+                    total: Number(montoCobrado.toFixed(2)),
                     timestamp: new Date().toLocaleString()
                 });
 
                 transaction.update(userRef, {
                     cash: Number(cash.toFixed(2)),
                     pending_dividends: 0,
-                    transactions: data.transactions
+                    transactions: listaTransacciones,
+                    last_active: Date.now()
                 });
 
                 state.cash = cash;
                 state.pending_dividends = 0;
-                state.transactions = data.transactions;
+                state.transactions = listaTransacciones;
             });
 
             renderAll();

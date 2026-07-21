@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Juego Financiero - Sincronización Persistente</title>
+    <title>Jxx uego Financiero - Sincronización Persistente</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -243,7 +243,7 @@
                 if (window.db && window.firebaseModules) {
                     const { doc, setDoc } = window.firebaseModules;
                     const userId = getUserId();
-                    await setDoc(doc(window.db, "partidas", userId), state);
+                    await setDoc(doc(window.db, "partidas", userId), JSON.parse(JSON.stringify(state)));
                     document.getElementById('cloudStatusBanner').textContent = "☁️ Sincronizado en la nube (Firebase Firestore)";
                 }
             } catch (e) {
@@ -266,7 +266,7 @@
                 
                 state.transactions.push({ 
                     timestamp: new Date().toLocaleString(), 
-                    name: `Salario de 1 minuto (${state.jobSalary} Bs) y Rendimientos`, 
+                    name: `Salario (${state.jobSalary} Bs) y Rendimientos`, 
                     total: totalIncome 
                 });
 
@@ -290,7 +290,6 @@
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
                         const cloudData = docSnap.data();
-                        // Fusionar datos de la nube asegurando la persistencia de activos y transacciones
                         state.cash = cloudData.cash !== undefined ? cloudData.cash : state.cash;
                         state.credit = cloudData.credit !== undefined ? cloudData.credit : state.credit;
                         state.jobLevel = cloudData.jobLevel !== undefined ? cloudData.jobLevel : state.jobLevel;
@@ -618,6 +617,7 @@
 
         async function init() {
             setupInteractions();
+            // Esperar obligatoriamente a que cargue la información desde Firebase antes de pintar la web
             await initFirebaseSync();
             restartGameLoop();
             renderAll();

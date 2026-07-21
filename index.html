@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Pag Acciones RichMan Web - Mi Cartera</title>
+    <title>222 RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -435,6 +435,26 @@
                         </tbody>
                     </table>
                 </div>
+
+                <h3 style="margin-top: 2rem;">Mis Acciones</h3>
+                <div style="overflow-x: auto;">
+                    <table class="portfolio-table" style="margin-top: 1rem; min-width: 700px;">
+                        <thead>
+                            <tr>
+                                <th>Acción ↕</th>
+                                <th>Cantidad ↕</th>
+                                <th>Precio Promedio ↕</th>
+                                <th>Precio Actual ↕</th>
+                                <th>Posición ↕</th>
+                                <th>G/P ↕</th>
+                                <th>ROI (%) ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="portfolioStocksBody">
+                            <tr><td colspan="7" style="text-align:center;">No tienes acciones en cartera.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </section>
@@ -474,20 +494,50 @@
 
             <!-- SUB-SECCIÓN ACCIONES -->
             <div id="stocksMarketSub" class="market-sub-section">
-                <h2>🏢 Mercado de Acciones / BVC y Wall Street</h2>
-                <div id="stocksTableWrap" style="overflow-x: auto;">
-                    <table class="market-table" style="min-width: 800px; margin-top: 1rem;">
+                <h2>🏢 Mercado de Acciones</h2>
+                
+                <h3 style="color: #f1c40f; margin-top: 1rem;">🇻🇪 Bolsa de Valores de Caracas (BVC)</h3>
+                <div style="overflow-x: auto;">
+                    <table class="market-table" style="min-width: 800px; margin-top: 0.5rem; margin-bottom: 1.5rem;">
                         <thead>
                             <tr>
-                                <th>Acción / Mercado ↕</th>
+                                <th>Acción ↕</th>
                                 <th>Precio (Bs) ↕</th>
                                 <th>Cantidad / Operación</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="stocksBody">
-                            <tr><td colspan="4" style="text-align:center; padding: 1rem;">Cargando acciones...</td></tr>
-                        </tbody>
+                        <tbody id="stocksBvcBody"><tr><td colspan="4" style="text-align:center;">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #f1c40f;">🇺🇸 Nueva York (Wall Street)</h3>
+                <div style="overflow-x: auto;">
+                    <table class="market-table" style="min-width: 800px; margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                        <thead>
+                            <tr>
+                                <th>Acción ↕</th>
+                                <th>Precio (Bs) ↕</th>
+                                <th>Cantidad / Operación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stocksUsBody"><tr><td colspan="4" style="text-align:center;">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #f1c40f;">🇪🇺 Europa</h3>
+                <div style="overflow-x: auto;">
+                    <table class="market-table" style="min-width: 800px; margin-top: 0.5rem;">
+                        <thead>
+                            <tr>
+                                <th>Acción ↕</th>
+                                <th>Precio (Bs) ↕</th>
+                                <th>Cantidad / Operación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stocksEuBody"><tr><td colspan="4" style="text-align:center;">Cargando...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -537,7 +587,6 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="actualizarAccionesFirebase()">📈 Actualizar Acciones y Mercados en Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -566,11 +615,19 @@
         transactions: [],
         job: { level: 0, active: true },
         businesses: [{ id: 'b1', level: 0 }],
-        portfolio_crypto: {} 
+        portfolio_crypto: {},
+        portfolio_stocks: {}
     };
 
     function formatNumber(num) {
         const parts = (num || 0).toFixed(2).split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return parts.join(',') + ' Bs';
+    }
+
+    function formatStockPrice(num) {
+        const val = Number(num || 0);
+        const parts = val.toFixed(2).split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         return parts.join(',') + ' Bs';
     }
@@ -669,38 +726,6 @@
         }
     }
 
-    async function actualizarAccionesFirebase() {
-        if (!window.db) {
-            showModal("Error", "No hay conexión con Firebase.");
-            return;
-        }
-        try {
-            const { doc, setDoc } = window.fb;
-            const accionesIniciales = [
-                { id: "BVC_BVL", nombre: "Bolsa de Valores (BVL)", mercado: "BVC", precio: 150.00 },
-                { id: "US_AAPL", nombre: "Apple Inc. (AAPL)", mercado: "Wall Street", precio: 2400.00 },
-                { id: "US_TSLA", nombre: "Tesla Inc. (TSLA)", mercado: "Wall Street", precio: 1800.00 },
-                { id: "US_MSFT", nombre: "Microsoft Corp. (MSFT)", mercado: "Wall Street", precio: 3200.00 }
-            ];
-
-            for (let acc of accionesIniciales) {
-                await setDoc(doc(window.db, "mercado_acciones", acc.id), {
-                    nombre: acc.nombre,
-                    mercado: acc.mercado,
-                    precio: acc.precio,
-                    historial_velas: [{ open: acc.precio, close: acc.precio, high: acc.precio, low: acc.precio }]
-                }, { merge: true });
-            }
-
-            showModal("Mercado Actualizado", "Se han registrado y actualizado exitosamente las acciones de BVC y Wall Street en Firebase.");
-            toggleSettings(false);
-            cargarMercadoAcciones();
-        } catch (e) {
-            console.error("Error al actualizar acciones en Firebase:", e);
-            showModal("Error", "No se pudo actualizar el mercado de acciones en la base de datos.");
-        }
-    }
-
     async function loadUserData(uid) {
         try {
             state = {
@@ -709,7 +734,8 @@
                 transactions: [],
                 job: { level: 0, active: true },
                 businesses: [{ id: 'b1', level: 0 }],
-                portfolio_crypto: {}
+                portfolio_crypto: {},
+                portfolio_stocks: {}
             };
 
             await loadJobConfigFromFirebase(); 
@@ -734,6 +760,7 @@
                     }
                 }
                 state.portfolio_crypto = formattedCrypto;
+                state.portfolio_stocks = dataRemota.portfolio_stocks || {};
             } else {
                 await setDoc(userRef, state);
             }
@@ -741,6 +768,7 @@
             renderAll();
             startServerSideFinancialCycle();
             startServerSideCryptoCycle();
+            startServerSideStockCycle();
             cargarMercadoCripto();
             cargarMercadoAcciones();
         } catch (e) {
@@ -773,9 +801,7 @@
                             low: Number(Math.min(precioActual, nuevoPrecio).toFixed(4))
                         };
                         velas.push(nuevaVela);
-                        if (velas.length > 210) {
-                            velas.shift();
-                        }
+                        if (velas.length > 210) velas.shift();
                     }
 
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
@@ -785,7 +811,45 @@
                 }
                 cargarMercadoCripto();
             } catch (e) {
-                console.error("Error actualizando precios de criptomonedas:", e);
+                console.error("Error actualizando criptomonedas:", e);
+            }
+        }, 60000);
+    }
+
+    function startServerSideStockCycle() {
+        setInterval(async () => {
+            if (!window.db) return;
+            try {
+                const { collection, getDocs, doc, setDoc } = window.fb;
+                const querySnapshot = await getDocs(collection(window.db, "mercado_acciones"));
+                
+                for (let documentSnap of querySnapshot.docs) {
+                    let data = documentSnap.data();
+                    let precioActual = Number(data.precio || 100);
+                    let variacionPorcentual = (Math.random() * 0.04) - 0.02; // Variación más moderada para acciones
+                    let nuevoPrecio = precioActual * (1 + variacionPorcentual);
+                    if (nuevoPrecio < 1) nuevoPrecio = 1;
+
+                    let velas = data.historial_velas || [];
+                    if (velas.length > 0) {
+                        let nuevaVela = {
+                            open: Number(precioActual.toFixed(2)),
+                            close: Number(nuevoPrecio.toFixed(2)),
+                            high: Number(Math.max(precioActual, nuevoPrecio).toFixed(2)),
+                            low: Number(Math.min(precioActual, nuevoPrecio).toFixed(2))
+                        };
+                        velas.push(nuevaVela);
+                        if (velas.length > 210) velas.shift();
+                    }
+
+                    await setDoc(doc(window.db, "mercado_acciones", documentSnap.id), {
+                        precio: Number(nuevoPrecio.toFixed(2)),
+                        historial_velas: velas
+                    }, { merge: true });
+                }
+                cargarMercadoAcciones();
+            } catch (e) {
+                console.error("Error actualizando acciones:", e);
             }
         }, 60000);
     }
@@ -813,33 +877,203 @@
             querySnapshot.forEach((doc) => {
                 stocksListCache.push({ id: doc.id, ...doc.data() });
             });
-            renderStocksTable();
+            renderStocksTables();
+            renderPortfolioStocksTable();
         } catch (e) {
             console.error("Error al cargar mercado de acciones:", e);
         }
     }
 
-    function renderStocksTable() {
-        const tbody = document.getElementById('stocksBody');
-        if (!tbody) return;
+    function renderStocksTables() {
+        const bvcBody = document.getElementById('stocksBvcBody');
+        const usBody = document.getElementById('stocksUsBody');
+        const euBody = document.getElementById('stocksEuBody');
+
+        if (!bvcBody || !usBody || !euBody) return;
+
         if (stocksListCache.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 1rem;">No hay acciones registradas. Ve a Configuración y presiona Actualizar Acciones.</td></tr>`;
+            bvcBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
+            usBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
+            euBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = stocksListCache.map(stock => `
+        let bvcItems = stocksListCache.filter(s => s.mercado === 'BVC');
+        let usItems = stocksListCache.filter(s => s.mercado === 'Wall Street');
+        let euItems = stocksListCache.filter(s => s.mercado === 'Europa');
+
+        bvcBody.innerHTML = bvcItems.length ? bvcItems.map(buildStockRow).join('') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en BVC</td></tr>`;
+        usBody.innerHTML = usItems.length ? usItems.map(buildStockRow).join('') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Wall Street</td></tr>`;
+        euBody.innerHTML = euItems.length ? euItems.map(buildStockRow).join('') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Europa</td></tr>`;
+    }
+
+    function buildStockRow(stock) {
+        return `
             <tr>
-                <td><strong>${stock.nombre || stock.id}</strong><br><small style="color: #8d9bb5;">${stock.mercado || 'BVC / Wall Street'}</small></td>
-                <td>${formatCryptoPrice(stock.precio)}</td>
+                <td><strong>${stock.nombre || stock.id}</strong></td>
+                <td>${formatStockPrice(stock.precio)}</td>
                 <td>
-                    <input type="number" id="input-stock-qty-${stock.id}" class="market-input" placeholder="Cantidad" step="any" min="0">
+                    <button class="btn-max-buy" onclick="setearMaxCompraStock('${stock.id}', ${stock.precio})">Max Compra</button>
+                    <input type="number" id="input-stock-qty-${stock.id}" class="market-input" placeholder="Cantidad" step="1" min="1">
+                    <button class="btn-max-sell" onclick="setearMaxVentaStock('${stock.id}')">Max Venta</button>
                 </td>
                 <td>
-                    <button class="btn-buy" onclick="showModal('Acciones', 'Próximamente disponible la compra directa en servidor.')">Comprar</button>
-                    <button class="btn-sell" onclick="showModal('Acciones', 'Próximamente disponible la venta directa en servidor.')">Venta</button>
+                    <button class="btn-buy" onclick="comprarAccion('${stock.id}', ${stock.precio})">Comprar</button>
+                    <button class="btn-sell" onclick="venderAccion('${stock.id}', ${stock.precio})">Venta</button>
                 </td>
             </tr>
-        `).join('');
+        `;
+    }
+
+    function setearMaxCompraStock(id, precio) {
+        let input = document.getElementById(`input-stock-qty-${id}`);
+        if (!input) return;
+        let efectivoUtilizable = state.cash > 0 ? state.cash * 0.995 : 0;
+        let maxUnidades = precio > 0 ? Math.floor(efectivoUtilizable / precio) : 0;
+        input.value = maxUnidades > 0 ? maxUnidades : 0;
+    }
+
+    function setearMaxVentaStock(id) {
+        let input = document.getElementById(`input-stock-qty-${id}`);
+        if (!input) return;
+        let asset = state.portfolio_stocks[id];
+        let cantidadPoseida = asset ? asset.cantidad : 0;
+        input.value = cantidadPoseida > 0 ? cantidadPoseida : 0;
+    }
+
+    async function comprarAccion(id, precio) {
+        if (!currentUserUid || !window.db) return;
+        let input = document.getElementById(`input-stock-qty-${id}`);
+        let cantidadAComprar = input ? parseInt(input.value) : NaN;
+
+        if (isNaN(cantidadAComprar) || cantidadAComprar <= 0) {
+            showModal("Cantidad Inválida", "Por favor ingresa un número entero de unidades válido o presiona 'Max Compra'.");
+            return;
+        }
+
+        let costoTotalCompra = cantidadAComprar * precio;
+
+        try {
+            const { doc, runTransaction } = window.fb;
+            const userRef = doc(window.db, "partidas", currentUserUid);
+
+            await runTransaction(window.db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) return;
+
+                let data = userDoc.data();
+                let cash = Number(data.cash || 0);
+
+                cash -= costoTotalCompra;
+                if (!data.portfolio_stocks) data.portfolio_stocks = {};
+                if (!data.portfolio_stocks[id]) {
+                    data.portfolio_stocks[id] = { cantidad: 0, costoTotal: 0 };
+                }
+
+                data.portfolio_stocks[id].cantidad += cantidadAComprar;
+                data.portfolio_stocks[id].costoTotal += Number(costoTotalCompra);
+
+                if (!data.transactions) data.transactions = [];
+                data.transactions.push({
+                    id: Date.now(),
+                    type: `Compra Acciones (${cantidadAComprar}x ${id})`,
+                    total: -costoTotalCompra,
+                    timestamp: new Date().toLocaleString()
+                });
+
+                transaction.update(userRef, {
+                    cash: Number(cash.toFixed(2)),
+                    portfolio_stocks: data.portfolio_stocks,
+                    transactions: data.transactions
+                });
+
+                state.cash = cash;
+                state.portfolio_stocks = data.portfolio_stocks;
+                state.transactions = data.transactions;
+            });
+
+            renderAll();
+            showModal("¡Compra Exitosa!", `Has comprado ${cantidadAComprar} unidades de ${id} por ${formatNumber(costoTotalCompra)}.`);
+        } catch (e) {
+            console.error("Error en compra de acciones:", e);
+            showModal("Error", "No se pudo procesar la compra de acciones en el servidor.");
+        }
+    }
+
+    async function venderAccion(id, precio) {
+        if (!currentUserUid || !window.db) return;
+        let input = document.getElementById(`input-stock-qty-${id}`);
+        let cantidadAVender = input ? parseInt(input.value) : NaN;
+
+        if (isNaN(cantidadAVender) || cantidadAVender <= 0) {
+            showModal("Cantidad Inválida", "Por favor ingresa un número entero de unidades válido o presiona 'Max Venta'.");
+            return;
+        }
+
+        let asset = state.portfolio_stocks[id];
+        if (!asset || asset.cantidad < cantidadAVender) {
+            showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender.`);
+            return;
+        }
+
+        try {
+            const { doc, runTransaction } = window.fb;
+            const userRef = doc(window.db, "partidas", currentUserUid);
+
+            await runTransaction(window.db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) return;
+
+                let data = userDoc.data();
+                let portfolio = data.portfolio_stocks || {};
+                let targetAsset = portfolio[id];
+
+                if (!targetAsset || targetAsset.cantidad < cantidadAVender) {
+                    throw new Error("Sin tenencias");
+                }
+
+                let costoPromedioUnitario = targetAsset.costoTotal / targetAsset.cantidad;
+                let costoReducido = costoPromedioUnitario * cantidadAVender;
+
+                targetAsset.cantidad -= cantidadAVender;
+                targetAsset.costoTotal -= costoReducido;
+
+                if (targetAsset.cantidad <= 0) {
+                    delete portfolio[id];
+                }
+
+                let totalVenta = cantidadAVender * precio;
+                let cash = Number(data.cash || 0) + Number(totalVenta);
+
+                if (!data.transactions) data.transactions = [];
+                data.transactions.push({
+                    id: Date.now(),
+                    type: `Venta Acciones (${cantidadAVender}x ${id})`,
+                    total: Number(totalVenta),
+                    timestamp: new Date().toLocaleString()
+                });
+
+                transaction.update(userRef, {
+                    cash: Number(cash.toFixed(2)),
+                    portfolio_stocks: portfolio,
+                    transactions: data.transactions
+                });
+
+                state.cash = cash;
+                state.portfolio_stocks = portfolio;
+                state.transactions = data.transactions;
+            });
+
+            renderAll();
+            showModal("¡Venta Exitosa!", `Has vendido ${cantidadAVender} unidades de ${id} por ${formatNumber(cantidadAVender * precio)}.`);
+        } catch (e) {
+            if (e.message === "Sin tenencias") {
+                showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender.`);
+            } else {
+                console.error("Error en venta de acciones:", e);
+                showModal("Error", "No se pudo procesar la venta en el servidor.");
+            }
+        }
     }
 
     function sortMarket(field) {
@@ -1088,7 +1322,6 @@
 
         if (keys.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
-            document.getElementById('netWorthDisplay').textContent = formatNumber(state.cash);
             return;
         }
 
@@ -1105,28 +1338,10 @@
             return { id, cantidad, precioPromedio, precioActual, posicion, gp, roi };
         });
 
-        if (portfolioSortField) {
-            items.sort((a, b) => {
-                let valA = a[portfolioSortField];
-                let valB = b[portfolioSortField];
-                if (portfolioSortField === 'activo') {
-                    valA = a.id.toLowerCase();
-                    valB = b.id.toLowerCase();
-                    return portfolioSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-                return portfolioSortAsc ? valA - valB : valB - valA;
-            });
-        }
-
-        let html = '';
-        let totalCryptoWorth = 0;
-
-        items.forEach(item => {
-            totalCryptoWorth += item.posicion;
+        tbody.innerHTML = items.map(item => {
             const gpClass = item.gp >= 0 ? 'text-green' : 'text-red';
             const roiClass = item.roi >= 0 ? 'text-green' : 'text-red';
-
-            html += `
+            return `
                 <tr>
                     <td><strong class="clickable-asset" onclick="navegarAMercado('${item.id}')" title="Ver en Mercado">${item.id}</strong></td>
                     <td>${formatCryptoQty(item.cantidad)}</td>
@@ -1137,12 +1352,49 @@
                     <td class="${roiClass}">${item.roi >= 0 ? '+' : ''}${item.roi.toFixed(2)}%</td>
                 </tr>
             `;
+        }).join('');
+    }
+
+    function renderPortfolioStocksTable() {
+        const tbody = document.getElementById('portfolioStocksBody');
+        if (!tbody) return;
+
+        const stocksPortfolio = state.portfolio_stocks || {};
+        let keys = Object.keys(stocksPortfolio);
+
+        if (keys.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 1rem;">No tienes acciones en cartera.</td></tr>`;
+            return;
+        }
+
+        let items = keys.map(id => {
+            const item = stocksPortfolio[id];
+            const cantidad = item.cantidad || 0;
+            const costoTotal = item.costoTotal || 0;
+            const precioPromedio = cantidad > 0 ? costoTotal / cantidad : 0;
+            const stockObj = stocksListCache.find(s => s.id === id);
+            const precioActual = stockObj ? stockObj.precio : precioPromedio;
+            const posicion = cantidad * precioActual;
+            const gp = posicion - costoTotal;
+            const roi = costoTotal > 0 ? (gp / costoTotal) * 100 : 0;
+            return { id, cantidad, precioPromedio, precioActual, posicion, gp, roi };
         });
 
-        tbody.innerHTML = html;
-        
-        const patrimonioTotal = state.cash + totalCryptoWorth;
-        document.getElementById('netWorthDisplay').textContent = formatNumber(patrimonioTotal);
+        tbody.innerHTML = items.map(item => {
+            const gpClass = item.gp >= 0 ? 'text-green' : 'text-red';
+            const roiClass = item.roi >= 0 ? 'text-green' : 'text-red';
+            return `
+                <tr>
+                    <td><strong>${item.id}</strong></td>
+                    <td>${item.cantidad}</td>
+                    <td>${formatStockPrice(item.precioPromedio)}</td>
+                    <td>${formatStockPrice(item.precioActual)}</td>
+                    <td><strong>${formatNumber(item.posicion)}</strong></td>
+                    <td class="${gpClass}">${item.gp >= 0 ? '+' : ''}${formatNumber(item.gp)}</td>
+                    <td class="${roiClass}">${item.roi >= 0 ? '+' : ''}${item.roi.toFixed(2)}%</td>
+                </tr>
+            `;
+        }).join('');
     }
 
     function startServerSideFinancialCycle() {
@@ -1216,6 +1468,25 @@
             cashEl.className = '';
         }
         
+        let totalCryptoWorth = 0;
+        for (let id in state.portfolio_crypto) {
+            let item = state.portfolio_crypto[id];
+            let cryptoObj = cryptoListCache.find(c => c.id === id);
+            let precio = cryptoObj ? cryptoObj.precio : (item.costoTotal / item.cantidad);
+            totalCryptoWorth += item.cantidad * precio;
+        }
+
+        let totalStocksWorth = 0;
+        for (let id in state.portfolio_stocks) {
+            let item = state.portfolio_stocks[id];
+            let stockObj = stocksListCache.find(s => s.id === id);
+            let precio = stockObj ? stockObj.precio : (item.costoTotal / item.cantidad);
+            totalStocksWorth += item.cantidad * precio;
+        }
+
+        const patrimonioTotal = state.cash + totalCryptoWorth + totalStocksWorth;
+        document.getElementById('netWorthDisplay').textContent = formatNumber(patrimonioTotal);
+
         const jobData = getCurrentJobData();
         let costToNext = jobData.cost;
         if (configEmpleosNiveles && configEmpleosNiveles[state.job.level + 1]) {
@@ -1246,8 +1517,9 @@
         }).join('');
 
         renderPortfolioCryptoTable();
+        renderPortfolioStocksTable();
         renderMarketTable();
-        cargarMercadoAcciones();
+        renderStocksTables();
     }
 
     function upgradeJob() {
@@ -1284,7 +1556,7 @@
 
     function resetGameData() {
         if (confirm("¿Seguro que deseas reiniciar tu partida?")) {
-            state = { cash: 100, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {} };
+            state = { cash: 100, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, portfolio_stocks: {} };
             saveUserData();
             renderAll();
             toggleSettings(false);
@@ -1350,9 +1622,11 @@
                             transactions: [],
                             job: { level: 0, active: true },
                             businesses: [{ id: 'b1', level: 0 }],
-                            portfolio_crypto: {}
+                            portfolio_crypto: {},
+                            portfolio_stocks: {}
                         };
                         document.getElementById('portfolioCryptoBody').innerHTML = `<tr><td colspan="7" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>`;
+                        document.getElementById('portfolioStocksBody').innerHTML = `<tr><td colspan="7" style="text-align:center;">No tienes acciones en cartera.</td></tr>`;
                         document.getElementById('historyBody').innerHTML = '';
                         document.getElementById('authScreen').style.display = 'block';
                         document.getElementById('app').style.display = 'none';

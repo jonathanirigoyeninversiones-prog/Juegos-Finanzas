@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>111 Juego Financiero - Sincronización Firebase Definitiva</title>
+    <title>Juego Financiero - Registro Estructurado de Compras</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAlbKvvEH2ad0iKKyFAqP8tzqKzPIe1qFk",
@@ -23,7 +23,7 @@
         const db = getFirestore(app);
 
         window.db = db;
-        window.firebaseModules = { doc, setDoc, getDoc, onSnapshot };
+        window.firebaseModules = { doc, setDoc, getDoc, collection, addDoc, getDocs, query, orderBy };
     </script>
     <style>
         :root {
@@ -239,7 +239,6 @@
 
         async function saveState() {
             try {
-                localStorage.setItem('juego_state_backup', JSON.stringify(state));
                 if (window.db && window.firebaseModules) {
                     const { doc, setDoc } = window.firebaseModules;
                     const userId = getUserId();
@@ -258,13 +257,36 @@
                         transactions: state.transactions
                     };
 
-                    // Usar { merge: true } para actualizar con total precisión en Firebase Firestore
                     await setDoc(docRef, payload, { merge: true });
                     document.getElementById('cloudStatusBanner').textContent = "☁️ [ÉXITO] Sincronizado en Firebase Firestore";
                 }
             } catch (e) {
-                console.error("Error al guardar en Firebase:", e);
-                document.getElementById('cloudStatusBanner').textContent = "⚠️ [AVISO] Guardado local activo (Revisa las reglas de Firestore)";
+                console.error("Error al guardar estado:", e);
+                document.getElementById('cloudStatusBanner').textContent = "⚠️ [AVISO] Error de permisos en Firebase Firestore";
+            }
+        }
+
+        // Función dedicada para registrar cada compra/venta en una colección independiente en Firebase
+        async function registrarCompraEnFirebase(nombreActivo, cantidad, precio, tipoOperacion) {
+            try {
+                if (window.db && window.firebaseModules) {
+                    const { collection, addDoc } = window.firebaseModules;
+                    const userId = getUserId();
+                    const comprasRef = collection(window.db, "partidas", userId, "compras");
+                    
+                    await addDoc(comprasRef, {
+                        activo: nombreActivo,
+                        cantidad: cantidad,
+                        precioUnitario: precio,
+                        totalTransaccion: cantidad * precio,
+                        operacion: tipoOperacion, // 'COMPRA' o 'VENTA'
+                        timestamp: new Date().toISOString(),
+                        fechaLegible: new Date().toLocaleString()
+                    });
+                    console.log("Compra registrada en colección independiente de Firebase con éxito.");
+                }
+            } catch (e) {
+                console.error("Error al registrar compra independiente en Firebase:", e);
             }
         }
 
@@ -299,7 +321,7 @@
         async function initFirebaseSync() {
             try {
                 if (window.db && window.firebaseModules) {
-                    const { doc, getDoc } = window.firebaseModules;
+                    const { doc, getDoc, collection, getDocs } = window.firebaseModules;
                     const userId = getUserId();
                     const docRef = doc(window.db, "partidas", userId);
                     
@@ -326,18 +348,14 @@
                             });
                         }
 
-                        document.getElementById('cloudStatusBanner').textContent = "☁️ Partida cargada desde Firebase Firestore";
+                        document.getElementById('cloudStatusBanner').textContent = "☁️ Partida y compras cargadas desde Firebase Firestore";
                     } else {
                         await saveState();
                     }
                 }
             } catch (e) {
                 console.error("Error al cargar de Firebase:", e);
-                const local = localStorage.getItem('juego_state_backup');
-                if (local) {
-                    const localData = JSON.parse(local);
-                    state = { ...state, ...localData };
-                }
+                document.getElementById('cloudStatusBanner').textContent = "⚠️ Error de red o reglas de Firestore denegadas";
             }
         }
 
@@ -481,7 +499,11 @@
                             asset.owned += 1;
                             asset.costBasis += asset.price;
                             state.transactions.push({ timestamp: new Date().toLocaleString(), name: `Compra ${asset.symbol}`, total: -asset.price });
+                            
+                            // Guardar el estado general y registrar la compra explícitamente en la colección de Firebase
                             await saveState();
+                            await registrarCompraEnFirebase(asset.name, 1, asset.price, 'COMPRA');
+                            
                             renderAll();
                         } else alert("Efectivo insuficiente");
                     } else if (action === 'sell') {
@@ -490,7 +512,10 @@
                             asset.costBasis = Math.max(0, asset.costBasis - (asset.costBasis / asset.owned));
                             asset.owned -= 1;
                             state.transactions.push({ timestamp: new Date().toLocaleString(), name: `Venta ${asset.symbol}`, total: asset.price });
+                            
                             await saveState();
+                            await registrarCompraEnFirebase(asset.name, 1, asset.price, 'VENTA');
+                            
                             renderAll();
                         } else alert("No tienes unidades para vender");
                     }

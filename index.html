@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>222 RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -430,7 +430,7 @@
         transactions: [],
         job: { level: 0, active: true },
         businesses: [{ id: 'b1', level: 0 }],
-        portfolio_crypto: {} // Cartera de criptomonedas del usuario
+        portfolio_crypto: {}
     };
 
     function formatNumber(num) {
@@ -524,13 +524,23 @@
 
     async function loadUserData(uid) {
         try {
+            // Restablecer el estado base por defecto antes de cargar el usuario
+            state = {
+                cash: 100,
+                title: 'RichMan Web',
+                transactions: [],
+                job: { level: 0, active: true },
+                businesses: [{ id: 'b1', level: 0 }],
+                portfolio_crypto: {}
+            };
+
             await loadJobConfigFromFirebase(); 
             const { doc, getDoc, setDoc } = window.fb;
             const userRef = doc(window.db, "partidas", uid);
             const snap = await getDoc(userRef);
 
             if (snap.exists()) {
-                state = { cash: 100, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, ...snap.data() };
+                state = { ...state, ...snap.data() };
             } else {
                 await setDoc(userRef, state);
             }
@@ -604,11 +614,9 @@
         `).join('');
     }
 
-    // --- FUNCIÓN DE COMPRA DE CRIPTOMONEDAS ---
     async function comprarCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
         
-        // Compramos una unidad entera (o se puede ajustar la fracción deseada)
         const costoTotal = precio; 
 
         if (state.cash < costoTotal) {
@@ -637,7 +645,6 @@
         }
     }
 
-    // --- FUNCIÓN DE VENTA DE CRIPTOMONEDAS ---
     async function venderCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
 
@@ -682,6 +689,7 @@
 
         if (chaves.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
+            document.getElementById('netWorthDisplay').textContent = formatNumber(state.cash);
             return;
         }
 
@@ -707,7 +715,6 @@
 
         tbody.innerHTML = html;
         
-        // Actualizar Patrimonio Total (Efectivo + Criptos)
         const patrimonioTotal = state.cash + totalCryptoWorth;
         document.getElementById('netWorthDisplay').textContent = formatNumber(patrimonioTotal);
     }
@@ -801,7 +808,7 @@
         `;
 
         const tbody = document.getElementById('historyBody');
-        tbody.innerHTML = state.transactions.slice(-10).reverse().map(tx => `
+        tbody.innerHTML = (state.transactions || []).slice(-10).reverse().map(tx => `
             <tr><td>${tx.timestamp}</td><td>${tx.type}</td><td>${formatNumber(tx.total)}</td></tr>
         `).join('');
 
@@ -885,6 +892,15 @@
                         currentUserUid = null;
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
+                        // Limpiar estado global al cerrar sesión
+                        state = {
+                            cash: 100,
+                            title: 'RichMan Web',
+                            transactions: [],
+                            job: { level: 0, active: true },
+                            businesses: [{ id: 'b1', level: 0 }],
+                            portfolio_crypto: {}
+                        };
                         document.getElementById('authScreen').style.display = 'block';
                         document.getElementById('app').style.display = 'none';
                     }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>111 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -343,7 +343,15 @@
         <div class="portfolio-section">
             <h2>📋 Resumen de Cartera</h2>
             <div class="portfolio-summary" id="portfolioSummary"></div>
-            <div id="portfolioTables"></div>
+            <div id="portfolioTables">
+                <h3>Mis Criptomonedas</h3>
+                <table class="portfolio-table" style="margin-top: 1rem;">
+                    <thead><tr><th>Activo</th><th>Cantidad</th><th>Precio Actual</th><th>Valor Total</th></tr></thead>
+                    <tbody id="portfolioCryptoBody">
+                        <tr><td colspan="4" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
 
@@ -352,7 +360,7 @@
             <h2>📈 Mercado (Criptomonedas Binance)</h2>
             <div id="marketTableWrap">
                 <table class="market-table">
-                    <thead><tr><th>Nombre / Símbolo</th><th>Precio (Bs)</th><th>Acción</th></tr></thead>
+                    <thead><tr><th>Nombre / Símbolo</th><th>Precio (Bs)</th><th>Acciones</th></tr></thead>
                     <tbody id="marketBody"></tbody>
                 </table>
             </div>
@@ -421,10 +429,10 @@
         title: 'RichMan Web',
         transactions: [],
         job: { level: 0, active: true },
-        businesses: [{ id: 'b1', level: 0 }]
+        businesses: [{ id: 'b1', level: 0 }],
+        portfolio_crypto: {} // Cartera de criptomonedas del usuario
     };
 
-    // Formato exacto de moneda solicitado: XXX.XXX,XX Bs
     function formatNumber(num) {
         const parts = (num || 0).toFixed(2).split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -441,7 +449,6 @@
         document.getElementById('modalOverlay').classList.remove('active');
     }
 
-    // Funciones del Modal Financiero Flotante (Inferior Derecho)
     function mostrarModalFinanciero(texto) {
         const modal = document.getElementById('financial-notification-modal');
         const msgElement = document.getElementById('financial-msg');
@@ -475,7 +482,6 @@
         }, 500); 
     }
 
-    // Cargar la configuración de empleos e impuestos leída estrictamente desde Firebase
     async function loadJobConfigFromFirebase() {
         try {
             const { doc, getDoc } = window.fb;
@@ -483,12 +489,8 @@
             const snap = await getDoc(ref);
             if (snap.exists()) {
                 const data = snap.data();
-                if (data.niveles) {
-                    configEmpleosNiveles = data.niveles;
-                }
-                if (data.impuestosConfig) {
-                    configImpuestos = { ...configImpuestos, ...data.impuestosConfig };
-                }
+                if (data.niveles) configEmpleosNiveles = data.niveles;
+                if (data.impuestosConfig) configImpuestos = { ...configImpuestos, ...data.impuestosConfig };
             }
         } catch (e) {
             console.error("No se pudo cargar la configuración de Firebase:", e);
@@ -528,7 +530,7 @@
             const snap = await getDoc(userRef);
 
             if (snap.exists()) {
-                state = { ...state, ...snap.data() };
+                state = { cash: 100, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, ...snap.data() };
             } else {
                 await setDoc(userRef, state);
             }
@@ -541,7 +543,6 @@
         }
     }
 
-    // Ciclo de mercado cripto ejecutado y validado en el servidor de Firebase cada minuto (Variación +-2%)
     function startServerSideCryptoCycle() {
         if (marketInterval) clearInterval(marketInterval);
 
@@ -554,10 +555,8 @@
                 for (let documentSnap of querySnapshot.docs) {
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 10);
-                    
-                    let variacionPorcentual = (Math.random() * 0.04) - 0.02;
+                    let variacionPorcentual = (Math.random() * 0.04) - 0.02; // Variación +-2%[cite: 2]
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
-                    
                     if (nuevoPrecio < 10) nuevoPrecio = 10;
 
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
@@ -566,7 +565,7 @@
                 }
                 cargarMercadoCripto();
             } catch (e) {
-                console.error("Error actualizando precios de criptomonedas en Firebase:", e);
+                console.error("Error actualizando precios de criptomonedas:", e);
             }
         }, 60000);
     }
@@ -580,6 +579,7 @@
                 cryptoListCache.push({ id: doc.id, ...doc.data() });
             });
             renderMarketTable();
+            renderPortfolioCryptoTable();
         } catch (e) {
             console.error("Error al cargar mercado cripto:", e);
         }
@@ -596,16 +596,122 @@
             <tr>
                 <td><strong>${crypto.nombre}</strong></td>
                 <td>${formatNumber(crypto.precio)}</td>
-                <td><button class="btn-buy" onclick="comprarCripto('${crypto.id}', ${crypto.precio})">Comprar</button></td>
+                <td>
+                    <button class="btn-buy" onclick="comprarCripto('${crypto.id}', ${crypto.precio})">Comprar</button>
+                    <button class="btn-sell" style="margin-left: 5px;" onclick="venderCripto('${crypto.id}', ${crypto.precio})">Vender</button>
+                </td>
             </tr>
         `).join('');
     }
 
-    function comprarCripto(id, precio) {
-        showModal("Función de Mercado", `Pronto podrás operar con ${id} a un precio de ${formatNumber(precio)}.`);
+    // --- FUNCIÓN DE COMPRA DE CRIPTOMONEDAS ---
+    async function comprarCripto(id, precio) {
+        if (!currentUserUid || !window.db) return;
+        
+        // Compramos una unidad entera (o se puede ajustar la fracción deseada)
+        const costoTotal = precio; 
+
+        if (state.cash < costoTotal) {
+            showModal("Fondos insuficientes", `No tienes suficiente efectivo para comprar 1 ${id}. Necesitas ${formatNumber(costoTotal)}.`);
+            return;
+        }
+
+        try {
+            state.cash -= costoTotal;
+            if (!state.portfolio_crypto) state.portfolio_crypto = {};
+            state.portfolio_crypto[id] = (state.portfolio_crypto[id] || 0) + 1;
+
+            state.transactions.push({
+                id: Date.now(),
+                type: `Compra Cripto (${id})`,
+                total: -costoTotal,
+                timestamp: new Date().toLocaleString()
+            });
+
+            await saveUserData();
+            renderAll();
+            showModal("¡Compra Exitosa!", `Has comprado 1 ${id} por ${formatNumber(costoTotal)}.`);
+        } catch (e) {
+            console.error("Error al comprar cripto:", e);
+            showModal("Error", "No se pudo procesar la compra.");
+        }
     }
 
-    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase
+    // --- FUNCIÓN DE VENTA DE CRIPTOMONEDAS ---
+    async function venderCripto(id, precio) {
+        if (!currentUserUid || !window.db) return;
+
+        const tenencia = state.portfolio_crypto && state.portfolio_crypto[id] ? state.portfolio_crypto[id] : 0;
+
+        if (tenencia < 1) {
+            showModal("Sin tenencias", `No posees unidades de ${id} para vender.`);
+            return;
+        }
+
+        try {
+            state.portfolio_crypto[id] -= 1;
+            if (state.portfolio_crypto[id] <= 0) {
+                delete state.portfolio_crypto[id];
+            }
+
+            const ingresoTotal = precio;
+            state.cash += ingresoTotal;
+
+            state.transactions.push({
+                id: Date.now(),
+                type: `Venta Cripto (${id})`,
+                total: ingresoTotal,
+                timestamp: new Date().toLocaleString()
+            });
+
+            await saveUserData();
+            renderAll();
+            showModal("¡Venta Exitosa!", `Has vendido 1 ${id} por ${formatNumber(ingresoTotal)}.`);
+        } catch (e) {
+            console.error("Error al vender cripto:", e);
+            showModal("Error", "No se pudo procesar la venta.");
+        }
+    }
+
+    function renderPortfolioCryptoTable() {
+        const tbody = document.getElementById('portfolioCryptoBody');
+        if (!tbody) return;
+
+        const cryptoPortfolio = state.portfolio_crypto || {};
+        const chaves = Object.keys(cryptoPortfolio);
+
+        if (chaves.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        let totalCryptoWorth = 0;
+
+        chaves.forEach(id => {
+            const cantidad = cryptoPortfolio[id];
+            const cryptoObj = cryptoListCache.find(c => c.id === id);
+            const precioActual = cryptoObj ? cryptoObj.precio : 0;
+            const valorTotal = cantidad * precioActual;
+            totalCryptoWorth += valorTotal;
+
+            html += `
+                <tr>
+                    <td><strong>${id}</strong></td>
+                    <td>${cantidad}</td>
+                    <td>${formatNumber(precioActual)}</td>
+                    <td>${formatNumber(valorTotal)}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        
+        // Actualizar Patrimonio Total (Efectivo + Criptos)
+        const patrimonioTotal = state.cash + totalCryptoWorth;
+        document.getElementById('netWorthDisplay').textContent = formatNumber(patrimonioTotal);
+    }
+
     function startServerSideFinancialCycle() {
         if (gameInterval) clearInterval(gameInterval);
         
@@ -671,10 +777,8 @@
 
     function renderAll() {
         document.getElementById('cashDisplay').textContent = formatNumber(state.cash);
-        document.getElementById('netWorthDisplay').textContent = formatNumber(state.cash);
         
         const jobData = getCurrentJobData();
-        
         let costToNext = jobData.cost;
         if (configEmpleosNiveles && configEmpleosNiveles[state.job.level + 1]) {
             costToNext = Number(configEmpleosNiveles[state.job.level + 1].costo);
@@ -700,6 +804,8 @@
         tbody.innerHTML = state.transactions.slice(-10).reverse().map(tx => `
             <tr><td>${tx.timestamp}</td><td>${tx.type}</td><td>${formatNumber(tx.total)}</td></tr>
         `).join('');
+
+        renderPortfolioCryptoTable();
     }
 
     function upgradeJob() {
@@ -736,7 +842,7 @@
 
     function resetGameData() {
         if (confirm("¿Seguro que deseas reiniciar tu partida?")) {
-            state = { cash: 100, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }] };
+            state = { cash: 100, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {} };
             saveUserData();
             renderAll();
             toggleSettings(false);

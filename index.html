@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Ventralizado RichMan Web - Mi Cartera</title>
+    <title>Mwrcado RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -523,7 +523,8 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <button class="modal-btn" style="background:#3498db; width:100%; margin-bottom: 1rem;" onclick="actualizarMotorFirebase()">🛠️ Actualizar Motor en Firebase (5.1% Volatilidad)</button>
+    <!-- 🛠️ BOTÓN CON ICONO EN CONFIGURACIÓN PARA ACTUALIZAR MOTOR FIREBASE (5.1%) -->
+    <button class="modal-btn" style="background:#3498db; width:100%; margin-bottom: 1rem;" onclick="actualizarMotorFirebase()">🛠️ Actualizar Motor en Firebase (5.1%)</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -654,15 +655,14 @@
         }
     }
 
-    // 🛠️ SCRIPT DE ACTUALIZACIÓN EN FIREBASE (Establece volatilidad del 5.1% en servidor)
+    // 🛠️ FUNCIÓN PARA ACTUALIZAR MOTOR EN FIREBASE (Permitida por reglas)
     async function actualizarMotorFirebase() {
         if (!window.db) {
-            alert("No hay conexión con Firebase.");
+            showModal("Error", "No hay conexión con Firebase.");
             return;
         }
         try {
             const { doc, setDoc } = window.fb;
-            // Guardamos la configuración de volatilidad del mercado en el servidor de Firebase
             await setDoc(doc(window.db, "configuracion", "mercado"), {
                 volatilidadPorcentaje: 5.1,
                 actualizadoEn: new Date().toLocaleString()
@@ -722,7 +722,6 @@
         }
     }
 
-    // ⚡ CICLO DE MERCADO CALCULADO ÍNTEGRAMENTE EN FIREBASE (Con volatilidad del 5.1%)
     function startServerSideCryptoCycle() {
         if (marketInterval) clearInterval(marketInterval);
 
@@ -735,8 +734,6 @@
                 for (let documentSnap of querySnapshot.docs) {
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 10);
-                    
-                    // Aplicamos el 5.1% de variación directamente en el servidor
                     let variacionPorcentual = (Math.random() * 0.102) - 0.051;
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
                     if (nuevoPrecio < 0.001) nuevoPrecio = 0.001;
@@ -755,7 +752,6 @@
                         }
                     }
 
-                    // Firebase calcula y almacena el nuevo precio y métricas base
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
                         precio: Number(nuevoPrecio.toFixed(4)),
                         historial_velas: velas
@@ -763,7 +759,7 @@
                 }
                 cargarMercadoCripto();
             } catch (e) {
-                console.error("Error actualizando precios de criptomonedas en Firebase:", e);
+                console.error("Error actualizando precios de criptomonedas:", e);
             }
         }, 60000);
     }
@@ -1020,7 +1016,6 @@
         renderPortfolioCryptoTable();
     }
 
-    // 🖥️ LA WEB SOLO PINTA LOS DATOS QUE VIENEN DE FIREBASE (Sin lógica matemática interna)
     function renderPortfolioCryptoTable() {
         const tbody = document.getElementById('portfolioCryptoBody');
         if (!tbody) return;
@@ -1041,8 +1036,6 @@
             const precioPromedio = cantidad > 0 ? costoTotal / cantidad : 0;
             const cryptoObj = cryptoListCache.find(c => c.id === id);
             const precioActual = cryptoObj ? cryptoObj.precio : precioPromedio;
-            
-            // Datos básicos leídos directamente del servidor
             const posicion = cantidad * precioActual;
             const gp = posicion - costoTotal;
             const roi = costoTotal > 0 ? (gp / costoTotal) * 100 : 0;

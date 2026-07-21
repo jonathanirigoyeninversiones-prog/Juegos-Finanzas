@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Jxx uego Financiero - Sincronización Persistente</title>
+    <title>Juego Financiero - Depuración Firebase</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -44,7 +44,7 @@
         body { background: var(--bg-main); color: var(--text-main); padding: 2vw; min-height: 100vh; display: flex; justify-content: center; }
         #app { max-width: 1400px; width: 100%; }
 
-        #cloudStatusBanner { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--accent-gold); text-align: center; padding: 0.5rem; font-size: 0.85rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 500; letter-spacing: 0.5px; }
+        #cloudStatusBanner { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--accent-gold); text-align: center; padding: 0.6rem; font-size: 0.9rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 600; letter-spacing: 0.5px; }
 
         #stickyHeader { position: sticky; top: 0; z-index: 999; background: var(--bg-main); padding-top: 0.5rem; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; background: var(--bg-header); padding: 1.2rem 1.5rem; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
@@ -96,7 +96,7 @@
 </head>
 <body>
 <div id="app">
-    <div id="cloudStatusBanner">☁️ Sincronización en la nube activa (Firebase)</div>
+    <div id="cloudStatusBanner">☁️ Conectando con Firebase Firestore...</div>
     <div id="stickyHeader">
         <div class="top-bar">
             <h1>Simulador Financiero</h1>
@@ -243,12 +243,16 @@
                 if (window.db && window.firebaseModules) {
                     const { doc, setDoc } = window.firebaseModules;
                     const userId = getUserId();
-                    await setDoc(doc(window.db, "partidas", userId), JSON.parse(JSON.stringify(state)));
-                    document.getElementById('cloudStatusBanner').textContent = "☁️ Sincronizado en la nube (Firebase Firestore)";
+                    const docRef = doc(window.db, "partidas", userId);
+                    // Forzar guardado limpio eliminando referencias vacías
+                    const payload = JSON.parse(JSON.stringify(state));
+                    await setDoc(docRef, payload);
+                    document.getElementById('cloudStatusBanner').textContent = "☁️ [ÉXITO] Transacción guardada en Firebase Firestore";
+                    console.log("Firebase sync exitoso para ID:", userId);
                 }
             } catch (e) {
-                console.error("Error al sincronizar con Firebase:", e);
-                document.getElementById('cloudStatusBanner').textContent = "⚠️ Error de red: Respaldo local activo";
+                console.error("Error crítico al guardar en Firebase:", e);
+                document.getElementById('cloudStatusBanner').textContent = "⚠️ [ERROR DE PERMISOS] Revisa las Reglas de Firebase Firestore";
             }
         }
 
@@ -310,31 +314,14 @@
                             });
                         }
 
-                        document.getElementById('cloudStatusBanner').textContent = "☁️ Partida cargada desde Firebase Firestore";
+                        document.getElementById('cloudStatusBanner').textContent = "☁️ Partida cargada correctamente desde Firebase Firestore";
                     } else {
                         await saveState();
                     }
-
-                    onSnapshot(docRef, (docu) => {
-                        if (docu.exists()) {
-                            const data = docu.data();
-                            let needsRestart = false;
-                            
-                            if (data.gameIntervalMs && data.gameIntervalMs !== state.gameIntervalMs) {
-                                needsRestart = true;
-                            }
-
-                            state.jobSalary = data.jobSalary !== undefined ? data.jobSalary : state.jobSalary;
-                            state.gameIntervalMs = data.gameIntervalMs !== undefined ? data.gameIntervalMs : state.gameIntervalMs;
-
-                            if (needsRestart) {
-                                restartGameLoop();
-                            }
-                        }
-                    });
                 }
             } catch (e) {
-                console.error("Error al configurar Firebase:", e);
+                console.error("Error al sincronizar con Firebase:", e);
+                document.getElementById('cloudStatusBanner').textContent = "⚠️ Error de red o reglas de Firebase denegadas";
                 const local = localStorage.getItem('juego_state_backup');
                 if (local) {
                     const localData = JSON.parse(local);
@@ -617,7 +604,6 @@
 
         async function init() {
             setupInteractions();
-            // Esperar obligatoriamente a que cargue la información desde Firebase antes de pintar la web
             await initFirebaseSync();
             restartGameLoop();
             renderAll();

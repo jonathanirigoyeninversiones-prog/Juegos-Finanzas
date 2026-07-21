@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Roi tiempo  RichMan Web - Mi Cartera</title>
+    <title>210 velas RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -425,6 +425,7 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
+    <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="inicializarHistorialYEMAsFirebase()">📊 INICIALIZAR 210 VELAS Y EMAs</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -583,6 +584,74 @@
         }
     }
 
+    // --- SCRIPT DEL BOTÓN DE CONFIGURACIÓN: INICIALIZAR 210 VELAS Y EMAs EN FIREBASE ---
+    async function inicializarHistorialYEMAsFirebase() {
+        if (!window.db) return;
+        try {
+            const { collection, getDocs, doc, setDoc } = window.fb;
+            const querySnapshot = opt = await getDocs(collection(window.db, "mercado_cripto"));
+            
+            // Función auxiliar para calcular EMA de un arreglo de precios
+            function calcularEMA(precios, periodo) {
+                if (precios.length === 0) return 0;
+                let k = 2 / (periodo + 1);
+                let ema = precios[0];
+                for (let i = 1; i < precios.length; i++) {
+                    ema = (precios[i] * k) + (ema * (1 - k));
+                }
+                return Number(ema.toFixed(2));
+            }
+
+            for (let documentSnap of querySnapshot.docs) {
+                let data = documentSnap.data();
+                let precioBase = Number(data.precio || 100);
+                let velas = [];
+                let preciosCierre = [];
+
+                // Generar 210 velas simuladas de histórico ascendente/descendente leve
+                let p = precioBase * 0.8;
+                for (let i = 0; i < 210; i++) {
+                    let variacion = (Math.random() * 0.04) - 0.02;
+                    p = p * (1 + variacion);
+                    if (p < 10) p = 10;
+                    
+                    let apertura = p;
+                    let cierre = p * (1 + ((Math.random() * 0.02) - 0.01));
+                    let maximo = Math.max(apertura, cierre) * (1 + Math.random() * 0.01);
+                    let minimo = Math.min(apertura, cierre) * (1 - Math.random() * 0.01);
+
+                    velas.push({
+                        open: Number(apertura.toFixed(2)),
+                        high: Number(maximo.toFixed(2)),
+                        low: Number(minimo.toFixed(2)),
+                        close: Number(cierre.toFixed(2))
+                    });
+                    preciosCierre.push(cierre);
+                }
+
+                // Calcular EMAs servidor
+                let ema50 = calcularEMA(preciosCierre.slice(-50), 50);
+                let ema100 = calcularEMA(preciosCierre.slice(-100), 100);
+                let ema200 = calcularEMA(preciosCierre.slice(-200), 200);
+
+                // Guardar en Firebase dentro de cada criptomoneda
+                await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
+                    historial_velas: velas,
+                    ema_50: ema50,
+                    ema_100: ema100,
+                    ema_200: ema200
+                }, { merge: true });
+            }
+
+            showModal("¡Inicialización Exitosa!", "Se han generado las 210 velas y calculado las EMAs (50, 100, 200) en Firebase.");
+            toggleSettings(false);
+            cargarMercadoCripto();
+        } catch (e) {
+            console.error("Error al inicializar velas y EMAs:", e);
+            showModal("Error", "No se pudo completar la inicialización en Firebase.");
+        }
+    }
+
     function startServerSideCryptoCycle() {
         if (marketInterval) clearInterval(marketInterval);
 
@@ -595,12 +664,27 @@
                 for (let documentSnap of querySnapshot.docs) {
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 10);
-                    let variacionPorcentual = (Math.random() * 0.04) - 0.02; // Variación +-2%[cite: 2]
+                    let variacionPorcentual = (Math.random() * 0.04) - 0.02;
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
                     if (nuevoPrecio < 10) nuevoPrecio = 10;
 
+                    let velas = data.historial_velas || [];
+                    if (velas.length > 0) {
+                        let nuevaVela = {
+                            open: Number(precioActual.toFixed(2)),
+                            close: Number(nuevoPrecio.toFixed(2)),
+                            high: Number(Math.max(precioActual, nuevoPrecio).toFixed(2)),
+                            low: Number(Math.min(precioActual, nuevoPrecio).toFixed(2))
+                        };
+                        velas.push(nuevaVela);
+                        if (velas.length > 210) {
+                            velas.shift(); // Borra la más antigua a la izquierda (efecto rolling)
+                        }
+                    }
+
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
-                        precio: Number(nuevoPrecio.toFixed(2))
+                        precio: Number(nuevoPrecio.toFixed(2)),
+                        historial_velas: velas
                     }, { merge: true });
                 }
                 cargarMercadoCripto();
@@ -669,7 +753,6 @@
                     data.portfolio_crypto[id] = { cantidad: 0, costoTotal: 0 };
                 }
 
-                // Acumula la cantidad y suma el costo real de compra para el promedio ponderado
                 data.portfolio_crypto[id].cantidad += 1;
                 data.portfolio_crypto[id].costoTotal += Number(precio);
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>1111 RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -319,7 +319,7 @@
     <div id="stickyHeader">
         <header class="header">
             <div class="header-left">
-                <h1 id="gameTitle">xxxx RichMan Web</h1>
+                <h1 id="gameTitle">RichMan Web</h1>
             </div>
             <div class="header-right">
                 <div class="stats">
@@ -420,7 +420,7 @@
 
     let state = {
         cash: 100,
-        title: 'xxxx RichMan Web',
+        title: 'RichMan Web',
         transactions: [],
         job: { level: 0, active: true },
         businesses: [{ id: 'b1', level: 0 }]
@@ -481,7 +481,6 @@
     async function inicializarCriptomonedasBinance() {
         try {
             const { doc, setDoc } = window.fb;
-            // Lista completa de referencia con los principales pares/criptomonedas que operan en Binance
             const simbolosBinance = [
                 "BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "DOGE", "AVAX", "DOT", "LINK", 
                 "MATIC", "LTC", "UNI", "BCH", "ATOM", "XLM", "NEAR", "ETC", "APT", "ICP", 
@@ -491,9 +490,8 @@
                 "CRV", "SNX", "LDO", "GALA", "ENJ", "BAT", "ZIL", "IOST", "KAVA", "ONE"
             ];
 
-            // Generar valores iniciales aleatorios entre 10 Bs y un límite superior ilimitado
             for (let crypto of simbolosBinance) {
-                let precioInicial = Math.random() * (50000 - 10) + 10; // Precios variados iniciales
+                let precioInicial = Math.random() * (50000 - 10) + 10;
                 await setDoc(doc(window.db, "mercado_cripto", crypto), {
                     nombre: crypto,
                     precio: Number(precioInicial.toFixed(2))
@@ -529,7 +527,6 @@
         }
     }
 
-    // Obtener los datos del nivel actual estrictamente desde Firebase
     function getCurrentJobData() {
         const lvl = state.job.level;
         if (configEmpleosNiveles && configEmpleosNiveles[lvl]) {
@@ -576,7 +573,7 @@
         }
     }
 
-    // Ciclo de mercado cripto ejecutado y validado en el servidor de Firebase cada minuto (Variación +-2%)
+    // Ciclo de mercado cripto ejecutado y validado en el servidor de Firebase cada minuto (Variación +-2%)[cite: 2]
     function startServerSideCryptoCycle() {
         if (marketInterval) clearInterval(marketInterval);
 
@@ -590,11 +587,11 @@
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 10);
                     
-                    // Variación aleatoria de más / menos 2% (-0.02 a +0.02)
+                    // Variación aleatoria exacta de más / menos 2% (-0.02 a +0.02)[cite: 2]
                     let variacionPorcentual = (Math.random() * 0.04) - 0.02;
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
                     
-                    // Asegurar piso mínimo de 10 Bs y límite ilimitado hacia arriba
+                    // Asegurar piso mínimo de 10 Bs y límite ilimitado hacia arriba[cite: 2]
                     if (nuevoPrecio < 10) nuevoPrecio = 10;
 
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
@@ -642,7 +639,7 @@
         showModal("Función de Mercado", `Pronto podrás operar con ${id} a un precio de ${formatNumber(precio)}.`);
     }
 
-    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase (Basado en el porcentaje de maxGastos)
+    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase
     function startServerSideFinancialCycle() {
         if (gameInterval) clearInterval(gameInterval);
         
@@ -773,7 +770,7 @@
 
     function resetGameData() {
         if (confirm("¿Seguro que deseas reiniciar tu partida?")) {
-            state = { cash: 100, title: 'xxxx RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }] };
+            state = { cash: 100, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }] };
             saveUserData();
             renderAll();
             toggleSettings(false);

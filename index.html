@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Forrm Cripto RichMan Web - Mi Cartera</title>
+    <title>Venta Cripto RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -226,6 +226,15 @@
             border-bottom: 1px solid #1e2635;
             font-size: 0.95rem;
             white-space: nowrap;
+        }
+        .clickable-asset {
+            color: #3498db;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color 0.2s;
+        }
+        .clickable-asset:hover {
+            color: #f1c40f;
         }
         .text-green { color: #2ecc71; font-weight: bold; }
         .text-red { color: #e74c3c; font-weight: bold; }
@@ -477,6 +486,7 @@
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
     let financialModalTimer = null;
     let cryptoListCache = [];
+    let preferredMarketAsset = null; // Variable para recordar qué activo destacar en el mercado
 
     let portfolioSortField = null;
     let portfolioSortAsc = true;
@@ -498,7 +508,6 @@
         return parts.join(',') + ' Bs';
     }
 
-    // Formato estricto solicitado: XXX.XXX,XXXXXXXX para criptomonedas
     function formatCryptoPrice(num) {
         const val = Number(num || 0);
         const parts = val.toFixed(8).split('.');
@@ -800,7 +809,15 @@
         }
 
         let sortedList = [...cryptoListCache];
-        if (marketSortField) {
+
+        // Si el usuario hizo clic en una cripto desde su cartera, la ponemos de primera
+        if (preferredMarketAsset) {
+            let index = sortedList.findIndex(c => c.id === preferredMarketAsset);
+            if (index > -1) {
+                let item = sortedList.splice(index, 1)[0];
+                sortedList.unshift(item);
+            }
+        } else if (marketSortField) {
             sortedList.sort((a, b) => {
                 let valA, valB;
                 if (marketSortField === 'nombre') {
@@ -816,7 +833,7 @@
         }
 
         tbody.innerHTML = sortedList.map(crypto => `
-            <tr>
+            <tr ${crypto.id === preferredMarketAsset ? 'style="background: rgba(241, 196, 15, 0.08); border-left: 3px solid #f1c40f;"' : ''}>
                 <td><strong>${crypto.nombre || crypto.id}</strong></td>
                 <td>${formatCryptoPrice(crypto.precio)}</td>
                 <td>
@@ -830,6 +847,21 @@
                 </td>
             </tr>
         `).join('');
+    }
+
+    // --- FUNCIÓN PARA NAVEGAR Y DESTACAR EL ACTIVO DESDE LA CARTERA ---
+    function navegarAMercado(assetId) {
+        preferredMarketAsset = assetId; // Guarda el activo preferido para ponerlo de primero
+        
+        // Cambiar de pestaña visualmente a Mercado
+        document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        
+        const marketTabBtn = document.querySelector('.main-tabs button[data-section="market"]');
+        if (marketTabBtn) marketTabBtn.classList.add('active');
+        document.getElementById('marketSection').classList.add('active');
+
+        cargarMercadoCripto();
     }
 
     function setearMaxCompra(id, precio) {
@@ -1042,7 +1074,7 @@
 
             html += `
                 <tr>
-                    <td><strong>${item.id}</strong></td>
+                    <td><strong class="clickable-asset" onclick="navegarAMercado('${item.id}')" title="Ver en Mercado">${item.id} 🔍</strong></td>
                     <td>${formatCryptoQty(item.cantidad)}</td>
                     <td>${formatCryptoPrice(item.precioPromedio)}</td>
                     <td>${formatCryptoPrice(item.precioActual)}</td>
@@ -1091,7 +1123,6 @@
                     deduccionesTotales = deduccionImpuestos + gastosVarios;
                     netoCalculado = ingresosBrutos - deduccionesTotales;
                     
-                    // Se permite saldo negativo si las deducciones superan el efectivo
                     currentCash += netoCalculado;
 
                     if (!currentData.transactions) currentData.transactions = [];
@@ -1217,6 +1248,7 @@
             this.classList.add('active');
             document.getElementById(this.dataset.section + 'Section').classList.add('active');
             if (this.dataset.section === 'market') {
+                preferredMarketAsset = null; // Limpia la preferencia al hacer clic manual en la pestaña Mercado
                 cargarMercadoCripto();
             }
         });

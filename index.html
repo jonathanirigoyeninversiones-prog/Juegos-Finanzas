@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego Financiero</title>
+    <title>ccc Juego Financiero</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -24,7 +24,6 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Exponer globalmente para las funciones del juego
         window.db = db;
         window.auth = auth;
         window.fb = { doc, setDoc, getDoc, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
@@ -46,7 +45,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: var(--bg-main); color: var(--text-main); padding: 2rem; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         
-        /* Contenedor de Auth */
         #authScreen { width: 100%; max-width: 400px; background: var(--bg-card); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; }
         #authScreen h2 { color: var(--accent-gold); margin-bottom: 1.5rem; }
         .auth-input { width: 100%; padding: 0.8rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 1rem; }
@@ -55,7 +53,6 @@
         .auth-toggle { margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; text-decoration: underline; }
         #authError { color: var(--danger); font-size: 0.85rem; margin-top: 0.8rem; }
 
-        /* Contenedor del Juego (Oculto hasta iniciar sesión) */
         #gameApp { max-width: 1200px; width: 100%; display: none; }
 
         .top-bar { display: flex; justify-content: space-between; align-items: center; background: var(--bg-header); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
@@ -129,6 +126,7 @@
 <script>
     let isRegistering = false;
     let currentUserUid = null;
+    let gameInterval = null;
 
     let gameState = {
         cash: 100,
@@ -136,15 +134,14 @@
         currentValue: 0,
         profit: 0,
         jobLevel: 1,
-        jobSalary: 100
+        jobSalary: 100,
+        lastPayTimestamp: Date.now()
     };
 
-    // Dar formato numérico XXX.XXX,XX
     function formatMoney(amount) {
         return (amount || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Bs';
     }
 
-    // Actualizar la interfaz visual de la cartera
     function updateUI() {
         document.getElementById('topCashDisplay').textContent = formatMoney(gameState.cash);
         document.getElementById('cashVal').textContent = formatMoney(gameState.cash);
@@ -158,7 +155,6 @@
         document.getElementById('jobVal').textContent = `Nivel ${gameState.jobLevel} (${formatMoney(gameState.jobSalary)})`;
     }
 
-    // Guardar datos en la base de datos del usuario actual en Firestore
     async function saveUserData() {
         if (!currentUserUid || !window.db) return;
         try {
@@ -170,7 +166,26 @@
         }
     }
 
-    // Cargar datos de la base de datos del usuario actual desde Firestore
+    // Sistema de pago seguro basado en tiempo transcurrido (Anti-Trampas)
+    function checkJobEarnings() {
+        const now = Date.now();
+        const intervalTimeMs = 60000; // 1 minuto estimado para cada pago de empleo (puedes ajustarlo)
+        const timeElapsed = now - gameState.lastPayTimestamp;
+
+        if (timeElapsed >= intervalTimeMs) {
+            // Calcula cuántos ciclos completos de pago pasaron (por si cerró y abrió la pestaña)
+            const cyclesPassed = Math.floor(timeElapsed / intervalTimeMs);
+            const totalEarned = cyclesPassed * gameState.jobSalary;
+
+            gameState.cash += totalEarned;
+            // Actualiza el timestamp exacto restando el excedente para mantener la precisión
+            gameState.lastPayTimestamp = now - (timeElapsed % intervalTimeMs);
+
+            updateUI();
+            saveUserData();
+        }
+    }
+
     async function loadUserData(uid) {
         try {
             const { doc, getDoc, setDoc } = window.fb;
@@ -180,19 +195,26 @@
             if (snap.exists()) {
                 const data = snap.data();
                 gameState = { ...gameState, ...data };
+                
+                // Al cargar la partida, calculamos de inmediato si ganó dinero mientras estaba desconectado
+                checkJobEarnings();
             } else {
-                // Si es usuario nuevo, guardamos sus datos iniciales
+                gameState.lastPayTimestamp = Date.now();
                 await setDoc(userRef, gameState);
             }
+            
             updateUI();
+
+            // Iniciar ciclo en segundo plano para revisar el pago del empleo cada 10 segundos
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(checkJobEarnings, 10000);
+
         } catch (e) {
             console.error("Error al cargar de Firebase:", e);
         }
     }
 
-    // Escuchar cambios de Autenticación
     window.addEventListener('DOMContentLoaded', () => {
-        // Pequeño retraso para asegurar que Firebase cargue sus módulos
         setTimeout(() => {
             if (window.fb && window.auth) {
                 window.fb.onAuthStateChanged(window.auth, (user) => {
@@ -203,6 +225,7 @@
                         loadUserData(user.uid);
                     } else {
                         currentUserUid = null;
+                        if (gameInterval) clearInterval(gameInterval);
                         document.getElementById('authScreen').style.display = 'block';
                         document.getElementById('gameApp').style.display = 'none';
                     }
@@ -211,7 +234,6 @@
         }, 500);
     });
 
-    // Cambiar entre Iniciar Sesión y Registro
     function toggleAuthMode() {
         isRegistering = !isRegistering;
         document.getElementById('authTitle').textContent = isRegistering ? "Crear Cuenta Nueva" : "Iniciar Sesión";
@@ -220,7 +242,6 @@
         document.getElementById('authError').textContent = "";
     }
 
-    // Manejar envío de Autenticación
     async function handleAuth() {
         const email = document.getElementById('emailInput').value.trim();
         const password = document.getElementById('passwordInput').value.trim();
@@ -244,16 +265,15 @@
         }
     }
 
-    // Cerrar Sesión
     async function logoutUser() {
         try {
+            if (gameInterval) clearInterval(gameInterval);
             await window.fb.signOut(window.auth);
         } catch (e) {
             console.error(e);
         }
     }
 
-    // Control de pestañas
     function switchTab(tabId) {
         document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
         document.querySelectorAll('.main-tabs button').forEach(btn => btn.classList.remove('active'));

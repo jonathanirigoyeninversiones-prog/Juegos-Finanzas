@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Juego Financiero - Saldo Inicial 100 Bs</title>
+    <title>ccc Juego Financiero - Cartera Principal</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -214,11 +214,11 @@
         ];
 
         let state = {
-            cash: 100, // Saldo inicial configurado exactamente en 100 Bs
+            cash: 100,
             credit: 0,
             jobLevel: 1,
             jobSalary: 100,
-            gameIntervalMs: 60000, // Temporizador de 1 minuto por defecto
+            gameIntervalMs: 60000,
             jobUpgradeCost: 500,
             dividendsAccrued: 120,
             assets: INITIAL_ASSETS,
@@ -266,7 +266,7 @@
                 
                 state.transactions.push({ 
                     timestamp: new Date().toLocaleString(), 
-                    name: `Salario de 1 minuto (${state.jobSalary} Bs) y Rendimientos`, 
+                    name: `Salario (${state.jobSalary} Bs) y Rendimientos`, 
                     total: totalIncome 
                 });
 
@@ -450,7 +450,7 @@
             tbody.innerHTML = html;
 
             tbody.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', async function() {
                     const id = this.dataset.id;
                     const action = this.dataset.action;
                     const asset = state.assets.find(item => item.id === id);
@@ -462,7 +462,7 @@
                             asset.owned += 1;
                             asset.costBasis += asset.price;
                             state.transactions.push({ timestamp: new Date().toLocaleString(), name: `Compra ${asset.symbol}`, total: -asset.price });
-                            saveState();
+                            await saveState();
                             renderAll();
                         } else alert("Efectivo insuficiente");
                     } else if (action === 'sell') {
@@ -471,7 +471,7 @@
                             asset.costBasis = Math.max(0, asset.costBasis - (asset.costBasis / asset.owned));
                             asset.owned -= 1;
                             state.transactions.push({ timestamp: new Date().toLocaleString(), name: `Venta ${asset.symbol}`, total: asset.price });
-                            saveState();
+                            await saveState();
                             renderAll();
                         } else alert("No tienes unidades para vender");
                     }
@@ -481,13 +481,13 @@
 
         function renderCredit() {
             document.getElementById('creditDebtDisplay').textContent = formatMoney(state.credit);
-            document.getElementById('requestCreditBtn').onclick = function() {
+            document.getElementById('requestCreditBtn').onclick = async function() {
                 const amount = parseFloat(document.getElementById('creditAmount').value);
                 if (amount > 0) {
                     state.cash += amount;
                     state.credit += amount;
                     state.transactions.push({ timestamp: new Date().toLocaleString(), name: 'Préstamo de Crédito', total: amount });
-                    saveState();
+                    await saveState();
                     renderAll();
                     document.getElementById('creditAmount').value = '';
                 }
@@ -513,7 +513,7 @@
             container.innerHTML = html;
 
             container.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', async function() {
                     const id = this.dataset.id;
                     const biz = BUSINESSES.find(item => item.id === id);
                     if (state.cash >= biz.cost) {
@@ -522,7 +522,7 @@
                         if (userBiz) userBiz.owned = true;
                         else state.businesses.push({ id: id, owned: true });
                         state.transactions.push({ timestamp: new Date().toLocaleString(), name: `Negocio ${biz.name}`, total: -biz.cost });
-                        saveState();
+                        await saveState();
                         renderAll();
                     } else alert("Efectivo insuficiente");
                 });
@@ -552,24 +552,24 @@
         }
 
         function setupInteractions() {
-            document.getElementById('upgradeJobBtn').onclick = function() {
+            document.getElementById('upgradeJobBtn').onclick = async function() {
                 if (state.cash >= state.jobUpgradeCost) {
                     state.cash -= state.jobUpgradeCost;
                     state.jobLevel += 1;
                     state.jobSalary += 30;
                     state.jobUpgradeCost *= 1.5;
                     state.transactions.push({ timestamp: new Date().toLocaleString(), name: `Mejora de Empleo Nivel ${state.jobLevel}`, total: -state.jobUpgradeCost });
-                    saveState();
+                    await saveState();
                     renderAll();
                 } else alert("Fondos insuficientes para mejorar el empleo");
             };
 
-            document.getElementById('collectDividendsBtn').onclick = function() {
+            document.getElementById('collectDividendsBtn').onclick = async function() {
                 if (state.dividendsAccrued > 0) {
                     state.cash += state.dividendsAccrued;
                     state.transactions.push({ timestamp: new Date().toLocaleString(), name: 'Cobro de Dividendos', total: state.dividendsAccrued });
                     state.dividendsAccrued = 0;
-                    saveState();
+                    await saveState();
                     renderAll();
                 } else alert("No hay dividendos disponibles para cobrar en este momento");
             };

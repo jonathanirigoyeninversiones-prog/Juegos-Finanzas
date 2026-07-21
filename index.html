@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>zz Juego Financiero - Cartera Principal</title>
+    <title>Juego Financiero - Cartera Principal</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAlbKvvEH2ad0iKKyFAqP8tzqKzPIe1qFk",
@@ -23,7 +23,7 @@
         const db = getFirestore(app);
 
         window.db = db;
-        window.firebaseModules = { doc, setDoc, getDoc };
+        window.firebaseModules = { doc, setDoc, getDoc, onSnapshot };
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
@@ -187,13 +187,16 @@
             cash: 10500,
             credit: 0,
             jobLevel: 1,
-            jobSalary: 100, // Salario base ajustado a 100 Bs por minuto
+            jobSalary: 100, // Salario base controlado por Firebase
+            gameIntervalMs: 60000, // Intervalo de tiempo en milisegundos controlado por Firebase (60000ms = 1 minuto)
             jobUpgradeCost: 500,
             dividendsAccrued: 120,
             assets: INITIAL_ASSETS,
             businesses: [],
             transactions: []
         };
+
+        let gameTimer = null;
 
         function getUserId() {
             let userId = localStorage.getItem('juego_user_id');
@@ -219,23 +222,75 @@
             }
         }
 
-        async function loadStateFromCloud() {
+        function restartGameLoop() {
+            if (gameTimer) clearInterval(gameTimer);
+            gameTimer = setInterval(() => {
+                let totalIncome = state.jobSalary; 
+                state.businesses.forEach(b => {
+                    const userBiz = state.businesses.find(item => item.id === b.id);
+                    if (userBiz && userBiz.owned) totalIncome += b.income;
+                });
+
+                state.cash += totalIncome;
+                state.dividendsAccrued += 25;
+                
+                state.transactions.push({ 
+                    timestamp: new Date().toLocaleString(), 
+                    name: `Salario (${state.jobSalary} Bs) y Rendimientos`, 
+                    total: totalIncome 
+                });
+
+                state.assets.forEach(a => {
+                    const change = (Math.random() * 4 - 2) / 100;
+                    a.price = Math.max(1, Math.round((a.price * (1 + change)) * 100) / 100);
+                });
+
+                saveState();
+                renderAll();
+            }, state.gameIntervalMs || 60000);
+        }
+
+        async function initFirebaseSync() {
             try {
                 if (window.db && window.firebaseModules) {
-                    const { doc, getDoc } = window.firebaseModules;
+                    const { doc, getDoc, onSnapshot } = window.firebaseModules;
                     const userId = getUserId();
-                    const docSnap = await getDoc(doc(window.db, "partidas", userId));
+                    const docRef = doc(window.db, "partidas", userId);
+                    
+                    const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
+                        const cloudData = docSnap.data();
+                        state = { ...state, ...cloudData };
                         document.getElementById('cloudStatusBanner').textContent = "☁️ Partida cargada desde Firebase Firestore";
-                        return docSnap.data();
+                    } else {
+                        await saveState();
                     }
+
+                    // Escucha en tiempo real: Si modificas `jobSalary` o `gameIntervalMs` directo en la consola de Firebase, se actualiza al vuelo en el juego
+                    onSnapshot(docRef, (docu) => {
+                        if (docu.exists()) {
+                            const data = docu.data();
+                            let needsRestart = false;
+                            
+                            if (data.gameIntervalMs && data.gameIntervalMs !== state.gameIntervalMs) {
+                                needsRestart = true;
+                            }
+
+                            state.jobSalary = data.jobSalary !== undefined ? data.jobSalary : state.jobSalary;
+                            state.gameIntervalMs = data.gameIntervalMs !== undefined ? data.gameIntervalMs : state.gameIntervalMs;
+
+                            if (needsRestart) {
+                                restartGameLoop();
+                            }
+                            renderAll();
+                        }
+                    });
                 }
             } catch (e) {
-                console.error("Error al cargar de Firebase:", e);
+                console.error("Error al configurar Firebase:", e);
+                const local = localStorage.getItem('juego_state_backup');
+                if (local) state = JSON.parse(local);
             }
-            const local = localStorage.getItem('juego_state_backup');
-            if (local) return JSON.parse(local);
-            return null;
         }
 
         function formatMoney(num) {
@@ -456,7 +511,67 @@
             tbody.innerHTML = html;
         }
 
----
+        function renderAll() {
+            renderHeader();
+            renderPortfolio();
+            renderMarket();
+            renderCredit();
+            renderBusiness();
+            renderHistory();
+        }
 
-### Dónde copiar y pegar:
-Abre tu archivo principal en tu editor de código (como `index.html`), **selecciona todo su contenido actual, bórralo y pega este código completo**. Guarda el archivo y ya tendrás tu web actualizada con el salario de 100 Bs por minuto integrado directamente con Firebase.
+        function setupInteractions() {
+            document.getElementById('upgradeJobBtn').onclick = function() {
+                if (state.cash >= state.jobUpgradeCost) {
+                    state.cash -= state.jobUpgradeCost;
+                    state.jobLevel += 1;
+                    state.jobSalary += 30;
+                    state.jobUpgradeCost *= 1.5;
+                    state.transactions.push({ timestamp: new Date().toLocaleString(), name: `Mejora de Empleo Nivel ${state.jobLevel}`, total: -state.jobUpgradeCost });
+                    saveState();
+                    renderAll();
+                } else alert("Fondos insuficientes para mejorar el empleo");
+            };
+
+            document.getElementById('collectDividendsBtn').onclick = function() {
+                if (state.dividendsAccrued > 0) {
+                    state.cash += state.dividendsAccrued;
+                    state.transactions.push({ timestamp: new Date().toLocaleString(), name: 'Cobro de Dividendos', total: state.dividendsAccrued });
+                    state.dividendsAccrued = 0;
+                    saveState();
+                    renderAll();
+                } else alert("No hay dividendos disponibles para cobrar en este momento");
+            };
+
+            const tabs = document.querySelectorAll('.main-tabs button');
+            const sections = {
+                portfolio: document.getElementById('portfolioSection'),
+                market: document.getElementById('marketSection'),
+                credit: document.getElementById('creditSection'),
+                business: document.getElementById('businessSection'),
+                history: document.getElementById('historySection')
+            };
+
+            tabs.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    tabs.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    const target = this.dataset.section;
+                    Object.values(sections).forEach(sec => sec.classList.remove('active'));
+                    if (sections[target]) sections[target].classList.add('active');
+                });
+            });
+        }
+
+        async function init() {
+            setupInteractions();
+            await initFirebaseSync();
+            restartGameLoop();
+            renderAll();
+        }
+
+        init();
+    })();
+</script>
+</body>
+</html>

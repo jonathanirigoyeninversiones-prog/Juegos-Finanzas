@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Token  RichMan Web - Mi Cartera</title>
+    <title>Token con Reglas RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -480,8 +480,8 @@
     let currentUserUid = null;
     let gameInterval = null;
     let marketInterval = null;
-    let sessionListener = null; // Listener para controlar la sesión única
-    const deviceSessionId = '_' + Math.random().toString(36).substr(2, 9); // ID único para esta pestaña/dispositivo
+    let sessionListener = null;
+    const deviceSessionId = '_' + Math.random().toString(36).substr(2, 9);
 
     let configEmpleosNiveles = [];
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
@@ -608,16 +608,12 @@
             const { doc, getDoc, setDoc, onSnapshot } = window.fb;
             const userRef = doc(window.db, "partidas", uid);
 
-            // Registrar el token de esta sesión activa en Firestore
-            await setDoc(userRef, { activeSessionToken: deviceSessionId }, { merge: true });
-
-            // Escuchar cambios en la sesión para expulsar si se abre en otro dispositivo
+            // Iniciar el listener de control de sesión única de inmediato
             if (sessionListener) sessionListener();
             sessionListener = onSnapshot(userRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.activeSessionToken && data.activeSessionToken !== deviceSessionId) {
-                        // Otro dispositivo inició sesión, cerramos aquí
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
                         if (sessionListener) sessionListener();
@@ -626,6 +622,9 @@
                     }
                 }
             });
+
+            // Registrar este dispositivo como el token activo actual
+            await setDoc(userRef, { activeSessionToken: deviceSessionId }, { merge: true });
 
             state = {
                 cash: 100,

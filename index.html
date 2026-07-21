@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>bbb Juego Financiero - Cartera Principal</title>
+    <title>Juego Financiero - Presentación Mejorada</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -26,49 +26,77 @@
         window.firebaseModules = { doc, setDoc, getDoc, onSnapshot };
     </script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
-        body { background: #0b0e14; color: #e0e6ed; padding: 2vw; min-height: 100vh; display: flex; justify-content: center; }
-        #app { max-width: 1300px; width: 100%; }
+        :root {
+            --bg-main: #07090e;
+            --bg-card: #121824;
+            --bg-header: #0d121c;
+            --border-color: #212d3f;
+            --accent-gold: #f39c12;
+            --accent-gold-gradient: linear-gradient(135deg, #f39c12, #f1c40f);
+            --text-main: #f0f4f8;
+            --text-muted: #8a9bb8;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --primary: #3498db;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); padding: 2vw; min-height: 100vh; display: flex; justify-content: center; }
+        #app { max-width: 1400px; width: 100%; }
+
+        #cloudStatusBanner { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--accent-gold); text-align: center; padding: 0.5rem; font-size: 0.85rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 500; letter-spacing: 0.5px; }
+
+        #stickyHeader { position: sticky; top: 0; z-index: 999; background: var(--bg-main); padding-top: 0.5rem; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; background: var(--bg-header); padding: 1.2rem 1.5rem; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .top-bar h1 { font-size: clamp(1.4rem, 3vw, 1.8rem); background: var(--accent-gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
         
-        #stickyHeader { position: sticky; top: 0; z-index: 999; background: #0b0e14; padding-top: 1rem; }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
-        .top-bar h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #f1c40f; }
-        .top-stats-container { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; }
-        .top-badge { background: #161c27; border: 1px solid #2a3442; padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; color: #f1c40f; }
+        .top-stats-container { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .top-badge { background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.6rem 1.2rem; border-radius: 30px; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; color: var(--accent-gold); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
 
-        .main-tabs { display: flex; gap: 0.8rem; background: #161c27; padding: 0.5rem 1rem; border-radius: 16px 16px 0 0; border: 1px solid #2a3442; border-bottom: none; overflow-x: auto; }
-        .main-tabs button { background: transparent; border: none; color: #8d9bb5; font-size: 1rem; font-weight: 600; padding: 0.6rem 1.2rem; cursor: pointer; border-radius: 12px; transition: 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.4rem; }
-        .main-tabs button:hover { color: #e0e6ed; background: #1f2836; }
-        .main-tabs button.active { color: #f1c40f; background: #1f2836; border: 1px solid #2a3442; }
+        .main-tabs { display: flex; gap: 0.5rem; background: var(--bg-header); padding: 0.6rem; border-radius: 14px 14px 0 0; border: 1px solid var(--border-color); border-bottom: none; overflow-x: auto; }
+        .main-tabs button { background: transparent; border: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 700; padding: 0.7rem 1.4rem; cursor: pointer; border-radius: 10px; transition: all 0.25s ease; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; }
+        .main-tabs button:hover { color: var(--text-main); background: rgba(255,255,255,0.03); }
+        .main-tabs button.active { color: var(--accent-gold); background: var(--bg-card); border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
-        .section { display: none; background: #10161e; border-radius: 0 0 16px 16px; padding: 1.5rem; border: 1px solid #2a3442; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .section { display: none; background: var(--bg-card); border-radius: 0 0 16px 16px; padding: 2rem; border: 1px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.4); animation: fadeIn 0.3s ease; }
         .section.active { display: block; }
-        h2 { font-size: 1.4rem; color: #f1c40f; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-        .portfolio-summary-card { background: #161c27; border-radius: 14px; padding: 1.5rem; border: 1px solid #2a3442; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.8rem; }
-        .summary-row { display: flex; align-items: center; gap: 0.6rem; font-size: 1rem; font-weight: 500; }
-        .summary-row strong { margin-left: 0.3rem; }
-        
-        .btn-action-primary { background: #3498db; color: #fff; padding: 0.5rem 1.2rem; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; width: fit-content; transition: 0.15s; }
-        .btn-action-primary:hover { background: #2980b9; }
-        .btn-action-gold { background: linear-gradient(135deg, #f5b041, #f1c40f); color: #0b0e14; padding: 0.5rem 1.2rem; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; width: fit-content; transition: 0.15s; }
-        .btn-action-gold:hover { opacity: 0.9; }
+        h2 { font-size: 1.5rem; color: var(--accent-gold); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 0.8rem; }
 
-        .portfolio-table, .market-table, .history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 1rem; }
-        .portfolio-table th, .market-table th, .history-table th { text-align: left; padding: 0.8rem 0.6rem; background: #161c27; color: #8d9bb5; border-bottom: 2px solid #2a3442; font-weight: 600; }
-        .portfolio-table td, .market-table td, .history-table td { padding: 0.8rem 0.6rem; border-bottom: 1px solid #1e2635; }
+        .portfolio-summary-card { background: var(--bg-header); border-radius: 14px; padding: 1.8rem; border: 1px solid var(--border-color); margin-bottom: 2rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: inset 0 2px 6px rgba(0,0,0,0.2); }
+        .summary-row { display: flex; align-items: center; gap: 0.8rem; font-size: 1.05rem; font-weight: 500; color: var(--text-muted); }
+        .summary-row strong { color: var(--text-main); margin-left: auto; font-size: 1.1rem; }
         
-        .text-green { color: #2ecc71; font-weight: 600; }
-        .text-red { color: #e74c3c; font-weight: 600; }
-        .empty-msg { text-align: center; padding: 2rem; color: #5a6a82; font-size: 1rem; }
+        .btn-action-primary { background: var(--primary); color: #fff; padding: 0.7rem 1.4rem; border-radius: 10px; font-weight: 700; border: none; cursor: pointer; width: fit-content; transition: all 0.2s; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3); }
+        .btn-action-primary:hover { background: #2980b9; transform: translateY(-1px); }
         
-        .category-subfooter { display: flex; gap: 2rem; padding: 1rem 0 0 0; font-size: 0.9rem; color: #8d9bb5; border-top: 1px solid #2a3442; margin-top: 1rem; flex-wrap: wrap; }
-        #cloudStatusBanner { background: #161c27; border: 1px solid #2a3442; color: #f1c40f; text-align: center; padding: 0.4rem; font-size: 0.85rem; border-radius: 8px; margin-bottom: 1rem; }
+        .btn-action-gold { background: var(--accent-gold-gradient); color: #07090e; padding: 0.7rem 1.4rem; border-radius: 10px; font-weight: 800; border: none; cursor: pointer; width: fit-content; transition: all 0.2s; box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3); }
+        .btn-action-gold:hover { opacity: 0.95; transform: translateY(-1px); }
+
+        .portfolio-table, .market-table, .history-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; margin-top: 1rem; }
+        .portfolio-table th, .market-table th, .history-table th { text-align: left; padding: 1rem; background: var(--bg-header); color: var(--text-muted); border-bottom: 2px solid var(--border-color); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+        .portfolio-table td, .market-table td, .history-table td { padding: 1rem; border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.01); transition: background 0.2s; }
+        .portfolio-table tr:hover td, .market-table tr:hover td, .history-table tr:hover td { background: rgba(255,255,255,0.03); }
+        
+        .text-green { color: var(--success); font-weight: 700; }
+        .text-red { color: var(--danger); font-weight: 700; }
+        .empty-msg { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 1.1rem; font-style: italic; }
+        
+        .category-subfooter { display: flex; gap: 3rem; padding: 1.2rem 0 0 0; font-size: 0.95rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 1.5rem; flex-wrap: wrap; }
+        
+        .business-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.2rem; }
+        .business-card { background: var(--bg-header); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.8rem; transition: transform 0.2s, border-color 0.2s; }
+        .business-card:hover { transform: translateY(-2px); border-color: var(--accent-gold); }
     </style>
 </head>
 <body>
 <div id="app">
-    <div id="cloudStatusBanner">☁️ Conectando con Firebase...</div>
+    <div id="cloudStatusBanner">☁️ Sincronización en la nube activa (Firebase)</div>
     <div id="stickyHeader">
         <div class="top-bar">
             <h1>Simulador Financiero</h1>
@@ -91,22 +119,24 @@
     <section id="portfolioSection" class="section active">
         <h2>📋 Resumen de Cartera</h2>
         <div class="portfolio-summary-card">
-            <div class="summary-row">💵 Efectivo: <strong id="summaryCash">0,00 Bs</strong></div>
-            <div class="summary-row">📊 Capital invertido: <strong id="summaryInvested">0,00 Bs</strong></div>
-            <div class="summary-row">📈 Valor actual: <strong id="summaryValue">0,00 Bs</strong></div>
-            <div class="summary-row">📉 G/P no realizada: <strong id="summaryProfit">+0,00 Bs</strong></div>
-            <div class="summary-row">💼 Empleo: <strong id="summaryJob">Nivel 1 (100,00 Bs)</strong></div>
-            <button class="btn-action-primary" id="upgradeJobBtn">Mejorar Empleo</button>
-            <button class="btn-action-gold" id="collectDividendsBtn">💰 Cobrar Dividendos</button>
+            <div class="summary-row">💵 Efectivo disponible <strong id="summaryCash">0,00 Bs</strong></div>
+            <div class="summary-row">📊 Capital invertido <strong id="summaryInvested">0,00 Bs</strong></div>
+            <div class="summary-row">📈 Valor actual de mercado <strong id="summaryValue">0,00 Bs</strong></div>
+            <div class="summary-row">📉 G/P no realizada <strong id="summaryProfit">+0,00 Bs</strong></div>
+            <div class="summary-row">💼 Empleo actual <strong id="summaryJob">Nivel 1 (100,00 Bs)</strong></div>
+            <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                <button class="btn-action-primary" id="upgradeJobBtn">Mejorar Empleo</button>
+                <button class="btn-action-gold" id="collectDividendsBtn">💰 Cobrar Dividendos</button>
+            </div>
         </div>
 
-        <h3 style="color:#e0e6ed; margin-top:1.5rem; font-size:1.1rem;">Posiciones en Activos</h3>
+        <h3 style="color:var(--text-main); margin-top:2rem; margin-bottom:1rem; font-size:1.2rem; font-weight:700;">Posiciones en Activos</h3>
         <div id="portfolioTablesContainer">
             <div class="empty-msg">No tienes posiciones abiertas. Explora el mercado para comprar activos.</div>
         </div>
         <div class="category-subfooter">
-            <div>📊 Acciones: <strong id="actionsSubtotal">0,00 Bs</strong> (<span id="actionsGP" class="text-green">+0,00 Bs</span>)</div>
-            <div>🪙 Criptos: <strong id="cryptosSubtotal">0,00 Bs</strong> (<span id="cryptosGP" class="text-green">+0,00 Bs</span>)</div>
+            <div>📊 Acciones: <strong id="actionsSubtotal" style="color:var(--text-main);">0,00 Bs</strong> (<span id="actionsGP" class="text-green">+0,00 Bs</span>)</div>
+            <div>🪙 Criptos: <strong id="cryptosSubtotal" style="color:var(--text-main);">0,00 Bs</strong> (<span id="cryptosGP" class="text-green">+0,00 Bs</span>)</div>
         </div>
     </section>
 
@@ -117,8 +147,8 @@
             <thead>
                 <tr>
                     <th>Activo</th>
-                    <th>Precio</th>
-                    <th>Acción</th>
+                    <th>Precio Actual</th>
+                    <th>Operación</th>
                 </tr>
             </thead>
             <tbody id="marketBody"></tbody>
@@ -129,10 +159,10 @@
     <section id="creditSection" class="section">
         <h2>💳 Crédito y Préstamos</h2>
         <div class="portfolio-summary-card">
-            <div class="summary-row">Deuda actual: <strong id="creditDebtDisplay">0,00 Bs</strong></div>
-            <div style="display:flex; gap:1rem; margin-top:0.5rem; align-items:center; flex-wrap:wrap;">
-                <input type="number" id="creditAmount" placeholder="Monto a solicitar" style="padding:0.5rem; border-radius:8px; border:1px solid #2a3442; background:#0b0e14; color:#e0e6ed; width:200px;">
-                <button id="requestCreditBtn" class="btn-action-primary">Pedir Crédito</button>
+            <div class="summary-row">Deuda financiera actual <strong id="creditDebtDisplay">0,00 Bs</strong></div>
+            <div style="display:flex; gap:1rem; margin-top:1rem; align-items:center; flex-wrap:wrap;">
+                <input type="number" id="creditAmount" placeholder="Monto a solicitar en Bs" style="padding:0.7rem 1rem; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-main); color:var(--text-main); width:240px; font-size:0.95rem;">
+                <button id="requestCreditBtn" class="btn-action-primary">Solicitar Crédito</button>
             </div>
         </div>
     </section>
@@ -140,7 +170,7 @@
     <!-- 🏢 NEGOCIOS -->
     <section id="businessSection" class="section">
         <h2>🏢 Gestión de Negocios</h2>
-        <div id="businessList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;"></div>
+        <div id="businessList" class="business-grid"></div>
     </section>
 
     <!-- 📜 HISTORIAL -->
@@ -150,8 +180,8 @@
             <thead>
                 <tr>
                     <th>Fecha / Hora</th>
-                    <th>Operación</th>
-                    <th>Monto</th>
+                    <th>Tipo de Operación</th>
+                    <th>Monto en Bs</th>
                 </tr>
             </thead>
             <tbody id="historyBody">
@@ -187,8 +217,8 @@
             cash: 10500,
             credit: 0,
             jobLevel: 1,
-            jobSalary: 100, // Salario base controlado por Firebase
-            gameIntervalMs: 60000, // Intervalo de tiempo en milisegundos controlado por Firebase (60000ms = 1 minuto)
+            jobSalary: 100,
+            gameIntervalMs: 60000,
             jobUpgradeCost: 500,
             dividendsAccrued: 120,
             assets: INITIAL_ASSETS,
@@ -266,7 +296,6 @@
                         await saveState();
                     }
 
-                    // Escucha en tiempo real: Si modificas `jobSalary` o `gameIntervalMs` directo en la consola de Firebase, se actualiza al vuelo en el juego
                     onSnapshot(docRef, (docu) => {
                         if (docu.exists()) {
                             const data = docu.data();
@@ -340,7 +369,7 @@
             gpEl.className = gpTotal >= 0 ? 'text-green' : 'text-red';
 
             document.getElementById('summaryJob').textContent = `Nivel ${state.jobLevel} (${formatMoney(state.jobSalary)})`;
-            document.getElementById('upgradeJobBtn').textContent = `Mejorar (${formatMoney(state.jobUpgradeCost)})`;
+            document.getElementById('upgradeJobBtn').textContent = `Mejorar Empleo (${formatMoney(state.jobUpgradeCost)})`;
 
             document.getElementById('actionsSubtotal').textContent = formatMoney(actionValue);
             const actionGP = actionValue - actionInvested;
@@ -410,8 +439,10 @@
                         <td><strong>${a.symbol}</strong> ${a.name}</td>
                         <td>${formatMoney(a.price)}</td>
                         <td>
-                            <button class="btn-action-primary" style="padding:0.3rem 0.8rem; font-size:0.8rem;" data-id="${a.id}" data-action="buy">Comprar 1</button>
-                            <button class="btn-action-primary" style="padding:0.3rem 0.8rem; font-size:0.8rem; background:#e74c3c;" data-id="${a.id}" data-action="sell">Vender 1</button>
+                            <div style="display:flex; gap:0.5rem;">
+                                <button class="btn-action-primary" style="padding:0.4rem 0.9rem; font-size:0.85rem;" data-id="${a.id}" data-action="buy">Comprar 1</button>
+                                <button class="btn-action-primary" style="padding:0.4rem 0.9rem; font-size:0.85rem; background:var(--danger);" data-id="${a.id}" data-action="sell">Vender 1</button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -469,12 +500,12 @@
             BUSINESSES.forEach(b => {
                 const userBiz = state.businesses.find(item => item.id === b.id) || { owned: false };
                 html += `
-                    <div style="background:#161c27; border:1px solid #2a3442; border-radius:12px; padding:1rem; display:flex; flex-direction:column; gap:0.5rem;">
-                        <strong>${b.name}</strong>
-                        <span style="font-size:0.9rem; color:#8d9bb5;">Costo: ${formatMoney(b.cost)}</span>
-                        <span style="font-size:0.9rem; color:#2ecc71;">Ingreso: ${formatMoney(b.income)} / min</span>
-                        <div style="margin-top:auto;">
-                            ${!userBiz.owned ? `<button class="btn-action-primary" style="width:100%; margin-top:0.5rem;" data-id="${b.id}">Comprar</button>` : `<span class="text-green" style="display:block; text-align:center; padding:0.4rem;">¡Adquirido!</span>`}
+                    <div class="business-card">
+                        <strong style="font-size:1.1rem; color:var(--text-main);">${b.name}</strong>
+                        <span style="font-size:0.9rem; color:var(--text-muted);">Costo: ${formatMoney(b.cost)}</span>
+                        <span style="font-size:0.9rem; color:var(--success); font-weight:600;">Ingreso: ${formatMoney(b.income)} / min</span>
+                        <div style="margin-top:auto; padding-top:0.5rem;">
+                            ${!userBiz.owned ? `<button class="btn-action-primary" style="width:100%;" data-id="${b.id}">Adquirir Negocio</button>` : `<span class="text-green" style="display:block; text-align:center; padding:0.4rem; background:rgba(46,204,113,0.1); border-radius:8px;">✓ Adquirido</span>`}
                         </div>
                     </div>
                 `;

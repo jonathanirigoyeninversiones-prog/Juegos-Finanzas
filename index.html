@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>222 RichMan Web - Mi Cartera</title>
+    <title>Pag Acciones RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -475,7 +475,21 @@
             <!-- SUB-SECCIÓN ACCIONES -->
             <div id="stocksMarketSub" class="market-sub-section">
                 <h2>🏢 Mercado de Acciones / BVC y Wall Street</h2>
-                <p style="color: #8d9bb5; margin-top: 1rem;">Próximamente disponible con el motor sincronizado en Firebase.</p>
+                <div id="stocksTableWrap" style="overflow-x: auto;">
+                    <table class="market-table" style="min-width: 800px; margin-top: 1rem;">
+                        <thead>
+                            <tr>
+                                <th>Acción / Mercado ↕</th>
+                                <th>Precio (Bs) ↕</th>
+                                <th>Cantidad / Operación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stocksBody">
+                            <tr><td colspan="4" style="text-align:center; padding: 1rem;">Cargando acciones...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </section>
@@ -523,7 +537,6 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <!-- 📈 BOTÓN DE ACTUALIZACIÓN DE ACCIONES Y MERCADOS EN FIREBASE -->
     <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="actualizarAccionesFirebase()">📈 Actualizar Acciones y Mercados en Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
@@ -539,6 +552,7 @@
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
     let financialModalTimer = null;
     let cryptoListCache = [];
+    let stocksListCache = [];
     let preferredMarketAsset = null;
 
     let portfolioSortField = null;
@@ -655,7 +669,6 @@
         }
     }
 
-    // 📈 SCRIPT PARA INICIALIZAR Y ACTUALIZAR ACCIONES Y MERCADOS EN FIREBASE
     async function actualizarAccionesFirebase() {
         if (!window.db) {
             showModal("Error", "No hay conexión con Firebase.");
@@ -663,8 +676,6 @@
         }
         try {
             const { doc, setDoc } = window.fb;
-            
-            // Listado base de acciones recomendadas (BVC y Wall Street)
             const accionesIniciales = [
                 { id: "BVC_BVL", nombre: "Bolsa de Valores (BVL)", mercado: "BVC", precio: 150.00 },
                 { id: "US_AAPL", nombre: "Apple Inc. (AAPL)", mercado: "Wall Street", precio: 2400.00 },
@@ -683,6 +694,7 @@
 
             showModal("Mercado Actualizado", "Se han registrado y actualizado exitosamente las acciones de BVC y Wall Street en Firebase.");
             toggleSettings(false);
+            cargarMercadoAcciones();
         } catch (e) {
             console.error("Error al actualizar acciones en Firebase:", e);
             showModal("Error", "No se pudo actualizar el mercado de acciones en la base de datos.");
@@ -730,6 +742,7 @@
             startServerSideFinancialCycle();
             startServerSideCryptoCycle();
             cargarMercadoCripto();
+            cargarMercadoAcciones();
         } catch (e) {
             console.error("Error al cargar de Firebase:", e);
         }
@@ -790,6 +803,43 @@
         } catch (e) {
             console.error("Error al cargar mercado cripto:", e);
         }
+    }
+
+    async function cargarMercadoAcciones() {
+        try {
+            const { collection, getDocs } = window.fb;
+            const querySnapshot = await getDocs(collection(window.db, "mercado_acciones"));
+            stocksListCache = [];
+            querySnapshot.forEach((doc) => {
+                stocksListCache.push({ id: doc.id, ...doc.data() });
+            });
+            renderStocksTable();
+        } catch (e) {
+            console.error("Error al cargar mercado de acciones:", e);
+        }
+    }
+
+    function renderStocksTable() {
+        const tbody = document.getElementById('stocksBody');
+        if (!tbody) return;
+        if (stocksListCache.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 1rem;">No hay acciones registradas. Ve a Configuración y presiona Actualizar Acciones.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = stocksListCache.map(stock => `
+            <tr>
+                <td><strong>${stock.nombre || stock.id}</strong><br><small style="color: #8d9bb5;">${stock.mercado || 'BVC / Wall Street'}</small></td>
+                <td>${formatCryptoPrice(stock.precio)}</td>
+                <td>
+                    <input type="number" id="input-stock-qty-${stock.id}" class="market-input" placeholder="Cantidad" step="any" min="0">
+                </td>
+                <td>
+                    <button class="btn-buy" onclick="showModal('Acciones', 'Próximamente disponible la compra directa en servidor.')">Comprar</button>
+                    <button class="btn-sell" onclick="showModal('Acciones', 'Próximamente disponible la venta directa en servidor.')">Venta</button>
+                </td>
+            </tr>
+        `).join('');
     }
 
     function sortMarket(field) {
@@ -1197,6 +1247,7 @@
 
         renderPortfolioCryptoTable();
         renderMarketTable();
+        cargarMercadoAcciones();
     }
 
     function upgradeJob() {
@@ -1260,6 +1311,7 @@
             if (this.dataset.section === 'market') {
                 preferredMarketAsset = null;
                 cargarMercadoCripto();
+                cargarMercadoAcciones();
             }
         });
     });
@@ -1273,6 +1325,8 @@
             document.getElementById(subName + 'MarketSub').classList.add('active');
             if (subName === 'spot') {
                 cargarMercadoCripto();
+            } else if (subName === 'stocks') {
+                cargarMercadoAcciones();
             }
         });
     });

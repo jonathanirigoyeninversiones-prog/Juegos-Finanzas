@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Ordenamiento RichMan Web - Mi Cartera</title>
+    <title>Precios Reales  RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -604,6 +604,7 @@
         }
     }
 
+    // --- SCRIPT DEL BOTÓN DE CONFIGURACIÓN CON PRECIOS REALISTAS Y ESCALADOS ---
     async function inicializarHistorialYEMAsFirebase() {
         if (!window.db) return;
         try {
@@ -617,40 +618,102 @@
                 for (let i = 1; i < precios.length; i++) {
                     ema = (precios[i] * k) + (ema * (1 - k));
                 }
-                return Number(ema.toFixed(2));
+                return Number(ema.toFixed(4));
             }
 
+            // Rangos de precios base realistas para simulación en Bolívares
+            const preciosBaseReales = {
+                'BTC': 180000.00,
+                'ETH': 95000.00,
+                'BNB': 35000.00,
+                'SOL': 12000.00,
+                'DOT': 450.00,
+                'ADA': 320.00,
+                'AVAX': 1800.00,
+                'LINK': 900.00,
+                'MATIC': 250.00,
+                'XRP': 400.00,
+                'DOGE': 150.00,
+                'SHIB': 0.05,
+                'BONK': 0.01,
+                'PEPE': 0.03,
+                'FLOKI': 0.08,
+                'NEAR': 850.00,
+                'UNI': 1100.00,
+                'ATOM': 650.00,
+                'LTC': 4500.00,
+                'BCH': 12000.00,
+                'XLM': 120.00,
+                'ICP': 1400.00,
+                'APT': 2200.00,
+                'SUI': 900.00,
+                'RENDER': 2500.00,
+                'INJ': 4500.00,
+                'TIA': 1800.00,
+                'SEI': 450.00,
+                'MANA': 350.00,
+                'SAND': 380.00,
+                'AXS': 750.00,
+                'CRV': 120.00,
+                'CHZ': 180.00,
+                'ENJ': 220.00,
+                'SUSHI': 300.00,
+                'SNX': 850.00,
+                'COMP': 5500.00,
+                'AAVE': 8500.00,
+                'MKR': 45000.00,
+                'YFI': 75000.00,
+                'EGLD': 3500.00,
+                'ETC': 2500.00,
+                'ZIL': 45.00,
+                'AR': 1500.00,
+                'FTM': 500.00,
+                'RUNE': 1100.00,
+                'KAS': 150.00,
+                'ICP': 1400.00,
+                'STX': 950.00,
+                'OP': 1200.00,
+                'ARB': 800.00
+            };
+
             for (let documentSnap of querySnapshot.docs) {
+                let cryptoId = documentSnap.id;
                 let data = documentSnap.data();
-                let precioBase = Number(data.precio || 100);
+                
+                // Asignar precio base realista o un valor por defecto seguro (ej: 100)
+                let precioBaseRef = preciosBaseReales[cryptoId] || Number(data.precio || 100);
+                if (precioBaseRef < 0.01) precioBaseRef = 0.01;
+
                 let velas = [];
                 let preciosCierre = [];
 
-                let p = precioBase * 0.8;
+                let p = precioBaseRef * 0.85;
                 for (let i = 0; i < 210; i++) {
                     let variacion = (Math.random() * 0.04) - 0.02;
                     p = p * (1 + variacion);
-                    if (p < 10) p = 10;
+                    if (p < 0.001) p = 0.001;
                     
                     let apertura = p;
                     let cierre = p * (1 + ((Math.random() * 0.02) - 0.01));
-                    let maximo = Math.max(apertura, cierre) * (1 + Math.random() * 0.01);
-                    let minimo = Math.min(apertura, cierre) * (1 - Math.random() * 0.01);
+                    let maximo = Math.max(apertura, cierre) * (1 + Math.random() * 0.005);
+                    let minimo = Math.min(apertura, cierre) * (1 - Math.random() * 0.005);
 
                     velas.push({
-                        open: Number(apertura.toFixed(2)),
-                        high: Number(maximo.toFixed(2)),
-                        low: Number(minimo.toFixed(2)),
-                        close: Number(cierre.toFixed(2))
+                        open: Number(apertura.toFixed(4)),
+                        high: Number(maximo.toFixed(4)),
+                        low: Number(minimo.toFixed(4)),
+                        close: Number(cierre.toFixed(4))
                     });
                     preciosCierre.push(cierre);
                 }
 
+                let precioFinalActual = preciosCierre[preciosCierre.length - 1];
                 let ema50 = calcularEMA(preciosCierre.slice(-50), 50);
                 let ema100 = calcularEMA(preciosCierre.slice(-100), 100);
                 let ema200 = calcularEMA(preciosCierre.slice(-200), 200);
 
-                await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
+                await setDoc(doc(window.db, "mercado_cripto", cryptoId), {
+                    precio: Number(precioFinalActual.toFixed(4)),
                     historial_velas: velas,
                     ema_50: ema50,
                     ema_100: ema100,
@@ -658,11 +721,11 @@
                 }, { merge: true });
             }
 
-            showModal("¡Inicialización Exitosa!", "Se han generado las 210 velas y calculado las EMAs (50, 100, 200) en Firebase.");
+            showModal("¡Inicialización Exitosa!", "Se han configurado los precios reales y las 210 velas con EMAs en Firebase.");
             toggleSettings(false);
             cargarMercadoCripto();
         } catch (e) {
-            console.error("Error al inicializar velas y EMAs:", e);
+            console.error("Error al inicializar velas y EMAs con precios realistas:", e);
             showModal("Error", "No se pudo completar la inicialización en Firebase.");
         }
     }
@@ -681,15 +744,15 @@
                     let precioActual = Number(data.precio || 10);
                     let variacionPorcentual = (Math.random() * 0.04) - 0.02;
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
-                    if (nuevoPrecio < 10) nuevoPrecio = 10;
+                    if (nuevoPrecio < 0.001) nuevoPrecio = 0.001;
 
                     let velas = data.historial_velas || [];
                     if (velas.length > 0) {
                         let nuevaVela = {
-                            open: Number(precioActual.toFixed(2)),
-                            close: Number(nuevoPrecio.toFixed(2)),
-                            high: Number(Math.max(precioActual, nuevoPrecio).toFixed(2)),
-                            low: Number(Math.min(precioActual, nuevoPrecio).toFixed(2))
+                            open: Number(precioActual.toFixed(4)),
+                            close: Number(nuevoPrecio.toFixed(4)),
+                            high: Number(Math.max(precioActual, nuevoPrecio).toFixed(4)),
+                            low: Number(Math.min(precioActual, nuevoPrecio).toFixed(4))
                         };
                         velas.push(nuevaVela);
                         if (velas.length > 210) {
@@ -698,7 +761,7 @@
                     }
 
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
-                        precio: Number(nuevoPrecio.toFixed(2)),
+                        precio: Number(nuevoPrecio.toFixed(4)),
                         historial_velas: velas
                     }, { merge: true });
                 }
@@ -724,7 +787,6 @@
         }
     }
 
-    // --- FUNCION DE ORDENAMIENTO DE MERCADO ---
     function sortMarket(field) {
         if (marketSortField === field) {
             marketSortAsc = !marketSortAsc;
@@ -889,7 +951,6 @@
         }
     }
 
-    // --- FUNCION DE ORDENAMIENTO DE CARTERA ---
     function sortPortfolio(field) {
         if (portfolioSortField === field) {
             portfolioSortAsc = !portfolioSortAsc;
@@ -913,7 +974,6 @@
             return;
         }
 
-        // Construir array de objetos para poder ordenar fácilmente
         let items = keys.map(id => {
             const item = cryptoPortfolio[id];
             const cantidad = item.cantidad || 0;

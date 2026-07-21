@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>xxxx Juego Financiero - Presentación Mejorada</title>
+    <title>Juego Financiero - Saldo Inicial 100 Bs</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -214,11 +214,11 @@
         ];
 
         let state = {
-            cash: 10500,
+            cash: 100, // Saldo inicial configurado exactamente en 100 Bs
             credit: 0,
             jobLevel: 1,
             jobSalary: 100,
-            gameIntervalMs: 60000, // 1 minuto configurado por defecto
+            gameIntervalMs: 60000, // Temporizador de 1 minuto por defecto
             jobUpgradeCost: 500,
             dividendsAccrued: 120,
             assets: INITIAL_ASSETS,
@@ -266,7 +266,7 @@
                 
                 state.transactions.push({ 
                     timestamp: new Date().toLocaleString(), 
-                    name: `Salario (${state.jobSalary} Bs) y Rendimientos`, 
+                    name: `Salario de 1 minuto (${state.jobSalary} Bs) y Rendimientos`, 
                     total: totalIncome 
                 });
 

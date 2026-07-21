@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Juego Financiero - Depuración Firebase</title>
+    <title>111 Juego Financiero - Sincronización Firebase Definitiva</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -229,10 +229,10 @@
         let gameTimer = null;
 
         function getUserId() {
-            let userId = localStorage.getItem('juego_user_id');
+            let userId = localStorage.getItem('juego_user_permanent_id');
             if (!userId) {
-                userId = 'user_' + Math.random().toString(36).substring(2, 15);
-                localStorage.setItem('juego_user_id', userId);
+                userId = 'user_finanzas_' + Math.random().toString(36).substring(2, 12);
+                localStorage.setItem('juego_user_permanent_id', userId);
             }
             return userId;
         }
@@ -244,15 +244,27 @@
                     const { doc, setDoc } = window.firebaseModules;
                     const userId = getUserId();
                     const docRef = doc(window.db, "partidas", userId);
-                    // Forzar guardado limpio eliminando referencias vacías
-                    const payload = JSON.parse(JSON.stringify(state));
-                    await setDoc(docRef, payload);
-                    document.getElementById('cloudStatusBanner').textContent = "☁️ [ÉXITO] Transacción guardada en Firebase Firestore";
-                    console.log("Firebase sync exitoso para ID:", userId);
+                    
+                    const payload = {
+                        cash: state.cash,
+                        credit: state.credit,
+                        jobLevel: state.jobLevel,
+                        jobSalary: state.jobSalary,
+                        gameIntervalMs: state.gameIntervalMs,
+                        jobUpgradeCost: state.jobUpgradeCost,
+                        dividendsAccrued: state.dividendsAccrued,
+                        assets: state.assets,
+                        businesses: state.businesses,
+                        transactions: state.transactions
+                    };
+
+                    // Usar { merge: true } para actualizar con total precisión en Firebase Firestore
+                    await setDoc(docRef, payload, { merge: true });
+                    document.getElementById('cloudStatusBanner').textContent = "☁️ [ÉXITO] Sincronizado en Firebase Firestore";
                 }
             } catch (e) {
-                console.error("Error crítico al guardar en Firebase:", e);
-                document.getElementById('cloudStatusBanner').textContent = "⚠️ [ERROR DE PERMISOS] Revisa las Reglas de Firebase Firestore";
+                console.error("Error al guardar en Firebase:", e);
+                document.getElementById('cloudStatusBanner').textContent = "⚠️ [AVISO] Guardado local activo (Revisa las reglas de Firestore)";
             }
         }
 
@@ -287,7 +299,7 @@
         async function initFirebaseSync() {
             try {
                 if (window.db && window.firebaseModules) {
-                    const { doc, getDoc, onSnapshot } = window.firebaseModules;
+                    const { doc, getDoc } = window.firebaseModules;
                     const userId = getUserId();
                     const docRef = doc(window.db, "partidas", userId);
                     
@@ -314,14 +326,13 @@
                             });
                         }
 
-                        document.getElementById('cloudStatusBanner').textContent = "☁️ Partida cargada correctamente desde Firebase Firestore";
+                        document.getElementById('cloudStatusBanner').textContent = "☁️ Partida cargada desde Firebase Firestore";
                     } else {
                         await saveState();
                     }
                 }
             } catch (e) {
-                console.error("Error al sincronizar con Firebase:", e);
-                document.getElementById('cloudStatusBanner').textContent = "⚠️ Error de red o reglas de Firebase denegadas";
+                console.error("Error al cargar de Firebase:", e);
                 const local = localStorage.getItem('juego_state_backup');
                 if (local) {
                     const localData = JSON.parse(local);

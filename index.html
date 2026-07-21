@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>xxx RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -541,7 +541,7 @@
         }
     }
 
-    // Ciclo de mercado cripto ejecutado y validado en el servidor de Firebase cada minuto (Variación +-2%)[cite: 2]
+    // Ciclo de mercado cripto ejecutado y validado en el servidor de Firebase cada minuto (Variación +-2%)
     function startServerSideCryptoCycle() {
         if (marketInterval) clearInterval(marketInterval);
 
@@ -555,10 +555,10 @@
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 10);
                     
-                    let variacionPorcentual = (Math.random() * 0.04) - 0.02;[cite: 2]
-                    let nuevoPrecio = precioActual * (1 + variacionPorcentual);[cite: 2]
+                    let variacionPorcentual = (Math.random() * 0.04) - 0.02;
+                    let nuevoPrecio = precioActual * (1 + variacionPorcentual);
                     
-                    if (nuevoPrecio < 10) nuevoPrecio = 10;[cite: 2]
+                    if (nuevoPrecio < 10) nuevoPrecio = 10;
 
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
                         precio: Number(nuevoPrecio.toFixed(2))
@@ -796,39 +796,5 @@
     }
 
     async function handleAuth() {
-        const email = document.getElementById('emailInput').value.trim();
-        const password = document.getElementById('passwordInput').value.trim();
-        const errorDiv = document.getElementById('authError');
-        errorDiv.textContent = "";
-
-        if (!email || !password) {
-            errorDiv.textContent = "Por favor ingresa correo y contraseña.";
-            return;
-        }
-
-        try {
-            const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = window.fb;
-            if (isRegistering) {
-                await createUserWithEmailAndPassword(window.auth, email, password);
-            } else {
-                await signInWithEmailAndPassword(window.auth, email, password);
-            }
-        } catch (err) {
-            errorDiv.textContent = "Error: " + err.message;
-        }
-    }
-
-    async function logoutUser() {
-        try {
-            if (gameInterval) clearInterval(gameInterval);
-            if (marketInterval) clearInterval(marketInterval);
-            currentUserUid = null;
-            await window.fb.signOut(window.auth);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-</script>
-
-</body>
-</html>
+        const email = document.getElementById('emailInput55'); // <-- ERROR AQUÍ
+        // ...

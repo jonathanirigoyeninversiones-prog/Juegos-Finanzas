@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Compra Acciones RichMan Web - Mi Cartera</title>
+    <title>222 RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -225,12 +225,12 @@
             background: #f39c12;
             color: #0b0e14;
             border: none;
-            padding: 0.3rem 1rem;
+            padding: 0.4rem 1.2rem;
             border-radius: 30px;
             font-weight: 700;
             cursor: pointer;
             align-self: flex-start;
-            margin-top: 0.2rem;
+            margin-top: 0.4rem;
         }
         .portfolio-table, .market-table, .history-table {
             width: 100%;
@@ -415,6 +415,16 @@
         <div class="portfolio-section">
             <h2>📋 Resumen de Cartera</h2>
             <div class="portfolio-summary" id="portfolioSummary"></div>
+            
+            <!-- CONTENEDOR DE DIVIDENDOS PENDIENTES -->
+            <div id="dividendosCard" style="background: #141b26; border: 1px solid #f39c12; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h4 style="color: #f39c12; margin-bottom: 0.2rem;">💰 Dividendos Acumulados</h4>
+                    <p style="font-size: 1.1rem;"><strong id="pendingDividendsDisplay">0,00 Bs</strong></p>
+                </div>
+                <button class="btn-collect-dividends" onclick="cobrarDividendosAcciones()">Reclamar Dividendos</button>
+            </div>
+
             <div id="portfolioTables">
                 <h3>Mis Criptomonedas</h3>
                 <div style="overflow-x: auto;">
@@ -598,6 +608,7 @@
     let gameInterval = null;
     let marketInterval = null;
     let stockMarketInterval = null;
+    let dividendInterval = null;
 
     let configEmpleosNiveles = [];
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
@@ -614,6 +625,7 @@
 
     let state = {
         cash: 100,
+        pending_dividends: 0,
         title: 'RichMan Web',
         transactions: [],
         job: { level: 0, active: true },
@@ -824,6 +836,7 @@
         try {
             state = {
                 cash: 100,
+                pending_dividends: 0,
                 title: 'RichMan Web',
                 transactions: [],
                 job: { level: 0, active: true },
@@ -840,6 +853,7 @@
             if (snap.exists()) {
                 const dataRemota = snap.data();
                 state.cash = dataRemota.cash !== undefined ? dataRemota.cash : 100;
+                state.pending_dividends = dataRemota.pending_dividends || 0;
                 state.transactions = dataRemota.transactions || [];
                 state.job = dataRemota.job || { level: 0, active: true };
                 state.businesses = dataRemota.businesses || [{ id: 'b1', level: 0 }];
@@ -863,6 +877,7 @@
             startServerSideFinancialCycle();
             startServerSideCryptoCycle();
             startServerSideStockCycle();
+            startServerSideDividendCycle();
             cargarMercadoCripto();
             cargarMercadoAcciones();
         } catch (e) {
@@ -948,6 +963,106 @@
                 console.error("Error actualizando acciones en servidor:", e);
             }
         }, 60000);
+    }
+
+    // 💰 CICLO DEL SERVIDOR CADA MINUTO PARA ACUMULAR DIVIDENDOS 0.03%
+    function startServerSideDividendCycle() {
+        if (dividendInterval) clearInterval(dividendInterval);
+
+        dividendInterval = setInterval(async () => {
+            if (!currentUserUid || !window.db) return;
+            try {
+                const { doc, runTransaction } = window.fb;
+                const userRef = doc(window.db, "partidas", currentUserUid);
+
+                await runTransaction(window.db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) return;
+
+                    let data = userDoc.data();
+                    let portfolioStocks = data.portfolio_stocks || {};
+                    let pendingDiv = Number(data.pending_dividends || 0);
+
+                    let acumuladoMinuto = 0;
+                    for (let stockId in portfolioStocks) {
+                        let tenencia = portfolioStocks[stockId];
+                        let cantidad = tenencia.cantidad || 0;
+                        if (cantidad > 0) {
+                            let stockObj = stocksListCache.find(s => s.id === stockId);
+                            let precioActual = stockObj ? stockObj.precio : 100;
+                            // 0.03% por minuto por cada acción
+                            acumuladoMinuto += (cantidad * precioActual) * 0.0003;
+                        }
+                    }
+
+                    if (acumuladoMinuto > 0) {
+                        pendingDiv += acumuladoMinuto;
+                        transaction.update(userRef, {
+                            pending_dividends: Number(pendingDiv.toFixed(2))
+                        });
+                        state.pending_dividends = pendingDiv;
+                    }
+                });
+
+                renderAll();
+            } catch (e) {
+                console.error("Error acumulando dividendos en servidor:", e);
+            }
+        }, 60000);
+    }
+
+    // 💸 ACCIÓN DE COBRO MANUAL DE DIVIDENDOS EN FIREBASE
+    async function cobrarDividendosAcciones() {
+        if (!currentUserUid || !window.db) return;
+
+        try {
+            const { doc, runTransaction } = window.fb;
+            const userRef = doc(window.db, "partidas", currentUserUid);
+            let montoCobrado = 0;
+
+            await runTransaction(window.db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) return;
+
+                let data = userDoc.data();
+                let pendingDiv = Number(data.pending_dividends || 0);
+
+                if (pendingDiv <= 0) {
+                    throw new Error("Sin dividendos");
+                }
+
+                montoCobrado = pendingDiv;
+                let cash = Number(data.cash || 0) + montoCobrado;
+
+                if (!data.transactions) data.transactions = [];
+                data.transactions.push({
+                    id: Date.now(),
+                    type: `Cobro de Dividendos`,
+                    total: montoCobrado,
+                    timestamp: new Date().toLocaleString()
+                });
+
+                transaction.update(userRef, {
+                    cash: Number(cash.toFixed(2)),
+                    pending_dividends: 0,
+                    transactions: data.transactions
+                });
+
+                state.cash = cash;
+                state.pending_dividends = 0;
+                state.transactions = data.transactions;
+            });
+
+            renderAll();
+            showModal("¡Dividendos Cobrados!", `Has reclamado exitosamente ${formatNumber(montoCobrado)} a tu efectivo disponible.`);
+        } catch (e) {
+            if (e.message === "Sin dividendos") {
+                showModal("Sin dividendos", "No tienes dividendos acumulados para cobrar en este momento.");
+            } else {
+                console.error("Error al cobrar dividendos:", e);
+                showModal("Error", "No se pudo procesar el cobro de dividendos.");
+            }
+        }
     }
 
     async function cargarMercadoCripto() {
@@ -1592,6 +1707,8 @@
             cashEl.className = '';
         }
         
+        document.getElementById('pendingDividendsDisplay').textContent = formatNumber(state.pending_dividends);
+        
         let totalCryptoWorth = 0;
         for (let id in state.portfolio_crypto) {
             let item = state.portfolio_crypto[id];
@@ -1680,7 +1797,7 @@
 
     function resetGameData() {
         if (confirm("¿Seguro que deseas reiniciar tu partida?")) {
-            state = { cash: 100, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, portfolio_stocks: {} };
+            state = { cash: 100, pending_dividends: 0, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, portfolio_stocks: {} };
             saveUserData();
             renderAll();
             toggleSettings(false);
@@ -1744,8 +1861,10 @@
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
                         if (stockMarketInterval) clearInterval(stockMarketInterval);
+                        if (dividendInterval) clearInterval(dividendInterval);
                         state = {
                             cash: 100,
+                            pending_dividends: 0,
                             title: 'RichMan Web',
                             transactions: [],
                             job: { level: 0, active: true },
@@ -1800,6 +1919,7 @@
             if (gameInterval) clearInterval(gameInterval);
             if (marketInterval) clearInterval(marketInterval);
             if (stockMarketInterval) clearInterval(stockMarketInterval);
+            if (dividendInterval) clearInterval(dividendInterval);
             currentUserUid = null;
             await window.fb.signOut(window.auth);
         } catch (e) {

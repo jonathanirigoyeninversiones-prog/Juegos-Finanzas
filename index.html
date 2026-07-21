@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Token con Reglas RichMan Web - Mi Cartera</title>
+    <title>Token 1 Cuebta RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -480,7 +480,7 @@
     let currentUserUid = null;
     let gameInterval = null;
     let marketInterval = null;
-    let sessionListener = null;
+    let sessionHeartbeatInterval = null;
     const deviceSessionId = '_' + Math.random().toString(36).substr(2, 9);
 
     let configEmpleosNiveles = [];
@@ -605,26 +605,46 @@
 
     async function loadUserData(uid) {
         try {
-            const { doc, getDoc, setDoc, onSnapshot } = window.fb;
+            const { doc, getDoc, setDoc } = window.fb;
             const userRef = doc(window.db, "partidas", uid);
+            const snap = await getDoc(userRef);
 
-            // Iniciar el listener de control de sesión única de inmediato
-            if (sessionListener) sessionListener();
-            sessionListener = onSnapshot(userRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.activeSessionToken && data.activeSessionToken !== deviceSessionId) {
-                        if (gameInterval) clearInterval(gameInterval);
-                        if (marketInterval) clearInterval(marketInterval);
-                        if (sessionListener) sessionListener();
-                        window.fb.signOut(window.auth);
-                        showModal("Sesión Cerrada", "Tu cuenta ha sido abierta en otro dispositivo.");
-                    }
+            let lastToken = null;
+            let lastTimestamp = 0;
+
+            if (snap.exists()) {
+                const dataRemota = snap.data();
+                lastToken = dataRemota.activeSessionToken;
+                lastTimestamp = dataRemota.sessionTimestamp || 0;
+            }
+
+            const ahora = Date.now();
+            // Si hay un token activo y la "última actividad" fue hace menos de 70 segundos, consideramos que la sesión sigue abierta en otro equipo
+            if (lastToken && lastToken !== deviceSessionId && (ahora - lastTimestamp < 70000)) {
+                // Hay otra sesión activa: cerramos sesión aquí y avisamos
+                await window.fb.signOut(window.auth);
+                showModal("Acceso Denegado", "Esta cuenta ya está abierta y activa en otro dispositivo.");
+                return;
+            }
+
+            // Si no hay sesión activa o la anterior expiró, tomamos posesión de la sesión registrando nuestro token y timestamp
+            await setDoc(userRef, { 
+                activeSessionToken: deviceSessionId,
+                sessionTimestamp: ahora
+            }, { merge: true });
+
+            // Mantener vivo el "latido" (heartbeat) de la sesión cada 30 segundos
+            if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);
+            sessionHeartbeatInterval = setInterval(async () => {
+                if (!currentUserUid || !window.db) return;
+                try {
+                    await setDoc(doc(window.db, "partidas", currentUserUid), { 
+                        sessionTimestamp: Date.now() 
+                    }, { merge: true });
+                } catch (err) {
+                    console.error("Error actualizando latido de sesión:", err);
                 }
-            });
-
-            // Registrar este dispositivo como el token activo actual
-            await setDoc(userRef, { activeSessionToken: deviceSessionId }, { merge: true });
+            }, 30000);
 
             state = {
                 cash: 100,
@@ -636,7 +656,6 @@
             };
 
             await loadJobConfigFromFirebase(); 
-            const snap = await getDoc(userRef);
 
             if (snap.exists()) {
                 const dataRemota = snap.data();
@@ -1205,7 +1224,7 @@
                         currentUserUid = null;
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
-                        if (sessionListener) sessionListener();
+                        if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);
                         state = {
                             cash: 100,
                             title: 'RichMan Web',
@@ -1227,7 +1246,7 @@
     function toggleAuthMode() {
         isRegistering = !isRegistering;
         document.getElementById('authTitle').textContent = isRegistering ? "Crear Cuenta Nueva" : "Iniciar Sesión";
-        document.getElementById('authSubmitBtn').textContent = isRegistering ? "Registrarse" : "Entrar";
+        document.getElementById('authSubmitBtn',).textContent = isRegistering ? "Registrarse" : "Entrar";
         document.querySelector('.auth-toggle').textContent = isRegistering ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate aquí";
         document.getElementById('authError').textContent = "";
     }
@@ -1259,7 +1278,7 @@
         try {
             if (gameInterval) clearInterval(gameInterval);
             if (marketInterval) clearInterval(marketInterval);
-            if (sessionListener) sessionListener();
+            if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);
             currentUserUid = null;
             await window.fb.signOut(window.auth);
         } catch (e) {

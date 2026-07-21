@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Max  RichMan Web - Mi Cartera</title>
+    <title>Max con Celda RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -271,11 +271,24 @@
             padding: 1rem;
             border: 1px solid #2a3442;
         }
-        .btn-buy, .btn-sell, .btn-upgrade-business {
+        .btn-buy, .btn-sell, .btn-max-buy, .btn-max-sell, .btn-upgrade-business {
             padding: 0.4rem 0.8rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; margin-right: 3px;
         }
         .btn-buy { background: #2ecc71; color: #0b0e14; }
         .btn-sell { background: #e74c3c; color: #fff; }
+        .btn-max-buy { background: #3498db; color: #fff; }
+        .btn-max-sell { background: #e67e22; color: #fff; }
+        .market-input {
+            width: 130px;
+            padding: 0.3rem 0.5rem;
+            background: #07090e;
+            border: 1px solid #212d3f;
+            color: #f0f4f8;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-right: 5px;
+            text-align: right;
+        }
         .btn-upgrade-business { background: #f39c12; color: #0b0e14; }
 
         /* --- ESTILOS DEL MODAL FINANCIERO INFERIOR DERECHO --- */
@@ -392,12 +405,12 @@
         <div class="portfolio-section">
             <h2>📈 Mercado (Criptomonedas Binance)</h2>
             <div id="marketTableWrap" style="overflow-x: auto;">
-                <table class="market-table" style="min-width: 750px;">
+                <table class="market-table" style="min-width: 800px;">
                     <thead>
                         <tr>
                             <th onclick="sortMarket('nombre')">Nombre / Símbolo ↕</th>
                             <th onclick="sortMarket('precio')">Precio (Bs) ↕</th>
-                            <th onclick="sortMarket('maxCompra')">Máximo a Comprar ↕</th>
+                            <th>Cantidad / Operación</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -778,11 +791,7 @@
             return;
         }
 
-        let sortedList = cryptoListCache.map(crypto => {
-            let maxCompra = Number(crypto.precio) > 0 ? state.cash / Number(crypto.precio) : 0;
-            return { ...crypto, maxCompra };
-        });
-
+        let sortedList = [...cryptoListCache];
         if (marketSortField) {
             sortedList.sort((a, b) => {
                 let valA, valB;
@@ -794,10 +803,6 @@
                     valA = Number(a.precio || 0);
                     valB = Number(b.precio || 0);
                     return marketSortAsc ? valA - valB : valB - valA;
-                } else if (marketSortField === 'maxCompra') {
-                    valA = Number(a.maxCompra || 0);
-                    valB = Number(b.maxCompra || 0);
-                    return marketSortAsc ? valA - valB : valB - valA;
                 }
             });
         }
@@ -806,7 +811,11 @@
             <tr>
                 <td><strong>${crypto.nombre || crypto.id}</strong></td>
                 <td>${formatNumber(crypto.precio)}</td>
-                <td><strong>${formatCryptoQty(crypto.maxCompra)}</strong></td>
+                <td>
+                    <button class="btn-max-buy" onclick="setearMaxCompra('${crypto.id}', ${crypto.precio})">Max Compra</button>
+                    <input type="number" id="input-qty-${crypto.id}" class="market-input" placeholder="Cantidad" step="any" min="0">
+                    <button class="btn-max-sell" onclick="setearMaxVenta('${crypto.id}')">Max Venta</button>
+                </td>
                 <td>
                     <button class="btn-buy" onclick="comprarCripto('${crypto.id}', ${crypto.precio})">Comprar</button>
                     <button class="btn-sell" onclick="venderCripto('${crypto.id}', ${crypto.precio})">Venta</button>
@@ -815,12 +824,36 @@
         `).join('');
     }
 
+    // --- ACCIONES DE MÁXIMO (RELLENAN EL INPUT) Y TRANSACCIONES ---
+    function setearMaxCompra(id, precio) {
+        let input = document.getElementById(`input-qty-${id}`);
+        if (!input) return;
+        let maxCantidad = precio > 0 ? state.cash / precio : 0;
+        input.value = maxCantidad > 0 ? Number(maxCantidad.toFixed(8)) : 0;
+    }
+
+    function setearMaxVenta(id) {
+        let input = document.getElementById(`input-qty-${id}`);
+        if (!input) return;
+        let asset = state.portfolio_crypto[id];
+        let cantidadPoseida = asset ? asset.cantidad : 0;
+        input.value = cantidadPoseida > 0 ? Number(cantidadPoseida.toFixed(8)) : 0;
+    }
+
     async function comprarCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
-        let cantidadAComprar = state.cash / precio;
+        let input = document.getElementById(`input-qty-${id}`);
+        let cantidadAComprar = input ? parseFloat(input.value) : NaN;
 
-        if (cantidadAComprar <= 0) {
-            showModal("Fondos insuficientes", `No tienes suficiente efectivo para comprar ${id}.`);
+        if (isNaN(cantidadAComprar) || cantidadAComprar <= 0) {
+            showModal("Cantidad Inválida", "Por favor ingresa una cantidad válida o presiona 'Max Compra'.");
+            return;
+        }
+
+        let costoTotalCompra = cantidadAComprar * precio;
+
+        if (state.cash < costoTotalCompra) {
+            showModal("Fondos insuficientes", `No tienes suficiente efectivo (Necesitas ${formatNumber(costoTotalCompra)}).`);
             return;
         }
 
@@ -835,27 +868,24 @@
                 let data = userDoc.data();
                 let cash = Number(data.cash || 0);
 
-                if (cash < (cantidadAComprar * precio)) {
+                if (cash < costoTotalCompra) {
                     throw new Error("Fondos insuficientes");
                 }
 
-                let costoTotalGasto = cash; 
-                let cantidadFraccionada = costoTotalGasto / precio;
-
-                cash = 0;
+                cash -= costoTotalCompra;
                 if (!data.portfolio_crypto) data.portfolio_crypto = {};
                 if (!data.portfolio_crypto[id]) {
                     data.portfolio_crypto[id] = { cantidad: 0, costoTotal: 0 };
                 }
 
-                data.portfolio_crypto[id].cantidad += cantidadFraccionada;
-                data.portfolio_crypto[id].costoTotal += Number(costoTotalGasto);
+                data.portfolio_crypto[id].cantidad += cantidadAComprar;
+                data.portfolio_crypto[id].costoTotal += Number(costoTotalCompra);
 
                 if (!data.transactions) data.transactions = [];
                 data.transactions.push({
                     id: Date.now(),
-                    type: `Compra Cripto (${formatCryptoQty(cantidadFraccionada)}x ${id})`,
-                    total: -costoTotalGasto,
+                    type: `Compra Cripto (${formatCryptoQty(cantidadAComprar)}x ${id})`,
+                    total: -costoTotalCompra,
                     timestamp: new Date().toLocaleString()
                 });
 
@@ -871,7 +901,7 @@
             });
 
             renderAll();
-            showModal("¡Compra Exitosa!", `Has comprado fracciones de ${id} por ${formatNumber(cantidadAComprar * precio)}.`);
+            showModal("¡Compra Exitosa!", `Has comprado ${formatCryptoQty(cantidadAComprar)} ${id} por ${formatNumber(costoTotalCompra)}.`);
         } catch (e) {
             if (e.message === "Fondos insuficientes") {
                 showModal("Fondos insuficientes", `No tienes suficiente efectivo para completar la compra.`);
@@ -884,6 +914,19 @@
 
     async function venderCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
+        let input = document.getElementById(`input-qty-${id}`);
+        let cantidadAVender = input ? parseFloat(input.value) : NaN;
+
+        if (isNaN(cantidadAVender) || cantidadAVender <= 0) {
+            showModal("Cantidad Inválida", "Por favor ingresa una cantidad válida o presiona 'Max Venta'.");
+            return;
+        }
+
+        let asset = state.portfolio_crypto[id];
+        if (!asset || asset.cantidad < cantidadAVender) {
+            showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender esa cantidad.`);
+            return;
+        }
 
         try {
             const { doc, runTransaction } = window.fb;
@@ -895,16 +938,21 @@
 
                 let data = userDoc.data();
                 let portfolio = data.portfolio_crypto || {};
-                let asset = portfolio[id];
+                let targetAsset = portfolio[id];
 
-                if (!asset || asset.cantidad <= 0) {
+                if (!targetAsset || targetAsset.cantidad < cantidadAVender) {
                     throw new Error("Sin tenencias");
                 }
 
-                let cantidadAVender = asset.cantidad;
-                let costoReducido = asset.costoTotal;
+                let costoPromedioUnitario = targetAsset.costoTotal / targetAsset.cantidad;
+                let costoReducido = costoPromedioUnitario * cantidadAVender;
 
-                delete portfolio[id];
+                targetAsset.cantidad -= cantidadAVender;
+                targetAsset.costoTotal -= costoReducido;
+
+                if (targetAsset.cantidad <= 0.00000001) {
+                    delete portfolio[id];
+                }
 
                 let totalVenta = cantidadAVender * precio;
                 let cash = Number(data.cash || 0) + Number(totalVenta);
@@ -929,10 +977,10 @@
             });
 
             renderAll();
-            showModal("¡Venta Exitosa!", `Has vendido todas tus tenencias de ${id} por ${formatNumber(precio * (state.portfolio_crypto[id]?.cantidad || 0))}.`);
+            showModal("¡Venta Exitosa!", `Has vendido ${formatCryptoQty(cantidadAVender)} ${id} por ${formatNumber(cantidadAVender * precio)}.`);
         } catch (e) {
             if (e.message === "Sin tenencias") {
-                showModal("Sin tenencias", `No posees unidades de ${id} para vender.`);
+                showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender.`);
             } else {
                 console.error("Error en transacción de venta:", e);
                 showModal("Error", "No se pudo procesar la venta en el servidor.");
@@ -1110,7 +1158,7 @@
         `).join('');
 
         renderPortfolioCryptoTable();
-        renderMarketTable(); // Actualiza los valores máximos a comprar si cambia el efectivo
+        renderMarketTable();
     }
 
     function upgradeJob() {

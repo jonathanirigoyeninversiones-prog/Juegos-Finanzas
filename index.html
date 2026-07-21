@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>222 RichMan Web - Mi Cartera</title>
+    <title>Compra Acciones RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -605,6 +605,7 @@
     let cryptoListCache = [];
     let stocksListCache = [];
     let preferredMarketAsset = null;
+    let preferredStockAsset = null;
 
     let portfolioSortField = null;
     let portfolioSortAsc = true;
@@ -793,7 +794,7 @@
                 { id: "EU_MBG", nombre: "Mercedes-Benz Group (MBG)", mercado: "Europa", precio: 1400.00 },
                 { id: "EU_VOW3", nombre: "Volkswagen AG (VOW3)", mercado: "Europa", precio: 1150.00 },
                 { id: "EU_ENEL", nombre: "Enel S.p.A. (ENEL)", mercado: "Europa", precio: 480.00 },
-                { id: "EU_ENI", nombre: "Eni S.p.A. (ENI)", mercado: "Europa", precio: 590.00 },
+                { id: "EU_ENI", nombre: "Eni S.p.A. (Eni)", mercado: "Europa", precio: 590.00 },
                 { id: "EU_NESN", nombre: "Nestlé S.A. (NESN)", mercado: "Europa", precio: 1850.00 },
                 { id: "EU_ROG", nombre: "Roche Holding AG (ROG)", mercado: "Europa", precio: 1950.00 },
                 { id: "EU_NOVN", nombre: "Novartis AG (NOVN)", mercado: "Europa", precio: 1650.00 },
@@ -997,14 +998,22 @@
         let usItems = stocksListCache.filter(s => s.mercado === 'Wall Street');
         let euItems = stocksListCache.filter(s => s.mercado === 'Europa');
 
-        bvcBody.innerHTML = bvcItems.length ? bvcItems.map(buildStockRow).join('') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en BVC</td></tr>`;
-        usBody.innerHTML = usItems.length ? usItems.map(buildStockRow).join('') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Wall Street</td></tr>`;
-        euBody.innerHTML = euItems.length ? euItems.map(buildStockRow).join('') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Europa</td></tr>`;
+        bvcBody.innerHTML = bvcItems.length ? ordenarYRenderizarAcciones(bvcItems, 'BVC') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en BVC</td></tr>`;
+        usBody.innerHTML = usItems.length ? ordenarYRenderizarAcciones(usItems, 'Wall Street') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Wall Street</td></tr>`;
+        euBody.innerHTML = euItems.length ? ordenarYRenderizarAcciones(euItems, 'Europa') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Europa</td></tr>`;
     }
 
-    function buildStockRow(stock) {
-        return `
-            <tr>
+    function ordenarYRenderizarAcciones(items, mercadoNombre) {
+        let sorted = [...items];
+        if (preferredStockAsset) {
+            let index = sorted.findIndex(s => s.id === preferredStockAsset);
+            if (index > -1) {
+                let item = sorted.splice(index, 1)[0];
+                sorted.unshift(item);
+            }
+        }
+        return sorted.map(stock => `
+            <tr ${stock.id === preferredStockAsset ? 'style="background: rgba(241, 196, 15, 0.08); border-left: 3px solid #f1c40f;"' : ''}>
                 <td><strong>${stock.nombre || stock.id}</strong></td>
                 <td>${formatStockPrice(stock.precio)}</td>
                 <td>
@@ -1017,7 +1026,7 @@
                     <button class="btn-sell" onclick="venderAccion('${stock.id}', ${stock.precio})">Venta</button>
                 </td>
             </tr>
-        `;
+        `).join('');
     }
 
     function setearMaxCompraStock(id, precio) {
@@ -1231,6 +1240,7 @@
 
     function navegarAMercado(assetId) {
         preferredMarketAsset = assetId;
+        preferredStockAsset = null;
         
         document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -1245,6 +1255,25 @@
         document.getElementById('spotMarketSub').classList.add('active');
 
         cargarMercadoCripto();
+    }
+
+    function navegarAStockMercado(stockId) {
+        preferredStockAsset = stockId;
+        preferredMarketAsset = null;
+        
+        document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        
+        const marketTabBtn = document.querySelector('.main-tabs button[data-section="market"]');
+        if (marketTabBtn) marketTabBtn.classList.add('active');
+        document.getElementById('marketSection').classList.add('active');
+
+        document.querySelectorAll('.market-sub-tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.market-sub-section').forEach(s => s.classList.remove('active'));
+        document.querySelector('.market-sub-tabs button[data-market-sub="stocks"]').classList.add('active');
+        document.getElementById('stocksMarketSub').classList.add('active');
+
+        cargarMercadoAcciones();
     }
 
     function setearMaxCompra(id, precio) {
@@ -1480,7 +1509,7 @@
             const roiClass = item.roi >= 0 ? 'text-green' : 'text-red';
             return `
                 <tr>
-                    <td><strong>${item.id}</strong></td>
+                    <td><strong class="clickable-asset" onclick="navegarAStockMercado('${item.id}')" title="Ver en Mercado">${item.id}</strong></td>
                     <td>${item.cantidad}</td>
                     <td>${formatStockPrice(item.precioPromedio)}</td>
                     <td>${formatStockPrice(item.precioActual)}</td>
@@ -1677,6 +1706,7 @@
             document.getElementById(this.dataset.section + 'Section').classList.add('active');
             if (this.dataset.section === 'market') {
                 preferredMarketAsset = null;
+                preferredStockAsset = null;
                 cargarMercadoCripto();
                 cargarMercadoAcciones();
             }
@@ -1691,8 +1721,10 @@
             const subName = this.dataset.marketSub;
             document.getElementById(subName + 'MarketSub').classList.add('active');
             if (subName === 'spot') {
+                preferredMarketAsset = null;
                 cargarMercadoCripto();
             } else if (subName === 'stocks') {
+                preferredStockAsset = null;
                 cargarMercadoAcciones();
             }
         });

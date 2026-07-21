@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Max con Celda RichMan Web - Mi Cartera</title>
+    <title>111 Max con Celda RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -824,11 +824,13 @@
         `).join('');
     }
 
-    // --- ACCIONES DE MÁXIMO (RELLENAN EL INPUT) Y TRANSACCIONES ---
+    // --- ACCIONES DE MÁXIMO CON MARGEN DE SEGURIDAD Y TRANSACCIONES ---
     function setearMaxCompra(id, precio) {
         let input = document.getElementById(`input-qty-${id}`);
         if (!input) return;
-        let maxCantidad = precio > 0 ? state.cash / precio : 0;
+        // Reservamos un 0.5% de margen para evitar errores por redondeo o comisiones
+        let efectivoUtilizable = state.cash * 0.995;
+        let maxCantidad = precio > 0 ? efectivoUtilizable / precio : 0;
         input.value = maxCantidad > 0 ? Number(maxCantidad.toFixed(8)) : 0;
     }
 
@@ -853,7 +855,7 @@
         let costoTotalCompra = cantidadAComprar * precio;
 
         if (state.cash < costoTotalCompra) {
-            showModal("Fondos insuficientes", `No tienes suficiente efectivo (Necesitas ${formatNumber(costoTotalCompra)}).`);
+            showModal("Fondos insuficientes", `No tienes suficiente efectivo (Necesitas ${formatNumber(costoTotalCompra)} y tienes ${formatNumber(state.cash)}).`);
             return;
         }
 

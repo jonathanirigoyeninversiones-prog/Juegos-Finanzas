@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Timpo Dividendis RichMan Web - Mi Cartera</title>
+    <title>Tablas RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -424,8 +424,8 @@
                             <tr>
                                 <th onclick="sortPortfolio('activo')">Activo ↕</th>
                                 <th onclick="sortPortfolio('cantidad')">Cantidad ↕</th>
-                                <th onclick="sortPortfolio('precioPromedio')">Precio Promedio ↕</th>
                                 <th onclick="sortPortfolio('precioActual')">Precio Actual ↕</th>
+                                <th onclick="sortPortfolio('precioPromedio')">Precio Promedio ↕</th>
                                 <th onclick="sortPortfolio('posicion')">Posición ↕</th>
                                 <th onclick="sortPortfolio('gp')">G/P ↕</th>
                                 <th onclick="sortPortfolio('roi')">ROI (%) ↕</th>
@@ -444,8 +444,8 @@
                             <tr>
                                 <th>Acción ↕</th>
                                 <th>Cantidad ↕</th>
-                                <th>Precio Promedio ↕</th>
                                 <th>Precio Actual ↕</th>
+                                <th>Precio Promedio ↕</th>
                                 <th>Posición ↕</th>
                                 <th>G/P ↕</th>
                                 <th>ROI (%) ↕</th>
@@ -501,8 +501,8 @@
                     <table class="market-table" style="min-width: 800px; margin-top: 0.5rem; margin-bottom: 1.5rem;">
                         <thead>
                             <tr>
-                                <th>Acción ↕</th>
-                                <th>Precio (Bs) ↕</th>
+                                <th onclick="sortStocksMarket('BVC', 'nombre')">Acción ↕</th>
+                                <th onclick="sortStocksMarket('BVC', 'precio')">Precio (Bs) ↕</th>
                                 <th>Cantidad / Operación</th>
                                 <th>Acciones</th>
                             </tr>
@@ -516,8 +516,8 @@
                     <table class="market-table" style="min-width: 800px; margin-top: 0.5rem; margin-bottom: 1.5rem;">
                         <thead>
                             <tr>
-                                <th>Acción ↕</th>
-                                <th>Precio (Bs) ↕</th>
+                                <th onclick="sortStocksMarket('Wall Street', 'nombre')">Acción ↕</th>
+                                <th onclick="sortStocksMarket('Wall Street', 'precio')">Precio (Bs) ↕</th>
                                 <th>Cantidad / Operación</th>
                                 <th>Acciones</th>
                             </tr>
@@ -531,8 +531,8 @@
                     <table class="market-table" style="min-width: 800px; margin-top: 0.5rem;">
                         <thead>
                             <tr>
-                                <th>Acción ↕</th>
-                                <th>Precio (Bs) ↕</th>
+                                <th onclick="sortStocksMarket('Europa', 'nombre')">Acción ↕</th>
+                                <th onclick="sortStocksMarket('Europa', 'precio')">Precio (Bs) ↕</th>
                                 <th>Cantidad / Operación</th>
                                 <th>Acciones</th>
                             </tr>
@@ -585,9 +585,7 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <!-- NUEVO BOTÓN PARA CORREGIR EL BUG DE LOS DIVIDENDOS -->
     <button class="modal-btn" style="background:#f39c12; width:100%; margin-bottom: 1rem;" onclick="corregirBugDividendos()">🐛 Corregir Bug Dividendos (74M)</button>
-    
     <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="inicializar60AccionesFirebase()">📈 Cargar 60 Compañías en Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
@@ -613,6 +611,12 @@
     let portfolioSortAsc = true;
     let marketSortField = null;
     let marketSortAsc = true;
+    
+    let stocksSortFields = {
+        'BVC': { field: null, asc: true },
+        'Wall Street': { field: null, asc: true },
+        'Europa': { field: null, asc: true }
+    };
 
     let state = {
         cash: 100,
@@ -735,7 +739,6 @@
         }
     }
 
-    // NUEVA FUNCIÓN PARA LIMPIAR EL BUG DESDE EL MENÚ DE CONFIGURACIÓN
     async function corregirBugDividendos() {
         if (confirm("¿Seguro que deseas limpiar tus dividendos acumulados a 0 Bs? Tu efectivo, empleo y activos se mantendrán intactos.")) {
             state.pending_dividends = 0;
@@ -855,7 +858,6 @@
             const userRef = doc(window.db, "partidas", uid);
             const snap = await getDoc(userRef);
 
-            // Cargar los mercados para tener acceso a los precios antes de procesar las carteras
             await cargarMercadoCripto();
             await cargarMercadoAcciones();
 
@@ -879,18 +881,14 @@
                 state.portfolio_crypto = formattedCrypto;
                 state.portfolio_stocks = dataRemota.portfolio_stocks || {};
 
-                // 🛡️ CÁLCULO DE DIVIDENDOS OFFLINE CORREGIDO Y PROTEGIDO CON NUEVO MULTIPLICADOR (0.0001)
                 if (dataRemota.last_active) {
                     let lastActiveTime;
-                    
-                    // Verificamos si es el formato viejo (Timestamp de Firebase) o el nuevo (milisegundos)
                     if (typeof dataRemota.last_active.toDate === 'function') {
                         lastActiveTime = dataRemota.last_active.toDate().getTime();
                     } else {
                         lastActiveTime = Number(dataRemota.last_active);
                     }
 
-                    // Si el número es 0 (1970) o inválido, usamos la hora actual para no regalar dinero
                     if (!lastActiveTime || lastActiveTime < 1000000000000) {
                         lastActiveTime = Date.now();
                     }
@@ -898,7 +896,6 @@
                     const nowTime = Date.now();
                     let diffMinutes = Math.floor((nowTime - lastActiveTime) / 60000);
 
-                    // 🛑 SEGURO ANTIFALLOS: Tope máximo de 7 días offline (10.080 minutos)
                     if (diffMinutes > 10080) {
                         diffMinutes = 10080;
                     }
@@ -911,7 +908,6 @@
                             if (cantidad > 0) {
                                 let stockObj = stocksListCache.find(s => s.id === stockId);
                                 let precioActual = stockObj ? stockObj.precio : 100;
-                                // APLICADO EL MULTIPLICADOR REALISTA DE 0.0001
                                 dividendosOfflineTotal += (cantidad * precioActual) * 0.0001 * diffMinutes;
                             }
                         }
@@ -1049,7 +1045,6 @@
                         if (cantidad > 0) {
                             let stockObj = stocksListCache.find(s => s.id === stockId);
                             let precioActual = stockObj ? stockObj.precio : 100;
-                            // APLICADO EL MULTIPLICADOR REALISTA DE 0.0001
                             acumuladoMinuto += (cantidad * precioActual) * 0.0001;
                         }
                     }
@@ -1172,13 +1167,41 @@
         let usItems = stocksListCache.filter(s => s.mercado === 'Wall Street');
         let euItems = stocksListCache.filter(s => s.mercado === 'Europa');
 
-        bvcBody.innerHTML = bvcItems.length ? ordenarYRenderizarAcciones(bvcItems, 'BVC') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en BVC</td></tr>`;
-        usBody.innerHTML = usItems.length ? ordenarYRenderizarAcciones(usItems, 'Wall Street') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Wall Street</td></tr>`;
-        euBody.innerHTML = euItems.length ? ordenarYRenderizarAcciones(euItems, 'Europa') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Europa</td></tr>`;
+        bvcBody.innerHTML = bvcItems.length ? ordenarYRenderizarAccionesMercado(bvcItems, 'BVC') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en BVC</td></tr>`;
+        usBody.innerHTML = usItems.length ? ordenarYRenderizarAccionesMercado(usItems, 'Wall Street') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Wall Street</td></tr>`;
+        euBody.innerHTML = euItems.length ? ordenarYRenderizarAccionesMercado(euItems, 'Europa') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Europa</td></tr>`;
     }
 
-    function ordenarYRenderizarAcciones(items, mercadoNombre) {
+    function sortStocksMarket(mercado, field) {
+        let current = stocksSortFields[mercado];
+        if (current.field === field) {
+            current.asc = !current.asc;
+        } else {
+            current.field = field;
+            current.asc = true;
+        }
+        renderStocksTables();
+    }
+
+    function ordenarYRenderizarAccionesMercado(items, mercadoNombre) {
         let sorted = [...items];
+        let sortConfig = stocksSortFields[mercadoNombre];
+
+        if (sortConfig.field) {
+            sorted.sort((a, b) => {
+                let valA, valB;
+                if (sortConfig.field === 'nombre') {
+                    valA = (a.nombre || a.id).toLowerCase();
+                    valB = (b.nombre || b.id).toLowerCase();
+                    return sortConfig.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else if (sortConfig.field === 'precio') {
+                    valA = Number(a.precio || 0);
+                    valB = Number(b.precio || 0);
+                    return sortConfig.asc ? valA - valB : valB - valA;
+                }
+            });
+        }
+
         if (preferredStockAsset) {
             let index = sorted.findIndex(s => s.id === preferredStockAsset);
             if (index > -1) {
@@ -1186,6 +1209,7 @@
                 sorted.unshift(item);
             }
         }
+
         return sorted.map(stock => `
             <tr ${stock.id === preferredStockAsset ? 'style="background: rgba(241, 196, 15, 0.08); border-left: 3px solid #f1c40f;"' : ''}>
                 <td><strong>${stock.nombre || stock.id}</strong></td>
@@ -1376,13 +1400,7 @@
 
         let sortedList = [...cryptoListCache];
 
-        if (preferredMarketAsset) {
-            let index = sortedList.findIndex(c => c.id === preferredMarketAsset);
-            if (index > -1) {
-                let item = sortedList.splice(index, 1)[0];
-                sortedList.unshift(item);
-            }
-        } else if (marketSortField) {
+        if (marketSortField) {
             sortedList.sort((a, b) => {
                 let valA, valB;
                 if (marketSortField === 'nombre') {
@@ -1395,6 +1413,14 @@
                     return marketSortAsc ? valA - valB : valB - valA;
                 }
             });
+        }
+
+        if (preferredMarketAsset) {
+            let index = sortedList.findIndex(c => c.id === preferredMarketAsset);
+            if (index > -1) {
+                let item = sortedList.splice(index, 1)[0];
+                sortedList.unshift(item);
+            }
         }
 
         tbody.innerHTML = sortedList.map(crypto => `
@@ -1647,8 +1673,8 @@
                 <tr>
                     <td><strong class="clickable-asset" onclick="navegarAMercado('${item.id}')" title="Ver en Mercado">${item.id}</strong></td>
                     <td>${formatCryptoQty(item.cantidad)}</td>
-                    <td>${formatCryptoPrice(item.precioPromedio)}</td>
                     <td>${formatCryptoPrice(item.precioActual)}</td>
+                    <td>${formatCryptoPrice(item.precioPromedio)}</td>
                     <td><strong>${formatNumber(item.posicion)}</strong></td>
                     <td class="${gpClass}">${item.gp >= 0 ? '+' : ''}${formatNumber(item.gp)}</td>
                     <td class="${roiClass}">${item.roi >= 0 ? '+' : ''}${item.roi.toFixed(2)}%</td>
@@ -1689,8 +1715,8 @@
                 <tr>
                     <td><strong class="clickable-asset" onclick="navegarAStockMercado('${item.id}')" title="Ver en Mercado">${item.id}</strong></td>
                     <td>${item.cantidad}</td>
-                    <td>${formatStockPrice(item.precioPromedio)}</td>
                     <td>${formatStockPrice(item.precioActual)}</td>
+                    <td>${formatStockPrice(item.precioPromedio)}</td>
                     <td><strong>${formatNumber(item.posicion)}</strong></td>
                     <td class="${gpClass}">${item.gp >= 0 ? '+' : ''}${formatNumber(item.gp)}</td>
                     <td class="${roiClass}">${item.roi >= 0 ? '+' : ''}${item.roi.toFixed(2)}%</td>

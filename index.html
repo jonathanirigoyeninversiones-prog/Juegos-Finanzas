@@ -494,9 +494,9 @@
 
             <!-- SUB-SECCIÓN ACCIONES -->
             <div id="stocksMarketSub" class="market-sub-section">
-                <h2>🏢 Mercado de Acciones</h2>
+                <h2>🏢 Mercado Bursátil Global y Local</h2>
                 
-                <h3 style="color: #f1c40f; margin-top: 1rem;">🇻🇪 Bolsa de Valores de Caracas (BVC)</h3>
+                <h3 style="color: #f1c40f; margin-top: 1rem;">🇻🇪 Bolsa de Valores de Caracas (BVC) - 20 Compañías</h3>
                 <div style="overflow-x: auto;">
                     <table class="market-table" style="min-width: 800px; margin-top: 0.5rem; margin-bottom: 1.5rem;">
                         <thead>
@@ -511,7 +511,7 @@
                     </table>
                 </div>
 
-                <h3 style="color: #f1c40f;">🇺🇸 Nueva York (Wall Street)</h3>
+                <h3 style="color: #f1c40f;">🇺🇸 Wall Street (Nueva York) - 20 Compañías</h3>
                 <div style="overflow-x: auto;">
                     <table class="market-table" style="min-width: 800px; margin-top: 0.5rem; margin-bottom: 1.5rem;">
                         <thead>
@@ -526,7 +526,7 @@
                     </table>
                 </div>
 
-                <h3 style="color: #f1c40f;">🇪🇺 Europa</h3>
+                <h3 style="color: #f1c40f;">🇪🇺 Europa (Euronext) - 20 Compañías</h3>
                 <div style="overflow-x: auto;">
                     <table class="market-table" style="min-width: 800px; margin-top: 0.5rem;">
                         <thead>
@@ -587,6 +587,8 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
+    <!-- 🛠️ BOTÓN CON SCRIPT PARA ACTUALIZAR LAS 60 COMPAÑÍAS EN FIREBASE -->
+    <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="inicializar60AccionesFirebase()">📈 Cargar 60 Compañías en Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -596,6 +598,7 @@
     let currentUserUid = null;
     let gameInterval = null;
     let marketInterval = null;
+    let stockMarketInterval = null;
 
     let configEmpleosNiveles = [];
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
@@ -726,6 +729,101 @@
         }
     }
 
+    // 📈 SCRIPT PARA CARGAR LAS 60 COMPAÑÍAS REALES EN FIREBASE (20 por mercado)
+    async function inicializar60AccionesFirebase() {
+        if (!window.db) {
+            showModal("Error", "No hay conexión con Firebase.");
+            return;
+        }
+        try {
+            const { doc, setDoc } = window.fb;
+
+            const lista60Acciones = [
+                // --- BOLSA DE VALORES DE CARACAS (BVC) - 20 ---
+                { id: "BVC_BVL", nombre: "Bolsa de Valores de Caracas (BVL)", mercado: "BVC", precio: 150.00 },
+                { id: "BVC_CANTV", nombre: "CANTV (BVL: BNC)", mercado: "BVC", precio: 85.50 },
+                { id: "BVC_BDV", nombre: "Banco de Venezuela (BVL: BDV)", mercado: "BVC", precio: 320.00 },
+                { id: "BVC_BNC", nombre: "Banco Nacional de Crédito (BNC)", mercado: "BVC", precio: 210.00 },
+                { id: "BVC_BPVR", nombre: "Banco Provincial (BPV)", mercado: "BVC", precio: 450.00 },
+                { id: "BVC_BFC", nombre: "Banco Fondo Común (BFC)", mercado: "BVC", precio: 95.00 },
+                { id: "BVC_RST", nombre: "Ron Santa Teresa (RST)", mercado: "BVC", precio: 680.00 },
+                { id: "BVC_MPV", nombre: "Manpa (MPV)", mercado: "BVC", precio: 45.20 },
+                { id: "BVC_DOM", nombre: "Domínguez & Cia (DOM)", mercado: "BVC", precio: 120.00 },
+                { id: "BVC_FNC", nombre: "Fábrica Nacional de Cementos (FNC)", mercado: "BVC", precio: 310.00 },
+                { id: "BVC_PPA", nombre: "Protinal / Proagro (PPA)", mercado: "BVC", precio: 175.50 },
+                { id: "BVC_SVS", nombre: "SIVENSA (SVS)", mercado: "BVC", precio: 28.00 },
+                { id: "BVC_EFE", nombre: "Helados EFE / Alfonzo Rivas", mercado: "BVC", precio: 890.00 },
+                { id: "BVC_ICP", nombre: "Inmuebles y Valores C.A. (ICP)", mercado: "BVC", precio: 140.00 },
+                { id: "BVC_MVZ", nombre: "Mercantil Servicios Financieros (MVZ.A)", mercado: "BVC", precio: 1250.00 },
+                { id: "BVC_ENV", nombre: "Envases Venezolanos (ENV)", mercado: "BVC", precio: 65.00 },
+                { id: "BVC_PTN", nombre: "Pinturas Oikos / Corimon", mercado: "BVC", precio: 110.00 },
+                { id: "BVC_ORA", nombre: "Otepi / Venezolana de Prótesis", mercado: "BVC", precio: 98.40 },
+                { id: "BVC_AGR", nombre: "Agropecuaria El Surtidor", mercado: "BVC", precio: 230.00 },
+                { id: "BVC_TPC", nombre: "Transportes de Valores Caribe", mercado: "BVC", precio: 340.00 },
+
+                // --- WALL STREET (NUEVA YORK) - 20 ---
+                { id: "US_AAPL", nombre: "Apple Inc. (AAPL)", mercado: "Wall Street", precio: 2400.00 },
+                { id: "US_TSLA", nombre: "Tesla Inc. (TSLA)", mercado: "Wall Street", precio: 1800.00 },
+                { id: "US_MSFT", nombre: "Microsoft Corp. (MSFT)", mercado: "Wall Street", precio: 3200.00 },
+                { id: "US_AMZN", nombre: "Amazon.com Inc. (AMZN)", mercado: "Wall Street", precio: 2900.00 },
+                { id: "US_GOOGL", nombre: "Alphabet Inc. / Google (GOOGL)", mercado: "Wall Street", precio: 2100.00 },
+                { id: "US_NVDA", nombre: "NVIDIA Corp. (NVDA)", mercado: "Wall Street", precio: 3800.00 },
+                { id: "US_META", nombre: "Meta Platforms Inc. (META)", mercado: "Wall Street", precio: 2600.00 },
+                { id: "US_NFLX", nombre: "Netflix Inc. (NFLX)", mercado: "Wall Street", precio: 1950.00 },
+                { id: "US_AMD", nombre: "Advanced Micro Devices (AMD)", mercado: "Wall Street", precio: 1100.00 },
+                { id: "US_INTC", nombre: "Intel Corp. (INTC)", mercado: "Wall Street", precio: 650.00 },
+                { id: "US_JPM", nombre: "JPMorgan Chase & Co. (JPM)", mercado: "Wall Street", precio: 1750.00 },
+                { id: "US_V", nombre: "Visa Inc. (V)", mercado: "Wall Street", precio: 2150.00 },
+                { id: "US_JNJ", nombre: "Johnson & Johnson (JNJ)", mercado: "Wall Street", mercado: "Wall Street", precio: 1400.00 },
+                { id: "US_WMT", nombre: "Walmart Inc. (WMT)", mercado: "Wall Street", precio: 1300.00 },
+                { id: "US_DIS", nombre: "The Walt Disney Co. (DIS)", mercado: "Wall Street", precio: 950.00 },
+                { id: "US_KO", nombre: "The Coca-Cola Co. (KO)", mercado: "Wall Street", precio: 880.00 },
+                { id: "US_PEP", nombre: "PepsiCo Inc. (PEP)", mercado: "Wall Street", precio: 1200.00 },
+                { id: "US_BA", nombre: "Boeing Co. (BA)", mercado: "Wall Street", precio: 1550.00 },
+                { id: "US_PFE", nombre: "Pfizer Inc. (PFE)", mercado: "Wall Street", precio: 520.00 },
+                { id: "US_XOM", nombre: "Exxon Mobil Corp. (XOM)", mercado: "Wall Street", precio: 1600.00 },
+
+                // --- EUROPA (EURONEXT / FRANCFORT) - 20 ---
+                { id: "EU_ASML", nombre: "ASML Holding N.V. (ASML)", mercado: "Europa", precio: 3400.00 },
+                { id: "EU_MC", nombre: "LVMH Moët Hennessy (MC)", mercado: "Europa", precio: 2800.00 },
+                { id: "EU_OR", nombre: "L'Oréal S.A. (OR)", mercado: "Europa", precio: 2200.00 },
+                { id: "EU_TTE", nombre: "TotalEnergies SE (TTE)", mercado: "Europa", precio: 1450.00 },
+                { id: "EU_SAP", nombre: "SAP SE (SAP)", mercado: "Europa", precio: 1900.00 },
+                { id: "EU_SIE", nombre: "Siemens AG (SIE)", mercado: "Europa", precio: 1700.00 },
+                { id: "EU_AZN", nombre: "AstraZeneca PLC (AZN)", mercado: "Europa", precio: 1600.00 },
+                { id: "EU_SAN", nombre: "Banco Santander S.A. (SAN)", mercado: "Europa", precio: 750.00 },
+                { id: "EU_DBK", nombre: "Deutsche Bank AG (DBK)", mercado: "Europa", precio: 620.00 },
+                { id: "EU_AIR", nombre: "Airbus SE (AIR)", mercado: "Europa", mercado: "Europa", precio: 2100.00 },
+                { id: "EU_BMW", nombre: "BMW AG (BMW)", mercado: "Europa", precio: 1350.00 },
+                { id: "EU_MBG", nombre: "Mercedes-Benz Group (MBG)", mercado: "Europa", precio: 1400.00 },
+                { id: "EU_VOW3", nombre: "Volkswagen AG (VOW3)", mercado: "Europa", precio: 1150.00 },
+                { id: "EU_ENEL", nombre: "Enel S.p.A. (ENEL)", mercado: "Europa", precio: 480.00 },
+                { id: "EU_ENI", nombre: "Eni S.p.A. (ENI)", mercado: "Europa", precio: 590.00 },
+                { id: "EU_NESN",_nombre: "Nestlé S.A. (NESN)", nombre: "Nestlé S.A. (NESN)", mercado: "Europa", precio: 1850.00 },
+                { id: "EU_ROG", nombre: "Roche Holding AG (ROG)", mercado: "Europa", precio: 1950.00 },
+                { id: "EU_NOVN", nombre: "Novartis AG (NOVN)", mercado: "Europa", precio: 1650.00 },
+                { id: "EU_SHEL", nombre: "Shell PLC (SHEL)", mercado: "Europa", precio: 1500.00 },
+                { id: "EU_IBE", nombre: "Iberdrola S.A. (IBE)", mercado: "Europa", precio: 890.00 }
+            ];
+
+            for (let acc of lista60Acciones) {
+                await setDoc(doc(window.db, "mercado_acciones", acc.id), {
+                    nombre: acc.nombre,
+                    mercado: acc.mercado,
+                    precio: acc.precio,
+                    historial_velas: [{ open: acc.precio, close: acc.precio, high: acc.precio, low: acc.precio }]
+                }, { merge: true });
+            }
+
+            showModal("Mercado Actualizado", "¡Se han cargado exitosamente las 60 compañías reales (20 por mercado) en Firebase!");
+            toggleSettings(false);
+            cargarMercadoAcciones();
+        } catch (e) {
+            console.error("Error al cargar 60 acciones en Firebase:", e);
+            showModal("Error", "No se pudo actualizar el mercado de acciones masivo.");
+        }
+    }
+
     async function loadUserData(uid) {
         try {
             state = {
@@ -816,8 +914,11 @@
         }, 60000);
     }
 
+    // ⚡ CICLO ESTRICTO DE CADA MINUTO PARA ACCIONES EN EL SERVIDOR (Firebase)
     function startServerSideStockCycle() {
-        setInterval(async () => {
+        if (stockMarketInterval) clearInterval(stockMarketInterval);
+
+        stockMarketInterval = setInterval(async () => {
             if (!window.db) return;
             try {
                 const { collection, getDocs, doc, setDoc } = window.fb;
@@ -826,7 +927,7 @@
                 for (let documentSnap of querySnapshot.docs) {
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 100);
-                    let variacionPorcentual = (Math.random() * 0.04) - 0.02; // Variación más moderada para acciones
+                    let variacionPorcentual = (Math.random() * 0.04) - 0.02; // Variación bursátil controlada
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
                     if (nuevoPrecio < 1) nuevoPrecio = 1;
 
@@ -849,7 +950,7 @@
                 }
                 cargarMercadoAcciones();
             } catch (e) {
-                console.error("Error actualizando acciones:", e);
+                console.error("Error actualizando acciones en servidor:", e);
             }
         }, 60000);
     }
@@ -892,7 +993,7 @@
         if (!bvcBody || !usBody || !euBody) return;
 
         if (stocksListCache.length === 0) {
-            bvcBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
+            bvcBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas. Ve a Configuración y presiona Cargar 60 Compañías.</td></tr>`;
             usBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
             euBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
             return;
@@ -1616,6 +1717,7 @@
                         currentUserUid = null;
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
+                        if (stockMarketInterval) clearInterval(stockMarketInterval);
                         state = {
                             cash: 100,
                             title: 'RichMan Web',
@@ -1671,6 +1773,7 @@
         try {
             if (gameInterval) clearInterval(gameInterval);
             if (marketInterval) clearInterval(marketInterval);
+            if (stockMarketInterval) clearInterval(stockMarketInterval);
             currentUserUid = null;
             await window.fb.signOut(window.auth);
         } catch (e) {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>222 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -524,7 +524,7 @@
 
     async function loadUserData(uid) {
         try {
-            // Restablecer el estado base por defecto antes de cargar el usuario
+            // Limpieza estricta del estado local en memoria para cada cuenta nueva/diferente
             state = {
                 cash: 100,
                 title: 'RichMan Web',
@@ -540,10 +540,17 @@
             const snap = await getDoc(userRef);
 
             if (snap.exists()) {
-                state = { ...state, ...snap.data() };
+                // Fusionar datos asegurando que si la cuenta es nueva, portfolio_crypto esté vacío
+                const dataRemota = snap.data();
+                state.cash = dataRemota.cash !== undefined ? dataRemota.cash : 100;
+                state.transactions = dataRemota.transactions || [];
+                state.job = dataRemota.job || { level: 0, active: true };
+                state.businesses = dataRemota.businesses || [{ id: 'b1', level: 0 }];
+                state.portfolio_crypto = dataRemota.portfolio_crypto || {};
             } else {
                 await setDoc(userRef, state);
             }
+
             renderAll();
             startServerSideFinancialCycle();
             startServerSideCryptoCycle();
@@ -892,7 +899,7 @@
                         currentUserUid = null;
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
-                        // Limpiar estado global al cerrar sesión
+                        // Limpieza profunda de memoria y tablas al salir
                         state = {
                             cash: 100,
                             title: 'RichMan Web',
@@ -901,6 +908,8 @@
                             businesses: [{ id: 'b1', level: 0 }],
                             portfolio_crypto: {}
                         };
+                        document.getElementById('portfolioCryptoBody').innerHTML = `<tr><td colspan="4" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>`;
+                        document.getElementById('historyBody').innerHTML = '';
                         document.getElementById('authScreen').style.display = 'block';
                         document.getElementById('app').style.display = 'none';
                     }

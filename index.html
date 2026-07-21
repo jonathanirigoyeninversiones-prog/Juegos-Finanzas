@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>ROI RichMan Web - Mi Cartera</title>
+    <title>Promedio RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -564,7 +564,8 @@
                 let formattedCrypto = {};
                 for (let key in rawCrypto) {
                     if (typeof rawCrypto[key] === 'number') {
-                        formattedCrypto[key] = { cantidad: rawCrypto[key], costoTotal: rawCrypto[key] * 100 };
+                        // Si era formato antiguo, usa el precio actual o un estimado base real
+                        formattedCrypto[key] = { cantidad: rawCrypto[key], costoTotal: rawCrypto[key] * precio };
                     } else {
                         formattedCrypto[key] = rawCrypto[key];
                     }
@@ -644,7 +645,7 @@
         `).join('');
     }
 
-    // --- TRANSACCIÓN SEGURA DE COMPRA EN FIREBASE ---
+    // --- TRANSACCIÓN SEGURA DE COMPRA EN FIREBASE CON PRECIO REAL DE MERCADO ---
     async function comprarCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
 
@@ -669,8 +670,9 @@
                     data.portfolio_crypto[id] = { cantidad: 0, costoTotal: 0 };
                 }
 
+                // Acumula la cantidad y suma el costo real de compra para el promedio ponderado
                 data.portfolio_crypto[id].cantidad += 1;
-                data.portfolio_crypto[id].costoTotal += precio;
+                data.portfolio_crypto[id].costoTotal += Number(precio);
 
                 if (!data.transactions) data.transactions = [];
                 data.transactions.push({
@@ -731,13 +733,13 @@
                     delete portfolio[id];
                 }
 
-                let cash = Number(data.cash || 0) + precio;
+                let cash = Number(data.cash || 0) + Number(precio);
 
                 if (!data.transactions) data.transactions = [];
                 data.transactions.push({
                     id: Date.now(),
                     type: `Venta Cripto (${id})`,
-                    total: precio,
+                    total: Number(precio),
                     timestamp: new Date().toLocaleString()
                 });
 
@@ -792,8 +794,8 @@
             const valorActualTotal = cantidad * precioActual;
             totalCryptoWorth += valorActualTotal;
 
-            const gananciaPerdida = valorActualTotal - (cantidad * precioPromedio);
-            const roi = precioPromedio > 0 ? ((precioActual - precioPromedio) / precioPromedio) * 100 : 0;
+            const gananciaPerdida = valorActualTotal - costoTotal;
+            const roi = costoTotal > 0 ? (gananciaPerdida / costoTotal) * 100 : 0;
 
             const gpClass = gananciaPerdida >= 0 ? 'text-green' : 'text-red';
             const roiClass = roi >= 0 ? 'text-green' : 'text-red';

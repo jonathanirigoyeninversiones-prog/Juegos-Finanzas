@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>zzz RichMan Web - Mi Cartera (Firebase)</title>
+    <!-- SDKs de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -140,7 +143,6 @@
         .portfolio-table th, .market-table th, .history-table th {
             background: #1a2230;
             color: #aab3c5;
-            cursor: pointer;
         }
         .tabs {
             display: flex;
@@ -148,7 +150,7 @@
             margin-bottom: 1.5rem;
             flex-wrap: wrap;
         }
-        .tabs button, .business-search .filter-btns button {
+        .tabs button {
             background: #1e2635;
             border: none;
             color: #aab3c5;
@@ -157,7 +159,7 @@
             font-weight: 600;
             cursor: pointer;
         }
-        .tabs button.active, .business-search .filter-btns button.active {
+        .tabs button.active {
             background: #f1c40f;
             color: #0b0e14;
         }
@@ -186,14 +188,28 @@
             font-weight: 700;
             cursor: pointer;
         }
-        .btn-buy { background: #2ecc71; color: #0b0e14; }
-        .btn-upgrade { background: #f39c12; color: #0b0e14; }
-        .btn-sell { background: #e74c3c; color: #fff; }
+        .btn-buy { background: #2ecc71; color: #0b0e14; cursor: pointer; }
+        .btn-sell { background: #e74c3c; color: #fff; cursor: pointer; }
         .empty-msg {
             text-align: center;
             padding: 2rem;
             color: #5a6a82;
             font-size: 1.1rem;
+        }
+        .controls-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 0.3rem;
+        }
+        .controls-row input {
+            background: #0b0e14;
+            border: 1px solid #2a3442;
+            color: #fff;
+            padding: 0.3rem;
+            border-radius: 6px;
+            width: 80px;
+            text-align: center;
         }
         .modal-overlay, .settings-overlay {
             position: fixed;
@@ -269,7 +285,7 @@
                         <tr>
                             <th>Activo</th>
                             <th>Precio</th>
-                            <th>Acción</th>
+                            <th>Acción de Compra</th>
                         </tr>
                     </thead>
                     <tbody id="marketBody"></tbody>
@@ -281,8 +297,8 @@
     <!-- SECCIÓN CRÉDITO -->
     <section id="creditSection" class="section">
         <div class="portfolio-section">
-            <h2>💳 Crédito</h2>
-            <p>Módulo de préstamos y margen disponible.</p>
+            <h2>💳 Crédito y Préstamos</h2>
+            <p style="color: #aab3c5; margin-top: 1rem;">Módulo de margen y préstamos disponible.</p>
         </div>
     </section>
 
@@ -298,8 +314,19 @@
     <!-- SECCIÓN HISTORIAL -->
     <section id="historySection" class="section">
         <div class="history-section">
-            <h2>📜 Historial</h2>
-            <div id="historyBody" class="empty-msg">Sin operaciones registradas aún.</div>
+            <h2>📜 Historial de Operaciones</h2>
+            <div class="history-table-wrap">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Operación</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
+            </div>
         </div>
     </section>
 </div>
@@ -314,6 +341,25 @@
 <script>
     (function() {
         "use strict";
+
+        // ==========================================
+        // CONFIGURACIÓN DE FIREBASE (INTEGRADA)
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlbKvvEH2ad0iKKyFAqP8tzqKzPIe1qFk",
+            authDomain: "juego-financiero.firebaseapp.com",
+            databaseURL: "https://juego-financiero-default-rtdb.firebaseio.com",
+            projectId: "juego-financiero",
+            storageBucket: "juego-financiero.firebasestorage.app",
+            messagingSenderId: "1016511710595",
+            appId: "1:1016511710595:web:af94f7572539832e2fa2b6",
+            measurementId: "G-87BNF546QY"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const dbRef = db.ref('partida_usuario');
 
         const DEFAULT_ASSETS = [
             { id: 'btc', name: 'Bitcoin', symbol: 'BTC', type: 'crypto', price: 45000, owned: 0, costBasis: 0 },
@@ -331,15 +377,29 @@
             { id: 'b5', name: 'Gimnasio', costBase: 35000, incomeBase: 3.50 }
         ];
 
-        let state = JSON.parse(localStorage.getItem('richman_web_state')) || {
-            cash: 10000,
+        let state = {
+            cash: 50000,
             assets: DEFAULT_ASSETS,
             businesses: BUSINESSES.map(b => ({ id: b.id, level: 0 })),
             transactions: []
         };
 
+        // Sincronizar datos desde Firebase en tiempo real
+        dbRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                state = data;
+                if(!state.assets) state.assets = DEFAULT_ASSETS;
+                if(!state.businesses) state.businesses = BUSINESSES.map(b => ({ id: b.id, level: 0 }));
+                if(!state.transactions) state.transactions = [];
+                render();
+            } else {
+                saveState(); // Inicializa la base de datos si está vacía
+            }
+        });
+
         function saveState() {
-            localStorage.setItem('richman_web_state', JSON.stringify(state));
+            dbRef.set(state);
         }
 
         // Navegación
@@ -376,24 +436,51 @@
             });
         });
 
-        window.buyAsset = function(id) {
+        window.buyAssetCustom = function(id) {
+            const input = document.getElementById('buy_qty_' + id);
+            const qty = parseFloat(input.value) || 0;
+            if (qty <= 0) return alert('Ingresa una cantidad válida');
+
             const asset = state.assets.find(a => a.id === id);
-            if (!asset || state.cash < asset.price) return alert('Efectivo insuficiente');
-            state.cash -= asset.price;
-            asset.owned += 1;
-            asset.costBasis += asset.price;
+            const totalCost = asset.price * qty;
+
+            if (state.cash < totalCost) return alert('Efectivo insuficiente');
+
+            state.cash -= totalCost;
+            asset.owned += qty;
+            asset.costBasis += totalCost;
+
+            state.transactions.unshift({
+                date: new Date().toLocaleString(),
+                desc: `Compra de ${qty} ${asset.symbol}`,
+                total: -totalCost
+            });
+
             saveState();
-            render();
         };
 
-        window.sellAsset = function(id) {
+        window.sellAssetCustom = function(id) {
+            const input = document.getElementById('sell_qty_' + id);
+            const qty = parseFloat(input.value) || 0;
+            if (qty <= 0) return alert('Ingresa una cantidad válida');
+
             const asset = state.assets.find(a => a.id === id);
-            if (!asset || asset.owned <= 0) return alert('No posees este activo');
-            state.cash += asset.price;
-            asset.owned -= 1;
-            asset.costBasis -= asset.price;
+            if (asset.owned < qty) return alert('No tienes suficientes unidades para vender');
+
+            const totalRevenue = asset.price * qty;
+            state.cash += totalRevenue;
+            
+            const proportion = qty / asset.owned;
+            asset.costBasis -= asset.costBasis * proportion;
+            asset.owned -= qty;
+
+            state.transactions.unshift({
+                date: new Date().toLocaleString(),
+                desc: `Venta de ${qty} ${asset.symbol}`,
+                total: totalRevenue
+            });
+
             saveState();
-            render();
         };
 
         window.buyBusiness = function(id) {
@@ -402,8 +489,14 @@
             if (entry.level > 0 || state.cash < b.costBase) return alert('Fondos insuficientes o ya comprado');
             state.cash -= b.costBase;
             entry.level = 1;
+
+            state.transactions.unshift({
+                date: new Date().toLocaleString(),
+                desc: `Compra de negocio: ${b.name}`,
+                total: -b.costBase
+            });
+
             saveState();
-            render();
         };
 
         function render() {
@@ -418,9 +511,19 @@
             if (ownedAssets.length === 0) {
                 portfolioDiv.innerHTML = '<div class="empty-msg">No tienes posiciones abiertas. Compra en el Mercado.</div>';
             } else {
-                let html = '<table class="portfolio-table"><thead><tr><th>Activo</th><th>Cantidad</th><th>Valor Actual</th><th>Acción</th></tr></thead><tbody>';
+                let html = '<table class="portfolio-table"><thead><tr><th>Activo</th><th>Cantidad</th><th>Valor Actual</th><th>Acción de Venta</th></tr></thead><tbody>';
                 ownedAssets.forEach(a => {
-                    html += `<tr><td>${a.name} (${a.symbol})</td><td>${a.owned}</td><td>${(a.price * a.owned).toLocaleString()} $</td><td><button class="btn-sell" onclick="sellAsset('${a.id}')">Vender</button></td></tr>`;
+                    html += `<tr>
+                        <td><strong>${a.symbol}</strong> - ${a.name}</td>
+                        <td>${a.owned}</td>
+                        <td>${(a.price * a.owned).toLocaleString()} $</td>
+                        <td>
+                            <div class="controls-row">
+                                <input type="number" id="sell_qty_${a.id}" value="1" min="0.00001" step="any">
+                                <button class="btn-sell" onclick="sellAssetCustom('${a.id}')">Vender</button>
+                            </div>
+                        </td>
+                    </tr>`;
                 });
                 html += '</tbody></table>';
                 portfolioDiv.innerHTML = html;
@@ -428,6 +531,7 @@
 
             renderMarket();
             renderBusiness();
+            renderHistory();
         }
 
         function renderMarket() {
@@ -435,7 +539,16 @@
             const filtered = state.assets.filter(a => a.type === marketFilter);
             let html = '';
             filtered.forEach(a => {
-                html += `<tr><td><strong>${a.symbol}</strong> - ${a.name}</td><td>${a.price.toLocaleString()} $</td><td><button class="btn-buy" onclick="buyAsset('${a.id}')">Comprar</button></td></tr>`;
+                html += `<tr>
+                    <td><strong>${a.symbol}</strong> - ${a.name}</td>
+                    <td>${a.price.toLocaleString()} $</td>
+                    <td>
+                        <div class="controls-row">
+                            <input type="number" id="buy_qty_${a.id}" value="1" min="0.00001" step="any">
+                            <button class="btn-buy" onclick="buyAssetCustom('${a.id}')">Comprar</button>
+                        </div>
+                    </td>
+                </tr>`;
             });
             body.innerHTML = html;
         }
@@ -462,7 +575,23 @@
             list.innerHTML = html;
         }
 
-        render();
+        function renderHistory() {
+            const historyBody = document.getElementById('historyBody');
+            if (state.transactions.length === 0) {
+                historyBody.innerHTML = '<tr><td colspan="3" class="empty-msg">Sin operaciones registradas aún.</td></tr>';
+                return;
+            }
+            let html = '';
+            state.transactions.forEach(t => {
+                const colorClass = t.total >= 0 ? 'color: #2ecc71;' : 'color: #e74c3c;';
+                html += `<tr>
+                    <td>${t.date}</td>
+                    <td>${t.desc}</td>
+                    <td style="${colorClass}">${t.total.toLocaleString()} $</td>
+                </tr>`;
+            });
+            historyBody.innerHTML = html;
+        }
     })();
 </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>210 velas RichMan Web - Mi Cartera</title>
+    <title>Posicion  RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -350,19 +350,20 @@
             <div id="portfolioTables">
                 <h3>Mis Criptomonedas</h3>
                 <div style="overflow-x: auto;">
-                    <table class="portfolio-table" style="margin-top: 1rem; min-width: 600px;">
+                    <table class="portfolio-table" style="margin-top: 1rem; min-width: 700px;">
                         <thead>
                             <tr>
                                 <th>Activo</th>
                                 <th>Cantidad</th>
                                 <th>Precio Promedio</th>
                                 <th>Precio Actual</th>
+                                <th>Posición</th>
                                 <th>G/P</th>
                                 <th>ROI (%)</th>
                             </tr>
                         </thead>
                         <tbody id="portfolioCryptoBody">
-                            <tr><td colspan="6" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>
+                            <tr><td colspan="7" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -584,14 +585,12 @@
         }
     }
 
-    // --- SCRIPT DEL BOTÓN DE CONFIGURACIÓN: INICIALIZAR 210 VELAS Y EMAs EN FIREBASE ---
     async function inicializarHistorialYEMAsFirebase() {
         if (!window.db) return;
         try {
             const { collection, getDocs, doc, setDoc } = window.fb;
-            const querySnapshot = opt = await getDocs(collection(window.db, "mercado_cripto"));
+            const querySnapshot = await getDocs(collection(window.db, "mercado_cripto"));
             
-            // Función auxiliar para calcular EMA de un arreglo de precios
             function calcularEMA(precios, periodo) {
                 if (precios.length === 0) return 0;
                 let k = 2 / (periodo + 1);
@@ -608,7 +607,6 @@
                 let velas = [];
                 let preciosCierre = [];
 
-                // Generar 210 velas simuladas de histórico ascendente/descendente leve
                 let p = precioBase * 0.8;
                 for (let i = 0; i < 210; i++) {
                     let variacion = (Math.random() * 0.04) - 0.02;
@@ -629,12 +627,10 @@
                     preciosCierre.push(cierre);
                 }
 
-                // Calcular EMAs servidor
                 let ema50 = calcularEMA(preciosCierre.slice(-50), 50);
                 let ema100 = calcularEMA(preciosCierre.slice(-100), 100);
                 let ema200 = calcularEMA(preciosCierre.slice(-200), 200);
 
-                // Guardar en Firebase dentro de cada criptomoneda
                 await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
                     historial_velas: velas,
                     ema_50: ema50,
@@ -678,7 +674,7 @@
                         };
                         velas.push(nuevaVela);
                         if (velas.length > 210) {
-                            velas.shift(); // Borra la más antigua a la izquierda (efecto rolling)
+                            velas.shift();
                         }
                     }
 
@@ -728,7 +724,6 @@
         `).join('');
     }
 
-    // --- TRANSACCIÓN SEGURA DE COMPRA EN FIREBASE CON PRECIO REAL DE MERCADO ---
     async function comprarCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
 
@@ -787,7 +782,6 @@
         }
     }
 
-    // --- TRANSACCIÓN SEGURA DE VENTA EN FIREBASE ---
     async function venderCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
 
@@ -856,7 +850,7 @@
         const keys = Object.keys(cryptoPortfolio);
 
         if (keys.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
             document.getElementById('netWorthDisplay').textContent = formatNumber(state.cash);
             return;
         }
@@ -888,6 +882,7 @@
                     <td>${cantidad}</td>
                     <td>${formatNumber(precioPromedio)}</td>
                     <td>${formatNumber(precioActual)}</td>
+                    <td><strong>${formatNumber(valorActualTotal)}</strong></td>
                     <td class="${gpClass}">${gananciaPerdida >= 0 ? '+' : ''}${formatNumber(gananciaPerdida)}</td>
                     <td class="${roiClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
                 </tr>
@@ -1081,7 +1076,7 @@
                             businesses: [{ id: 'b1', level: 0 }],
                             portfolio_crypto: {}
                         };
-                        document.getElementById('portfolioCryptoBody').innerHTML = `<tr><td colspan="6" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>`;
+                        document.getElementById('portfolioCryptoBody').innerHTML = `<tr><td colspan="7" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>`;
                         document.getElementById('historyBody').innerHTML = '';
                         document.getElementById('authScreen').style.display = 'block';
                         document.getElementById('app').style.display = 'none';

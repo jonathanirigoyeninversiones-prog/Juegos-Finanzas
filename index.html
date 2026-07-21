@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>222 RichMan Web - Mi Cartera</title>
+    <title>precios actualizados RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -587,7 +587,6 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <!-- 🛠️ BOTÓN CON SCRIPT PARA ACTUALIZAR LAS 60 COMPAÑÍAS EN FIREBASE -->
     <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="inicializar60AccionesFirebase()">📈 Cargar 60 Compañías en Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
@@ -729,7 +728,6 @@
         }
     }
 
-    // 📈 SCRIPT PARA CARGAR LAS 60 COMPAÑÍAS REALES EN FIREBASE (20 por mercado)
     async function inicializar60AccionesFirebase() {
         if (!window.db) {
             showModal("Error", "No hay conexión con Firebase.");
@@ -739,7 +737,6 @@
             const { doc, setDoc } = window.fb;
 
             const lista60Acciones = [
-                // --- BOLSA DE VALORES DE CARACAS (BVC) - 20 ---
                 { id: "BVC_BVL", nombre: "Bolsa de Valores de Caracas (BVL)", mercado: "BVC", precio: 150.00 },
                 { id: "BVC_CANTV", nombre: "CANTV (BVL: BNC)", mercado: "BVC", precio: 85.50 },
                 { id: "BVC_BDV", nombre: "Banco de Venezuela (BVL: BDV)", mercado: "BVC", precio: 320.00 },
@@ -761,7 +758,6 @@
                 { id: "BVC_AGR", nombre: "Agropecuaria El Surtidor", mercado: "BVC", precio: 230.00 },
                 { id: "BVC_TPC", nombre: "Transportes de Valores Caribe", mercado: "BVC", precio: 340.00 },
 
-                // --- WALL STREET (NUEVA YORK) - 20 ---
                 { id: "US_AAPL", nombre: "Apple Inc. (AAPL)", mercado: "Wall Street", precio: 2400.00 },
                 { id: "US_TSLA", nombre: "Tesla Inc. (TSLA)", mercado: "Wall Street", precio: 1800.00 },
                 { id: "US_MSFT", nombre: "Microsoft Corp. (MSFT)", mercado: "Wall Street", precio: 3200.00 },
@@ -774,7 +770,7 @@
                 { id: "US_INTC", nombre: "Intel Corp. (INTC)", mercado: "Wall Street", precio: 650.00 },
                 { id: "US_JPM", nombre: "JPMorgan Chase & Co. (JPM)", mercado: "Wall Street", precio: 1750.00 },
                 { id: "US_V", nombre: "Visa Inc. (V)", mercado: "Wall Street", precio: 2150.00 },
-                { id: "US_JNJ", nombre: "Johnson & Johnson (JNJ)", mercado: "Wall Street", mercado: "Wall Street", precio: 1400.00 },
+                { id: "US_JNJ", nombre: "Johnson & Johnson (JNJ)", mercado: "Wall Street", precio: 1400.00 },
                 { id: "US_WMT", nombre: "Walmart Inc. (WMT)", mercado: "Wall Street", precio: 1300.00 },
                 { id: "US_DIS", nombre: "The Walt Disney Co. (DIS)", mercado: "Wall Street", precio: 950.00 },
                 { id: "US_KO", nombre: "The Coca-Cola Co. (KO)", mercado: "Wall Street", precio: 880.00 },
@@ -783,7 +779,6 @@
                 { id: "US_PFE", nombre: "Pfizer Inc. (PFE)", mercado: "Wall Street", precio: 520.00 },
                 { id: "US_XOM", nombre: "Exxon Mobil Corp. (XOM)", mercado: "Wall Street", precio: 1600.00 },
 
-                // --- EUROPA (EURONEXT / FRANCFORT) - 20 ---
                 { id: "EU_ASML", nombre: "ASML Holding N.V. (ASML)", mercado: "Europa", precio: 3400.00 },
                 { id: "EU_MC", nombre: "LVMH Moët Hennessy (MC)", mercado: "Europa", precio: 2800.00 },
                 { id: "EU_OR", nombre: "L'Oréal S.A. (OR)", mercado: "Europa", precio: 2200.00 },
@@ -793,13 +788,13 @@
                 { id: "EU_AZN", nombre: "AstraZeneca PLC (AZN)", mercado: "Europa", precio: 1600.00 },
                 { id: "EU_SAN", nombre: "Banco Santander S.A. (SAN)", mercado: "Europa", precio: 750.00 },
                 { id: "EU_DBK", nombre: "Deutsche Bank AG (DBK)", mercado: "Europa", precio: 620.00 },
-                { id: "EU_AIR", nombre: "Airbus SE (AIR)", mercado: "Europa", mercado: "Europa", precio: 2100.00 },
+                { id: "EU_AIR", nombre: "Airbus SE (AIR)", mercado: "Europa", precio: 2100.00 },
                 { id: "EU_BMW", nombre: "BMW AG (BMW)", mercado: "Europa", precio: 1350.00 },
                 { id: "EU_MBG", nombre: "Mercedes-Benz Group (MBG)", mercado: "Europa", precio: 1400.00 },
                 { id: "EU_VOW3", nombre: "Volkswagen AG (VOW3)", mercado: "Europa", precio: 1150.00 },
                 { id: "EU_ENEL", nombre: "Enel S.p.A. (ENEL)", mercado: "Europa", precio: 480.00 },
                 { id: "EU_ENI", nombre: "Eni S.p.A. (ENI)", mercado: "Europa", precio: 590.00 },
-                { id: "EU_NESN",_nombre: "Nestlé S.A. (NESN)", nombre: "Nestlé S.A. (NESN)", mercado: "Europa", precio: 1850.00 },
+                { id: "EU_NESN", nombre: "Nestlé S.A. (NESN)", mercado: "Europa", precio: 1850.00 },
                 { id: "EU_ROG", nombre: "Roche Holding AG (ROG)", mercado: "Europa", precio: 1950.00 },
                 { id: "EU_NOVN", nombre: "Novartis AG (NOVN)", mercado: "Europa", precio: 1650.00 },
                 { id: "EU_SHEL", nombre: "Shell PLC (SHEL)", mercado: "Europa", precio: 1500.00 },
@@ -914,7 +909,6 @@
         }, 60000);
     }
 
-    // ⚡ CICLO ESTRICTO DE CADA MINUTO PARA ACCIONES EN EL SERVIDOR (Firebase)
     function startServerSideStockCycle() {
         if (stockMarketInterval) clearInterval(stockMarketInterval);
 
@@ -927,7 +921,7 @@
                 for (let documentSnap of querySnapshot.docs) {
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 100);
-                    let variacionPorcentual = (Math.random() * 0.04) - 0.02; // Variación bursátil controlada
+                    let variacionPorcentual = (Math.random() * 0.04) - 0.02; 
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
                     if (nuevoPrecio < 1) nuevoPrecio = 1;
 

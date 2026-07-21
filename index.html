@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>xxx RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -349,8 +349,6 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <!-- Botón secreto para subir los 100 empleos a Firebase -->
-    <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom:1rem;" onclick="generarYSubir100Empleos()">🚀 Generar y Subir 100 Empleos</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -369,8 +367,11 @@
         businesses: [{ id: 'b1', level: 0 }]
     };
 
+    // Formato exacto de moneda solicitado: XXX.XXX,XX Bs
     function formatNumber(num) {
-        return (num || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Bs';
+        const parts = (num || 0).toFixed(2).split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return parts.join(',') + ' Bs';
     }
 
     function showModal(title, msg) {
@@ -406,46 +407,11 @@
                 cost: Number(configEmpleosNiveles[lvl].costo)
             };
         }
-        // Si el usuario llega al límite y no hay más niveles cargados, se queda en el último disponible
         if (configEmpleosNiveles.length > 0) {
             const ultimo = configEmpleosNiveles[configEmpleosNiveles.length - 1];
             return { salary: Number(ultimo.salario), cost: Number(ultimo.costo) };
         }
         return { salary: 127.50, cost: 532.40 };
-    }
-
-    // Función exclusiva de administrador para generar y subir los 100 empleos a Firebase de golpe
-    async function generarYSubir100Empleos() {
-        if (!confirm("¿Estás seguro de generar y subir los 100 empleos a Firebase?")) return;
-
-        let nivelesArray = [];
-        let salarioActual = 127.50;
-        let costoActual = 532.40;
-
-        for (let i = 0; i < 100; i++) {
-            if (i > 0) {
-                salarioActual = salarioActual * 1.285; 
-                costoActual = costoActual * 1.113;     
-            }
-
-            nivelesArray.push({
-                salario: Math.round(salarioActual * 100) / 100,
-                costo: Math.round(costoActual * 100) / 100,
-                incrementoSalario: (27.5 + (i * 0.1)).toFixed(1) + "%"
-            });
-        }
-
-        try {
-            const { doc, setDoc } = window.fb;
-            await setDoc(doc(window.db, "configuracion", "empleos"), { niveles: nivelesArray });
-            alert("¡Listo! Los 100 empleos se han subido exitosamente a Firebase.");
-            toggleSettings(false);
-            await loadJobConfigFromFirebase();
-            renderAll();
-        } catch (e) {
-            console.error("Error al subir los empleos:", e);
-            alert("Hubo un error al subir los datos. Revisa la consola.");
-        }
     }
 
     async function saveUserData() {
@@ -505,7 +471,6 @@
         
         const jobData = getCurrentJobData();
         
-        // Obtener el costo del siguiente nivel desde Firebase
         let costToNext = jobData.cost;
         if (configEmpleosNiveles && configEmpleosNiveles[state.job.level + 1]) {
             costToNext = Number(configEmpleosNiveles[state.job.level + 1].costo);

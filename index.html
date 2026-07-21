@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>xxxx RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -300,21 +300,6 @@
         .close-financial-btn:hover {
             color: #fff;
         }
-        .config-input {
-            width: 100%;
-            padding: 0.6rem;
-            margin: 0.4rem 0 1rem 0;
-            background: #07090e;
-            border: 1px solid #212d3f;
-            color: #fff;
-            border-radius: 6px;
-        }
-        .config-label {
-            font-size: 0.9rem;
-            color: #aab3c5;
-            text-align: left;
-            display: block;
-        }
     </style>
 </head>
 <body>
@@ -416,18 +401,7 @@
 
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
-    <h3>⚙️ Configuración del Sistema</h3>
-    
-    <!-- Panel para configurar el porcentaje máximo de gastos (ej: 1.2 para el 120%) guardado en Firebase -->
-    <div style="text-align: left; margin-bottom: 1.2rem; background: #121824; padding: 1rem; border-radius: 10px; border: 1px solid #212d3f;">
-        <h4 style="color: #f1c40f; margin-bottom: 0.8rem; font-size: 1rem;">📊 Factor Máximo de Gastos (% del Salario)</h4>
-        
-        <label class="config-label">Máximo Gastos (Ej: 1.2 para 120%):</label>
-        <input type="number" id="inputMaxExpenses" class="config-input" step="0.05" value="1.2">
-
-        <button class="modal-btn" style="background:#2ecc71; width:100%; margin-top:0.2rem;" onclick="guardarImpuestosFirebase()">💾 Guardar en Firebase</button>
-    </div>
-
+    <h3>⚙️ Configuración</h3>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -514,33 +488,10 @@
                 }
                 if (data.impuestosConfig) {
                     configImpuestos = { ...configImpuestos, ...data.impuestosConfig };
-                    if (configImpuestos.maxGastos !== undefined) {
-                        document.getElementById('inputMaxExpenses').value = configImpuestos.maxGastos;
-                    }
                 }
             }
         } catch (e) {
             console.error("No se pudo cargar la configuración de Firebase:", e);
-        }
-    }
-
-    // Guardar el porcentaje de maxGastos directamente en Firebase desde el panel de la ruedita
-    async function guardarImpuestosFirebase() {
-        try {
-            const { doc, setDoc } = window.fb;
-            const ref = doc(window.db, "configuracion", "empleos");
-            
-            const maxG = parseFloat(document.getElementById('inputMaxExpenses').value);
-
-            configImpuestos.maxGastos = maxG;
-
-            // Guardar usando merge para actualizar únicamente el nodo de configuración sin afectar niveles
-            await setDoc(ref, { impuestosConfig: configImpuestos }, { merge: true });
-            showModal("Guardado Exitoso", "El factor máximo de gastos se ha actualizado en Firebase.");
-            toggleSettings(false);
-        } catch (e) {
-            console.error("Error al guardar en Firebase:", e);
-            showModal("Error", "No se pudo actualizar la configuración en Firebase.");
         }
     }
 
@@ -589,7 +540,7 @@
         }
     }
 
-    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase (Basado en el porcentaje de maxGastos)
+    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase (Basado en el porcentaje de maxGastos de Firestore)
     function startServerSideFinancialCycle() {
         if (gameInterval) clearInterval(gameInterval);
         

@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>111 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <style>
-        /* --- ESTILOS GENERALES --- */
         * {
             margin: 0;
             padding: 0;
@@ -19,7 +18,6 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            transition: background 0.3s, color 0.3s;
         }
         #app {
             max-width: 1300px;
@@ -85,6 +83,7 @@
             display: flex;
             gap: 0.8rem;
             padding: 0.5rem 1.5rem;
+            overflow-x: auto;
         }
         .main-tabs button {
             background: transparent;
@@ -96,6 +95,7 @@
             cursor: pointer;
             border-radius: 30px 30px 0 0;
             border-bottom: 3px solid transparent;
+            white-space: nowrap;
         }
         .main-tabs button.active {
             color: #f1c40f;
@@ -115,7 +115,7 @@
             border: 1px solid #2a3442;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
-        .portfolio-summary {
+        .portfolio-summary, .business-summary {
             display: flex;
             flex-wrap: wrap;
             gap: 1rem 2rem;
@@ -123,29 +123,78 @@
             background: #0b0e14;
             padding: 0.8rem 1.2rem;
             border-radius: 16px;
-            flex-direction: column;
         }
-        .portfolio-table {
+        .portfolio-table, .market-table, .history-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
+            margin-top: 1rem;
         }
-        .portfolio-table th, .portfolio-table td {
+        .portfolio-table th, .portfolio-table td,
+        .market-table th, .market-table td,
+        .history-table th, .history-table td {
             padding: 0.6rem 0.5rem;
             border-bottom: 1px solid #1e2635;
             text-align: left;
         }
-        .portfolio-table th {
+        .portfolio-table th, .market-table th, .history-table th {
             background: #1a2230;
             color: #aab3c5;
+            cursor: pointer;
         }
+        .tabs {
+            display: flex;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .tabs button, .business-search .filter-btns button {
+            background: #1e2635;
+            border: none;
+            color: #aab3c5;
+            padding: 0.5rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .tabs button.active, .business-search .filter-btns button.active {
+            background: #f1c40f;
+            color: #0b0e14;
+        }
+        .business-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .business-card {
+            background: #0b0e14;
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid #2a3442;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .business-card.owned {
+            border-color: #f1c40f;
+        }
+        .business-card button {
+            padding: 0.4rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-buy { background: #2ecc71; color: #0b0e14; }
+        .btn-upgrade { background: #f39c12; color: #0b0e14; }
+        .btn-sell { background: #e74c3c; color: #fff; }
         .empty-msg {
             text-align: center;
             padding: 2rem;
             color: #5a6a82;
             font-size: 1.1rem;
         }
-        /* Estilos básicos para paneles de configuración y modales */
         .modal-overlay, .settings-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -155,10 +204,8 @@
             align-items: center;
             z-index: 9999;
         }
-        .modal-overlay.active, .settings-overlay.active {
-            display: flex;
-        }
-        .modal-box, .settings-panel {
+        .modal-overlay.active, .settings-overlay.active { display: flex; }
+        .settings-panel {
             background: #1a2230;
             border-radius: 20px;
             padding: 2rem;
@@ -166,17 +213,13 @@
             max-width: 450px;
             width: 90%;
             color: #fff;
-        }
-        .settings-panel {
             display: none;
             position: fixed;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             z-index: 10000;
         }
-        .settings-panel.active {
-            display: block;
-        }
+        .settings-panel.active { display: block; }
     </style>
 </head>
 <body>
@@ -184,7 +227,7 @@
     <div id="stickyHeader">
         <header class="header">
             <div class="header-left">
-                <h1 id="gameTitle">Mi Cartera</h1>
+                <h1>Mi Cartera</h1>
             </div>
             <div class="header-right">
                 <div class="stats">
@@ -208,18 +251,29 @@
         <div class="portfolio-section">
             <h2>📋 Resumen de Cartera</h2>
             <div class="portfolio-summary" id="portfolioSummary"></div>
-            <div id="portfolioTables">
-                <div class="empty-msg">No tienes posiciones abiertas actualmente. Ve al Mercado para comprar activos.</div>
-            </div>
+            <div id="portfolioTables"></div>
         </div>
     </section>
 
     <!-- SECCIÓN MERCADO -->
     <section id="marketSection" class="section">
         <div class="portfolio-section">
-            <h2>📈 Mercado de Acciones y Criptomonedas</h2>
-            <div id="marketTables">
-                <div class="empty-msg">Cargando mercado...</div>
+            <h2>📈 Mercado</h2>
+            <div class="tabs" id="marketTabs">
+                <button class="active" data-filter="stock">📊 Acciones</button>
+                <button data-filter="crypto">🪙 Criptos</button>
+            </div>
+            <div class="market-table-wrap">
+                <table class="market-table">
+                    <thead>
+                        <tr>
+                            <th>Activo</th>
+                            <th>Precio</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marketBody"></tbody>
+                </table>
             </div>
         </div>
     </section>
@@ -227,8 +281,8 @@
     <!-- SECCIÓN CRÉDITO -->
     <section id="creditSection" class="section">
         <div class="portfolio-section">
-            <h2>💳 Crédito y Préstamos</h2>
-            <div class="empty-msg">Módulo de crédito activo.</div>
+            <h2>💳 Crédito</h2>
+            <p>Módulo de préstamos y margen disponible.</p>
         </div>
     </section>
 
@@ -236,15 +290,16 @@
     <section id="businessSection" class="section">
         <div class="portfolio-section">
             <h2>🏢 Negocios</h2>
-            <div class="empty-msg">Módulo de negocios disponible.</div>
+            <div class="business-summary" id="businessSummary"></div>
+            <div id="businessList" class="business-list"></div>
         </div>
     </section>
 
     <!-- SECCIÓN HISTORIAL -->
     <section id="historySection" class="section">
         <div class="history-section">
-            <h2>📜 Historial de Operaciones</h2>
-            <div class="empty-msg">Sin operaciones registradas aún.</div>
+            <h2>📜 Historial</h2>
+            <div id="historyBody" class="empty-msg">Sin operaciones registradas aún.</div>
         </div>
     </section>
 </div>
@@ -260,14 +315,26 @@
     (function() {
         "use strict";
 
-        // Estado inicial de prueba con efectivo predeterminado
+        const DEFAULT_ASSETS = [
+            { id: 'btc', name: 'Bitcoin', symbol: 'BTC', type: 'crypto', price: 45000, owned: 0, costBasis: 0 },
+            { id: 'eth', name: 'Ethereum', symbol: 'ETH', type: 'crypto', price: 3000, owned: 0, costBasis: 0 },
+            { id: 'sol', name: 'Solana', symbol: 'SOL', type: 'crypto', price: 120, owned: 0, costBasis: 0 },
+            { id: 'aapl', name: 'Apple', symbol: 'AAPL', type: 'stock', price: 175, owned: 0, costBasis: 0, exchange: 'NASDAQ' },
+            { id: 'msft', name: 'Microsoft', symbol: 'MSFT', type: 'stock', price: 410, owned: 0, costBasis: 0, exchange: 'NASDAQ' }
+        ];
+
+        const BUSINESSES = [
+            { id: 'b1', name: 'Puesto de limonada', costBase: 500, incomeBase: 0.05 },
+            { id: 'b2', name: 'Máquina de snacks', costBase: 1200, incomeBase: 0.12 },
+            { id: 'b3', name: 'Lavandería automática', costBase: 5000, incomeBase: 0.50 },
+            { id: 'b4', name: 'Tienda de barrio', costBase: 15000, incomeBase: 1.50 },
+            { id: 'b5', name: 'Gimnasio', costBase: 35000, incomeBase: 3.50 }
+        ];
+
         let state = JSON.parse(localStorage.getItem('richman_web_state')) || {
-            cash: 5000,
-            assets: [
-                { id: 'btc', name: 'Bitcoin', symbol: 'BTC', type: 'crypto', price: 45000, owned: 0, costBasis: 0 },
-                { id: 'eth', name: 'Ethereum', symbol: 'ETH', type: 'crypto', price: 3000, owned: 0, costBasis: 0 },
-                { id: 'aapl', name: 'Apple', symbol: 'AAPL', type: 'stock', price: 175, owned: 0, costBasis: 0, exchange: 'NASDAQ' }
-            ],
+            cash: 10000,
+            assets: DEFAULT_ASSETS,
+            businesses: BUSINESSES.map(b => ({ id: b.id, level: 0 })),
             transactions: []
         };
 
@@ -275,7 +342,7 @@
             localStorage.setItem('richman_web_state', JSON.stringify(state));
         }
 
-        // Navegación por pestañas
+        // Navegación
         const tabButtons = document.querySelectorAll('.main-tabs button');
         const sections = document.querySelectorAll('.section');
 
@@ -283,10 +350,9 @@
             btn.addEventListener('click', function() {
                 tabButtons.forEach(b => b.classList.remove('active'));
                 sections.forEach(s => s.classList.remove('active'));
-                
                 this.classList.add('active');
-                const target = this.dataset.section + 'Section';
-                document.getElementById(target).classList.add('active');
+                document.getElementById(this.dataset.section + 'Section').classList.add('active');
+                render();
             });
         });
 
@@ -296,18 +362,49 @@
         const settingsOverlay = document.getElementById('settingsOverlay');
         const closeSettings = document.getElementById('closeSettings');
 
-        settingsToggle.addEventListener('click', () => {
-            settingsPanel.classList.add('active');
-            settingsOverlay.classList.add('active');
+        settingsToggle.addEventListener('click', () => { settingsPanel.classList.add('active'); settingsOverlay.classList.add('active'); });
+        closeSettings.addEventListener('click', () => { settingsPanel.classList.remove('active'); settingsOverlay.classList.remove('active'); });
+        settingsOverlay.addEventListener('click', () => { settingsPanel.classList.remove('active'); settingsOverlay.classList.remove('active'); });
+
+        let marketFilter = 'stock';
+        document.querySelectorAll('#marketTabs button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('#marketTabs button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                marketFilter = this.dataset.filter;
+                renderMarket();
+            });
         });
-        closeSettings.addEventListener('click', () => {
-            settingsPanel.classList.remove('active');
-            settingsOverlay.classList.remove('active');
-        });
-        settingsOverlay.addEventListener('click', () => {
-            settingsPanel.classList.remove('active');
-            settingsOverlay.classList.remove('active');
-        });
+
+        window.buyAsset = function(id) {
+            const asset = state.assets.find(a => a.id === id);
+            if (!asset || state.cash < asset.price) return alert('Efectivo insuficiente');
+            state.cash -= asset.price;
+            asset.owned += 1;
+            asset.costBasis += asset.price;
+            saveState();
+            render();
+        };
+
+        window.sellAsset = function(id) {
+            const asset = state.assets.find(a => a.id === id);
+            if (!asset || asset.owned <= 0) return alert('No posees este activo');
+            state.cash += asset.price;
+            asset.owned -= 1;
+            asset.costBasis -= asset.price;
+            saveState();
+            render();
+        };
+
+        window.buyBusiness = function(id) {
+            const b = BUSINESSES.find(x => x.id === id);
+            const entry = state.businesses.find(x => x.id === id);
+            if (entry.level > 0 || state.cash < b.costBase) return alert('Fondos insuficientes o ya comprado');
+            state.cash -= b.costBase;
+            entry.level = 1;
+            saveState();
+            render();
+        };
 
         function render() {
             document.getElementById('cashDisplay').textContent = state.cash.toLocaleString() + ' $';
@@ -315,16 +412,57 @@
             state.assets.forEach(a => { netWorth += a.price * a.owned; });
             document.getElementById('netWorthDisplay').textContent = netWorth.toLocaleString() + ' $';
 
-            // Resumen de cartera
-            const summary = document.getElementById('portfolioSummary');
-            summary.innerHTML = `
-                <div>Efectivo disponible: <strong>${state.cash.toLocaleString()} $</strong></div>
-                <div>Patrimonio total calculado: <strong>${netWorth.toLocaleString()} $</strong></div>
-            `;
+            // Cartera
+            const portfolioDiv = document.getElementById('portfolioTables');
+            const ownedAssets = state.assets.filter(a => a.owned > 0);
+            if (ownedAssets.length === 0) {
+                portfolioDiv.innerHTML = '<div class="empty-msg">No tienes posiciones abiertas. Compra en el Mercado.</div>';
+            } else {
+                let html = '<table class="portfolio-table"><thead><tr><th>Activo</th><th>Cantidad</th><th>Valor Actual</th><th>Acción</th></tr></thead><tbody>';
+                ownedAssets.forEach(a => {
+                    html += `<tr><td>${a.name} (${a.symbol})</td><td>${a.owned}</td><td>${(a.price * a.owned).toLocaleString()} $</td><td><button class="btn-sell" onclick="sellAsset('${a.id}')">Vender</button></td></tr>`;
+                });
+                html += '</tbody></table>';
+                portfolioDiv.innerHTML = html;
+            }
+
+            renderMarket();
+            renderBusiness();
+        }
+
+        function renderMarket() {
+            const body = document.getElementById('marketBody');
+            const filtered = state.assets.filter(a => a.type === marketFilter);
+            let html = '';
+            filtered.forEach(a => {
+                html += `<tr><td><strong>${a.symbol}</strong> - ${a.name}</td><td>${a.price.toLocaleString()} $</td><td><button class="btn-buy" onclick="buyAsset('${a.id}')">Comprar</button></td></tr>`;
+            });
+            body.innerHTML = html;
+        }
+
+        function renderBusiness() {
+            const list = document.getElementById('businessList');
+            const summary = document.getElementById('businessSummary');
+            let ownedCount = state.businesses.filter(b => b.level > 0).length;
+            summary.innerHTML = `<div>Negocios propios: <strong>${ownedCount}</strong></div>`;
+
+            let html = '';
+            BUSINESSES.forEach(b => {
+                const entry = state.businesses.find(x => x.id === b.id);
+                const owned = entry.level > 0;
+                html += `
+                    <div class="business-card ${owned ? 'owned' : ''}">
+                        <strong>${b.name}</strong>
+                        <span>Costo: ${b.costBase.toLocaleString()} $</span>
+                        <span>Estado: ${owned ? 'Nivel ' + entry.level : 'Disponible'}</span>
+                        ${!owned ? `<button class="btn-buy" onclick="buyBusiness('${b.id}')">Comprar</button>` : '<span>Adquirido</span>'}
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
         }
 
         render();
-        saveState();
     })();
 </script>
 </body>

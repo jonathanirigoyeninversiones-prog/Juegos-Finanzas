@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ccc Juego Financiero</title>
+    <title>Juego Financiero</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -134,8 +134,7 @@
         currentValue: 0,
         profit: 0,
         jobLevel: 1,
-        jobSalary: 100,
-        lastPayTimestamp: Date.now()
+        jobSalary: 100
     };
 
     function formatMoney(amount) {
@@ -166,24 +165,18 @@
         }
     }
 
-    // Sistema de pago seguro basado en tiempo transcurrido (Anti-Trampas)
-    function checkJobEarnings() {
-        const now = Date.now();
-        const intervalTimeMs = 60000; // 1 minuto estimado para cada pago de empleo (puedes ajustarlo)
-        const timeElapsed = now - gameState.lastPayTimestamp;
-
-        if (timeElapsed >= intervalTimeMs) {
-            // Calcula cuántos ciclos completos de pago pasaron (por si cerró y abrió la pestaña)
-            const cyclesPassed = Math.floor(timeElapsed / intervalTimeMs);
-            const totalEarned = cyclesPassed * gameState.jobSalary;
-
-            gameState.cash += totalEarned;
-            // Actualiza el timestamp exacto restando el excedente para mantener la precisión
-            gameState.lastPayTimestamp = now - (timeElapsed % intervalTimeMs);
-
-            updateUI();
-            saveUserData();
-        }
+    // Sistema de pago en tiempo real estricto (Solo paga si el usuario está activo dentro de la sesión)
+    function startLiveJobEarnings() {
+        if (gameInterval) clearInterval(gameInterval);
+        
+        // Cada 60 segundos (1 minuto) exactos de sesión activa, suma el salario
+        gameInterval = setInterval(() => {
+            if (currentUserUid) {
+                gameState.cash += gameState.jobSalary;
+                updateUI();
+                saveUserData();
+            }
+        }, 60000); 
     }
 
     async function loadUserData(uid) {
@@ -195,19 +188,14 @@
             if (snap.exists()) {
                 const data = snap.data();
                 gameState = { ...gameState, ...data };
-                
-                // Al cargar la partida, calculamos de inmediato si ganó dinero mientras estaba desconectado
-                checkJobEarnings();
             } else {
-                gameState.lastPayTimestamp = Date.now();
                 await setDoc(userRef, gameState);
             }
             
             updateUI();
 
-            // Iniciar ciclo en segundo plano para revisar el pago del empleo cada 10 segundos
-            if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(checkJobEarnings, 10000);
+            // Iniciar el temporizador de pago en vivo solo para esta sesión activa
+            startLiveJobEarnings();
 
         } catch (e) {
             console.error("Error al cargar de Firebase:", e);
@@ -225,7 +213,7 @@
                         loadUserData(user.uid);
                     } else {
                         currentUserUid = null;
-                        if (gameInterval) clearInterval(gameInterval);
+                        if (gameInterval) clearInterval(gameInterval); // Detiene el pago al cerrar sesión
                         document.getElementById('authScreen').style.display = 'block';
                         document.getElementById('gameApp').style.display = 'none';
                     }
@@ -268,6 +256,7 @@
     async function logoutUser() {
         try {
             if (gameInterval) clearInterval(gameInterval);
+            currentUserUid = null;
             await window.fb.signOut(window.auth);
         } catch (e) {
             console.error(e);

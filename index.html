@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>222 RichMan Web - Mi Cartera</title>
+    <title>tiempo RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -26,10 +26,9 @@
 
         window.db = db;
         window.auth = auth;
-        window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, serverTimestamp, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+        window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
-        /* --- CSS COMPLETO CON RESPONSIVIDAD HORIZONTAL Y VERTICAL --- */
         * {
             margin: 0;
             padding: 0;
@@ -48,7 +47,6 @@
             overflow-x: auto;
         }
         
-        /* Contenedor de Auth */
         #authScreen { width: 100%; max-width: 400px; background: #121824; padding: 2rem; border-radius: 12px; border: 1px solid #212d3f; text-align: center; margin: auto; }
         #authScreen h2 { color: #f39c12; margin-bottom: 1.5rem; }
         .auth-input { width: 100%; padding: 0.8rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #212d3f; background: #07090e; color: #f0f4f8; font-size: 1rem; }
@@ -172,7 +170,6 @@
             background: #161c27;
         }
 
-        /* --- SUB-CINTILLO DE MERCADO --- */
         .market-sub-tabs {
             display: flex;
             gap: 0.5rem;
@@ -329,7 +326,6 @@
         }
         .btn-upgrade-business { background: #f39c12; color: #0b0e14; }
 
-        /* --- ESTILOS DEL MODAL FINANCIERO INFERIOR DERECHO --- */
         .financial-modal {
             position: fixed;
             bottom: 20px;
@@ -376,7 +372,6 @@
 </head>
 <body>
 
-    <!-- 🔐 PANTALLA DE ACCESO / REGISTRO -->
     <div id="authScreen">
         <h2 id="authTitle">Iniciar Sesión</h2>
         <input type="email" id="emailInput" class="auth-input" placeholder="Correo electrónico">
@@ -416,7 +411,6 @@
             <h2>📋 Resumen de Cartera</h2>
             <div class="portfolio-summary" id="portfolioSummary"></div>
             
-            <!-- CONTENEDOR DE DIVIDENDOS PENDIENTES -->
             <div class="portfolio-summary">
                 <div>💰 Dividendos Acumulados: <strong id="pendingDividendsDisplay" style="color: #f39c12;">0,00 Bs</strong></div>
                 <button class="btn-collect-dividends" onclick="cobrarDividendosAcciones()">Reclamar Dividendos</button>
@@ -466,7 +460,6 @@
         </div>
     </section>
 
-    <!-- 📈 SECCIÓN MERCADO CON SUB-CINTILLO -->
     <section id="marketSection" class="section">
         <div class="market-sub-tabs">
             <button class="active" data-market-sub="spot">Spot</button>
@@ -475,7 +468,7 @@
         </div>
 
         <div class="portfolio-section" style="border-radius: 0 0 20px 20px; border-top: none;">
-            <!-- SUB-SECCIÓN SPOT -->
+            <!-- SPOT -->
             <div id="spotMarketSub" class="market-sub-section active">
                 <h2>📈 Mercado Spot (Criptomonedas Binance)</h2>
                 <div id="marketTableWrap" style="overflow-x: auto;">
@@ -493,13 +486,13 @@
                 </div>
             </div>
 
-            <!-- SUB-SECCIÓN FUTUROS -->
+            <!-- FUTUROS -->
             <div id="futuresMarketSub" class="market-sub-section">
                 <h2>⚡ Mercado de Futuros (Próximamente)</h2>
                 <p style="color: #8d9bb5; margin-top: 1rem;">Aquí podrás operar con apalancamiento próximamente.</p>
             </div>
 
-            <!-- SUB-SECCIÓN ACCIONES -->
+            <!-- ACCIONES -->
             <div id="stocksMarketSub" class="market-sub-section">
                 <h2>🏢 Mercado Bursátil Global y Local</h2>
                 
@@ -573,7 +566,6 @@
 
 </div>
 
-<!-- MODAL GENERAL -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal-box">
         <div id="modalTitle" style="font-size: 1.3rem; font-weight: bold; color: #f1c40f; margin-bottom: 0.5rem;">Atención</div>
@@ -582,7 +574,6 @@
     </div>
 </div>
 
-<!-- MODAL FLOTANTE FINANCIERO (Inferior Derecho) -->
 <div id="financial-notification-modal" class="financial-modal">
     <div class="financial-modal-content">
         <span id="close-financial-modal" class="close-financial-btn">&times;</span>
@@ -731,10 +722,10 @@
     async function saveUserData() {
         if (!currentUserUid || !window.db) return;
         try {
-            const { doc, setDoc, serverTimestamp } = window.fb;
+            const { doc, setDoc } = window.fb;
             await setDoc(doc(window.db, "partidas", currentUserUid), {
                 ...state,
-                last_active: serverTimestamp()
+                last_active: Date.now()
             }, { merge: true });
         } catch (e) {
             console.error("Error al guardar en Firebase:", e);
@@ -846,9 +837,13 @@
             };
 
             await loadJobConfigFromFirebase(); 
-            const { doc, getDoc, setDoc, serverTimestamp } = window.fb;
+            const { doc, getDoc, setDoc } = window.fb;
             const userRef = doc(window.db, "partidas", uid);
             const snap = await getDoc(userRef);
+
+            // Cargar los mercados para tener acceso a los precios antes de procesar las carteras
+            await cargarMercadoCripto();
+            await cargarMercadoAcciones();
 
             if (snap.exists()) {
                 const dataRemota = snap.data();
@@ -870,26 +865,20 @@
                 state.portfolio_crypto = formattedCrypto;
                 state.portfolio_stocks = dataRemota.portfolio_stocks || {};
 
-                // 🕒 PROCESAR DIVIDENDOS OFFLINE BASADO EN EL TIEMPO TRANSCURRIDO
-                if (dataRemota.last_active && dataRemota.last_active.toDate) {
-                    const lastActiveTime = dataRemota.last_active.toDate().getTime();
-                    const nowTime = new Date().getTime();
+                // CÁLCULO DE DIVIDENDOS OFFLINE USANDO DATE.NOW()
+                if (dataRemota.last_active) {
+                    const lastActiveTime = Number(dataRemota.last_active);
+                    const nowTime = Date.now();
                     const diffMinutes = Math.floor((nowTime - lastActiveTime) / 60000);
 
                     if (diffMinutes > 0 && Object.keys(state.portfolio_stocks).length > 0) {
-                        // Cargar mercado de acciones para obtener precios actuales para el cálculo offline
-                        const querySnapshot = await getDocs(collection(window.db, "mercado_acciones"));
-                        let temporaryStocksCache = [];
-                        querySnapshot.forEach(d => temporaryStocksCache.push({ id: d.id, ...d.data() }));
-
                         let dividendosOfflineTotal = 0;
                         for (let stockId in state.portfolio_stocks) {
                             let tenencia = state.portfolio_stocks[stockId];
                             let cantidad = tenencia.cantidad || 0;
                             if (cantidad > 0) {
-                                let stockObj = temporaryStocksCache.find(s => s.id === stockId);
+                                let stockObj = stocksListCache.find(s => s.id === stockId);
                                 let precioActual = stockObj ? stockObj.precio : 100;
-                                // 0.03% por minuto por cada acción por la cantidad de minutos offline
                                 dividendosOfflineTotal += (cantidad * precioActual) * 0.0003 * diffMinutes;
                             }
                         }
@@ -901,16 +890,15 @@
                     }
                 }
 
-                // Actualizar la marca de tiempo actual de actividad en Firebase
                 await setDoc(userRef, {
                     pending_dividends: state.pending_dividends,
-                    last_active: serverTimestamp()
+                    last_active: Date.now()
                 }, { merge: true });
 
             } else {
                 await setDoc(userRef, {
                     ...state,
-                    last_active: serverTimestamp()
+                    last_active: Date.now()
                 });
             }
 
@@ -919,8 +907,6 @@
             startServerSideCryptoCycle();
             startServerSideStockCycle();
             startServerSideDividendCycle();
-            cargarMercadoCripto();
-            cargarMercadoAcciones();
         } catch (e) {
             console.error("Error al cargar de Firebase:", e);
         }
@@ -1006,14 +992,13 @@
         }, 60000);
     }
 
-    // 💰 CICLO DEL SERVIDOR CADA MINUTO PARA ACUMULAR DIVIDENDOS 0.03%
     function startServerSideDividendCycle() {
         if (dividendInterval) clearInterval(dividendInterval);
 
         dividendInterval = setInterval(async () => {
             if (!currentUserUid || !window.db) return;
             try {
-                const { doc, runTransaction, serverTimestamp } = window.fb;
+                const { doc, runTransaction } = window.fb;
                 const userRef = doc(window.db, "partidas", currentUserUid);
 
                 await runTransaction(window.db, async (transaction) => {
@@ -1031,7 +1016,6 @@
                         if (cantidad > 0) {
                             let stockObj = stocksListCache.find(s => s.id === stockId);
                             let precioActual = stockObj ? stockObj.precio : 100;
-                            // 0.03% por minuto por cada acción
                             acumuladoMinuto += (cantidad * precioActual) * 0.0003;
                         }
                     }
@@ -1040,7 +1024,7 @@
                         pendingDiv += acumuladoMinuto;
                         transaction.update(userRef, {
                             pending_dividends: Number(pendingDiv.toFixed(2)),
-                            last_active: serverTimestamp()
+                            last_active: Date.now()
                         });
                         state.pending_dividends = pendingDiv;
                     }
@@ -1053,7 +1037,6 @@
         }, 60000);
     }
 
-    // 💸 ACCIÓN DE COBRO MANUAL DE DIVIDENDOS EN FIREBASE
     async function cobrarDividendosAcciones() {
         if (!currentUserUid || !window.db) return;
 
@@ -1215,7 +1198,7 @@
         let costoTotalCompra = cantidadAComprar * precio;
 
         try {
-            const { doc, runTransaction, serverTimestamp } = window.fb;
+            const { doc, runTransaction } = window.fb;
             const userRef = doc(window.db, "partidas", currentUserUid);
 
             await runTransaction(window.db, async (transaction) => {
@@ -1246,7 +1229,7 @@
                     cash: Number(cash.toFixed(2)),
                     portfolio_stocks: data.portfolio_stocks,
                     transactions: data.transactions,
-                    last_active: serverTimestamp()
+                    last_active: Date.now()
                 });
 
                 state.cash = cash;
@@ -1279,7 +1262,7 @@
         }
 
         try {
-            const { doc, runTransaction, serverTimestamp } = window.fb;
+            const { doc, runTransaction } = window.fb;
             const userRef = doc(window.db, "partidas", currentUserUid);
 
             await runTransaction(window.db, async (transaction) => {
@@ -1319,7 +1302,7 @@
                     cash: Number(cash.toFixed(2)),
                     portfolio_stocks: portfolio,
                     transactions: data.transactions,
-                    last_active: serverTimestamp()
+                    last_active: Date.now()
                 });
 
                 state.cash = cash;
@@ -1464,7 +1447,7 @@
         let costoTotalCompra = cantidadAComprar * precio;
 
         try {
-            const { doc, runTransaction, serverTimestamp } = window.fb;
+            const { doc, runTransaction } = window.fb;
             const userRef = doc(window.db, "partidas", currentUserUid);
 
             await runTransaction(window.db, async (transaction) => {
@@ -1495,7 +1478,7 @@
                     cash: Number(cash.toFixed(2)),
                     portfolio_crypto: data.portfolio_crypto,
                     transactions: data.transactions,
-                    last_active: serverTimestamp()
+                    last_active: Date.now()
                 });
 
                 state.cash = cash;
@@ -1528,7 +1511,7 @@
         }
 
         try {
-            const { doc, runTransaction, serverTimestamp } = window.fb;
+            const { doc, runTransaction } = window.fb;
             const userRef = doc(window.db, "partidas", currentUserUid);
 
             await runTransaction(window.db, async (transaction) => {
@@ -1568,7 +1551,7 @@
                     cash: Number(cash.toFixed(2)),
                     portfolio_crypto: portfolio,
                     transactions: data.transactions,
-                    last_active: serverTimestamp()
+                    last_active: Date.now()
                 });
 
                 state.cash = cash;
@@ -1692,7 +1675,7 @@
             const ingresosBrutos = jobData.salary;
 
             try {
-                const { doc, runTransaction, serverTimestamp } = window.fb;
+                const { doc, runTransaction } = window.fb;
                 const userRef = doc(window.db, "partidas", currentUserUid);
 
                 let netoCalculado = 0;
@@ -1729,7 +1712,7 @@
                     transaction.update(userRef, {
                         cash: currentData.cash,
                         transactions: currentData.transactions,
-                        last_active: serverTimestamp()
+                        last_active: Date.now()
                     });
 
                     state.cash = currentData.cash;
@@ -1964,9 +1947,9 @@
     async function logoutUser() {
         try {
             if (currentUserUid && window.db) {
-                const { doc, setDoc, serverTimestamp } = window.fb;
+                const { doc, setDoc } = window.fb;
                 await setDoc(doc(window.db, "partidas", currentUserUid), {
-                    last_active: serverTimestamp()
+                    last_active: Date.now()
                 }, { merge: true });
             }
             if (gameInterval) clearInterval(gameInterval);

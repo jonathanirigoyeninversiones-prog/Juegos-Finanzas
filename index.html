@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>zzz RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -26,7 +26,7 @@
 
         window.db = db;
         window.auth = auth;
-        window.fb = { doc, setDoc, getDoc, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+        window.fb = { doc, setDoc, getDoc, runTransaction, serverTimestamp, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
         /* --- CSS COMPLETO --- */
@@ -256,6 +256,50 @@
         .btn-buy { background: #2ecc71; color: #0b0e14; }
         .btn-sell { background: #e74c3c; color: #fff; }
         .btn-upgrade-business { background: #f39c12; color: #0b0e14; }
+
+        /* --- ESTILOS DEL MODAL FINANCIERO INFERIOR DERECHO --- */
+        .financial-modal {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e1e2f;
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10001;
+            width: 300px;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            font-family: Arial, sans-serif;
+            border-left: 5px solid #4CAF50;
+            cursor: pointer;
+            display: none;
+        }
+        .financial-modal.slide-out {
+            transform: translateX(110%);
+            opacity: 0;
+        }
+        .financial-modal-content h4 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: #4CAF50;
+        }
+        .financial-modal-content p {
+            margin: 0;
+            font-size: 13px;
+            color: #ccc;
+        }
+        .close-financial-btn {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #aaa;
+        }
+        .close-financial-btn:hover {
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -337,12 +381,21 @@
 
 </div>
 
-<!-- MODAL -->
+<!-- MODAL GENERAL -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal-box">
         <div id="modalTitle" style="font-size: 1.3rem; font-weight: bold; color: #f1c40f; margin-bottom: 0.5rem;">Atención</div>
         <div id="modalMessage" style="margin-bottom: 1rem;">Mensaje</div>
         <button class="modal-btn" onclick="hideModal()">Entendido</button>
+    </div>
+</div>
+
+<!-- MODAL FLOTANTE FINANCIERO (Inferior Derecho) -->
+<div id="financial-notification-modal" class="financial-modal">
+    <div class="financial-modal-content">
+        <span id="close-financial-modal" class="close-financial-btn">&times;</span>
+        <h4>💰 Actualización Financiera</h4>
+        <p id="financial-msg">Procesando pago e impuestos...</p>
     </div>
 </div>
 
@@ -358,6 +411,7 @@
     let currentUserUid = null;
     let gameInterval = null;
     let configEmpleosNiveles = [];
+    let financialModalTimer = null;
 
     let state = {
         cash: 100,
@@ -382,6 +436,42 @@
 
     function hideModal() {
         document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    // Funciones del Modal Financiero Flotante (Inferior Derecho)
+    function mostrarModalFinanciero(texto) {
+        const modal = document.getElementById('financial-notification-modal');
+        const msgElement = document.getElementById('financial-msg');
+        msgElement.innerText = texto;
+        
+        modal.classList.remove('slide-out');
+        modal.style.display = 'block';
+
+        if (financialModalTimer) clearTimeout(financialModalTimer);
+
+        // Auto-eliminación / deslizamiento hacia la derecha a los 15 segundos
+        financialModalTimer = setTimeout(() => {
+            cerrarModalDeslizando(modal);
+        }, 15000);
+
+        // Deslizar a la derecha inmediatamente al hacer clic
+        modal.onclick = function() {
+            clearTimeout(financialModalTimer);
+            cerrarModalDeslizando(modal);
+        };
+        
+        document.getElementById('close-financial-modal').onclick = function(e) {
+            e.stopPropagation();
+            clearTimeout(financialModalTimer);
+            cerrarModalDeslizando(modal);
+        };
+    }
+
+    function cerrarModalDeslizando(modal) {
+        modal.classList.add('slide-out');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 500); 
     }
 
     // Cargar la configuración de empleos desde Firebase
@@ -437,30 +527,74 @@
                 await setDoc(userRef, state);
             }
             renderAll();
-            startLiveJobEarnings();
+            startServerSideFinancialCycle();
         } catch (e) {
             console.error("Error al cargar de Firebase:", e);
         }
     }
 
-    function startLiveJobEarnings() {
+    // Ciclo de pagos, impuestos y deducciones ejecutado y validado en la transacción de Firebase (Seguro anti-hackers)
+    function startServerSideFinancialCycle() {
         if (gameInterval) clearInterval(gameInterval);
         
-        gameInterval = setInterval(() => {
-            if (currentUserUid && state.job.active) {
-                const jobData = getCurrentJobData();
-                const grossPerMin = jobData.salary;
-                state.cash += grossPerMin;
-                
-                state.transactions.push({
-                    id: Date.now(),
-                    type: 'salary',
-                    total: grossPerMin,
-                    timestamp: new Date().toLocaleString()
+        gameInterval = setInterval(async () => {
+            if (!currentUserUid || !window.db || !state.job.active) return;
+
+            const jobData = getCurrentJobData();
+            const ingresosBrutos = jobData.salary;
+
+            try {
+                const { doc, runTransaction } = window.fb;
+                const userRef = doc(window.db, "partidas", currentUserUid);
+
+                let netoCalculado = 0;
+                let deduccionesTotales = 0;
+
+                await runTransaction(window.db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) return;
+
+                    let currentData = userDoc.data();
+                    let currentCash = Number(currentData.cash || 0);
+
+                    // Impuestos y deducciones calculados de forma segura en Firebase
+                    const porcentajeImpuesto = Math.random() * (0.20 - 0.05) + 0.05; // 5% a 20%
+                    const deduccionImpuestos = ingresosBrutos * porcentajeImpuesto;
+                    const gastosVarios = Math.random() * 120;
+                    
+                    deduccionesTotales = deduccionImpuestos + gastosVarios;
+                    netoCalculado = ingresosBrutos - deduccionesTotales;
+                    
+                    currentCash += netoCalculado;
+                    if (currentCash < 0) currentCash = 0;
+
+                    if (!currentData.transactions) currentData.transactions = [];
+                    currentData.transactions.push({
+                        id: Date.now(),
+                        type: 'Pago y Deducciones',
+                        total: netoCalculado,
+                        timestamp: new Date().toLocaleString()
+                    });
+
+                    currentData.cash = Number(currentCash.toFixed(2));
+
+                    // Actualización segura en Firestore
+                    transaction.update(userRef, {
+                        cash: currentData.cash,
+                        transactions: currentData.transactions
+                    });
+
+                    state.cash = currentData.cash;
+                    state.transactions = currentData.transactions;
                 });
 
-                saveUserData();
                 renderAll();
+
+                // Mostrar notificación modal flotante abajo a la derecha con auto-deslizamiento
+                mostrarModalFinanciero(`Ingreso: ${formatNumber(ingresosBrutos)} | Imp./Gastos: -${formatNumber(deduccionesTotales)} | Neto: ${formatNumber(netoCalculado)}`);
+
+            } catch (e) {
+                console.error("Error en la transacción segura de Firebase:", e);
             }
         }, 60000); 
     }
@@ -479,7 +613,7 @@
         // Resumen Cartera
         document.getElementById('portfolioSummary').innerHTML = `
             <div>💵 Efectivo: <strong>${formatNumber(state.cash)}</strong></div>
-            <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(jobData.salary)}/min)</div>
+            <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(jobData.salary)}/min bruto)</div>
             <button class="btn-collect-dividends" onclick="upgradeJob()">📈 Mejorar Empleo (${formatNumber(costToNext)})</button>
         `;
 

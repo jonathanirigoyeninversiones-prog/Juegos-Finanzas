@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>xxxx RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -26,7 +26,7 @@
 
         window.db = db;
         window.auth = auth;
-        window.fb = { doc, setDoc, getDoc, runTransaction, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+        window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
         /* --- CSS COMPLETO --- */
@@ -300,21 +300,6 @@
         .close-financial-btn:hover {
             color: #fff;
         }
-        .config-input {
-            width: 100%;
-            padding: 0.6rem;
-            margin: 0.4rem 0 1rem 0;
-            background: #07090e;
-            border: 1px solid #212d3f;
-            color: #fff;
-            border-radius: 6px;
-        }
-        .config-label {
-            font-size: 0.9rem;
-            color: #aab3c5;
-            text-align: left;
-            display: block;
-        }
     </style>
 </head>
 <body>
@@ -364,10 +349,10 @@
 
     <section id="marketSection" class="section">
         <div class="portfolio-section">
-            <h2>📈 Mercado</h2>
+            <h2>📈 Mercado (Criptomonedas Binance)</h2>
             <div id="marketTableWrap">
                 <table class="market-table">
-                    <thead><tr><th>Nombre</th><th>Precio</th><th>Acción</th></tr></thead>
+                    <thead><tr><th>Nombre / Símbolo</th><th>Precio (Bs)</th><th>Acción</th></tr></thead>
                     <tbody id="marketBody"></tbody>
                 </table>
             </div>
@@ -417,6 +402,8 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
+    <!-- Botón para inicializar/sincronizar las criptomonedas de Binance en Firebase -->
+    <button class="modal-btn" style="background:#3498db; width:100%; margin-bottom:1rem;" onclick="inicializarCriptomonedasBinance()">🌐 Cargar Criptos Binance a Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -425,9 +412,11 @@
     let isRegistering = false;
     let currentUserUid = null;
     let gameInterval = null;
+    let marketInterval = null;
     let configEmpleosNiveles = [];
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
     let financialModalTimer = null;
+    let cryptoListCache = [];
 
     let state = {
         cash: 100,
@@ -465,12 +454,10 @@
 
         if (financialModalTimer) clearTimeout(financialModalTimer);
 
-        // Auto-eliminación / deslizamiento hacia la derecha a los 15 segundos
         financialModalTimer = setTimeout(() => {
             cerrarModalDeslizando(modal);
         }, 15000);
 
-        // Deslizar a la derecha inmediatamente al hacer clic
         modal.onclick = function() {
             clearTimeout(financialModalTimer);
             cerrarModalDeslizando(modal);
@@ -488,6 +475,38 @@
         setTimeout(() => {
             modal.style.display = 'none';
         }, 500); 
+    }
+
+    // Script de la ruedita para inicializar o poblar las criptomonedas de Binance en Firebase
+    async function inicializarCriptomonedasBinance() {
+        try {
+            const { doc, setDoc } = window.fb;
+            // Lista completa de referencia con los principales pares/criptomonedas que operan en Binance
+            const simbolosBinance = [
+                "BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "DOGE", "AVAX", "DOT", "LINK", 
+                "MATIC", "LTC", "UNI", "BCH", "ATOM", "XLM", "NEAR", "ETC", "APT", "ICP", 
+                "RENDER", "SUI", "FET", "INJ", "OP", "ARB", "STX", "IMX", "TIA", "SEI", 
+                "PEPE", "SHIB", "FLOKI", "WIF", "BONK", "JUP", "PYTH", "GRT", "RUNE", "FTM",
+                "ALGO", "SAND", "MANA", "AXS", "THETA", "EGLD", "FLOW", "CHZ", "KAS", "AR",
+                "CRV", "SNX", "LDO", "GALA", "ENJ", "BAT", "ZIL", "IOST", "KAVA", "ONE"
+            ];
+
+            // Generar valores iniciales aleatorios entre 10 Bs y un límite superior ilimitado
+            for (let crypto of simbolosBinance) {
+                let precioInicial = Math.random() * (50000 - 10) + 10; // Precios variados iniciales
+                await setDoc(doc(window.db, "mercado_cripto", crypto), {
+                    nombre: crypto,
+                    precio: Number(precioInicial.toFixed(2))
+                }, { merge: true });
+            }
+
+            showModal("¡Éxito!", "Se han cargado/actualizado todas las criptomonedas de Binance en la base de datos de Firebase.");
+            toggleSettings(false);
+            cargarMercadoCripto();
+        } catch (e) {
+            console.error("Error al inicializar criptomonedas:", e);
+            showModal("Error", "No se pudieron sincronizar las criptomonedas en Firebase.");
+        }
     }
 
     // Cargar la configuración de empleos e impuestos leída estrictamente desde Firebase
@@ -550,9 +569,77 @@
             }
             renderAll();
             startServerSideFinancialCycle();
+            startServerSideCryptoCycle();
+            cargarMercadoCripto();
         } catch (e) {
             console.error("Error al cargar de Firebase:", e);
         }
+    }
+
+    // Ciclo de mercado cripto ejecutado y validado en el servidor de Firebase cada minuto (Variación +-2%)
+    function startServerSideCryptoCycle() {
+        if (marketInterval) clearInterval(marketInterval);
+
+        marketInterval = setInterval(async () => {
+            if (!window.db) return;
+            try {
+                const { collection, getDocs, doc, setDoc } = window.fb;
+                const querySnapshot = await getDocs(collection(window.db, "mercado_cripto"));
+                
+                for (let documentSnap of querySnapshot.docs) {
+                    let data = documentSnap.data();
+                    let precioActual = Number(data.precio || 10);
+                    
+                    // Variación aleatoria de más / menos 2% (-0.02 a +0.02)
+                    let variacionPorcentual = (Math.random() * 0.04) - 0.02;
+                    let nuevoPrecio = precioActual * (1 + variacionPorcentual);
+                    
+                    // Asegurar piso mínimo de 10 Bs y límite ilimitado hacia arriba
+                    if (nuevoPrecio < 10) nuevoPrecio = 10;
+
+                    await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
+                        precio: Number(nuevoPrecio.toFixed(2))
+                    }, { merge: true });
+                }
+                cargarMercadoCripto();
+            } catch (e) {
+                console.error("Error actualizando precios de criptomonedas en Firebase:", e);
+            }
+        }, 60000);
+    }
+
+    async function cargarMercadoCripto() {
+        try {
+            const { collection, getDocs } = window.fb;
+            const querySnapshot = await getDocs(collection(window.db, "mercado_cripto"));
+            cryptoListCache = [];
+            querySnapshot.forEach((doc) => {
+                cryptoListCache.push({ id: doc.id, ...doc.data() });
+            });
+            renderMarketTable();
+        } catch (e) {
+            console.error("Error al cargar mercado cripto:", e);
+        }
+    }
+
+    function renderMarketTable() {
+        const tbody = document.getElementById('marketBody');
+        if (!tbody) return;
+        if (cryptoListCache.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1rem;">No hay criptomonedas cargadas. Ve a la ruedita (⚙️) y haz clic en "Cargar Criptos Binance a Firebase".</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = cryptoListCache.map(crypto => `
+            <tr>
+                <td><strong>${crypto.nombre}</strong></td>
+                <td>${formatNumber(crypto.precio)}</td>
+                <td><button class="btn-buy" onclick="comprarCripto('${crypto.id}', ${crypto.precio})">Comprar</button></td>
+            </tr>
+        `).join('');
+    }
+
+    function comprarCripto(id, precio) {
+        showModal("Función de Mercado", `Pronto podrás operar con ${id} a un precio de ${formatNumber(precio)}.`);
     }
 
     // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase (Basado en el porcentaje de maxGastos)
@@ -579,11 +666,9 @@
                     let currentData = userDoc.data();
                     let currentCash = Number(currentData.cash || 0);
 
-                    // Análisis de impuestos y deducciones estrictamente regidos por Firebase
                     const porcentajeImpuesto = Math.random() * ((configImpuestos.maxPorcentaje ?? 0.20) - (configImpuestos.minPorcentaje ?? 0.05)) + (configImpuestos.minPorcentaje ?? 0.05);
                     const deduccionImpuestos = ingresosBrutos * porcentajeImpuesto;
                     
-                    // Deducciones / Gastos variables calculados como porcentaje del salario actual (ej. hasta el 120%)
                     const factorGastoAleatorio = Math.random() * (configImpuestos.maxGastos ?? 1.2);
                     const gastosVarios = ingresosBrutos * factorGastoAleatorio;
                     
@@ -603,7 +688,6 @@
 
                     currentData.cash = Number(currentCash.toFixed(2));
 
-                    // Actualización segura y atómica en Firestore
                     transaction.update(userRef, {
                         cash: currentData.cash,
                         transactions: currentData.transactions
@@ -614,8 +698,6 @@
                 });
 
                 renderAll();
-
-                // Mostrar notificación modal flotante abajo a la derecha con auto-deslizamiento
                 mostrarModalFinanciero(`Ingreso: ${formatNumber(ingresosBrutos)} | Imp./Gastos: -${formatNumber(deduccionesTotales)} | Neto: ${formatNumber(netoCalculado)}`);
 
             } catch (e) {
@@ -635,14 +717,12 @@
             costToNext = Number(configEmpleosNiveles[state.job.level + 1].costo);
         }
 
-        // Resumen Cartera
         document.getElementById('portfolioSummary').innerHTML = `
             <div>💵 Efectivo: <strong>${formatNumber(state.cash)}</strong></div>
             <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(jobData.salary)}/min bruto)</div>
             <button class="btn-collect-dividends" onclick="upgradeJob()">📈 Mejorar Empleo (${formatNumber(costToNext)})</button>
         `;
 
-        // Negocios
         const b = state.businesses[0];
         document.getElementById('businessSummary').innerHTML = `<div>Negocio Activo - Nivel: ${b.level}</div>`;
         document.getElementById('businessList').innerHTML = `
@@ -653,7 +733,6 @@
             </div>
         `;
 
-        // Historial
         const tbody = document.getElementById('historyBody');
         tbody.innerHTML = state.transactions.slice(-10).reverse().map(tx => `
             <tr><td>${tx.timestamp}</td><td>${tx.type}</td><td>${formatNumber(tx.total)}</td></tr>
@@ -718,6 +797,9 @@
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             this.classList.add('active');
             document.getElementById(this.dataset.section + 'Section').classList.add('active');
+            if (this.dataset.section === 'market') {
+                cargarMercadoCripto();
+            }
         });
     });
 
@@ -733,6 +815,7 @@
                     } else {
                         currentUserUid = null;
                         if (gameInterval) clearInterval(gameInterval);
+                        if (marketInterval) clearInterval(marketInterval);
                         document.getElementById('authScreen').style.display = 'block';
                         document.getElementById('app').style.display = 'none';
                     }
@@ -775,6 +858,7 @@
     async function logoutUser() {
         try {
             if (gameInterval) clearInterval(gameInterval);
+            if (marketInterval) clearInterval(marketInterval);
             currentUserUid = null;
             await window.fb.signOut(window.auth);
         } catch (e) {

@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>zzz RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -26,7 +26,7 @@
 
         window.db = db;
         window.auth = auth;
-        window.fb = { doc, setDoc, getDoc, runTransaction, serverTimestamp, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+        window.fb = { doc, setDoc, getDoc, runTransaction, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
         /* --- CSS COMPLETO --- */
@@ -300,6 +300,21 @@
         .close-financial-btn:hover {
             color: #fff;
         }
+        .config-input {
+            width: 100%;
+            padding: 0.6rem;
+            margin: 0.4rem 0 1rem 0;
+            background: #07090e;
+            border: 1px solid #212d3f;
+            color: #fff;
+            border-radius: 6px;
+        }
+        .config-label {
+            font-size: 0.9rem;
+            color: #aab3c5;
+            text-align: left;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -401,7 +416,24 @@
 
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
-    <h3>⚙️ Configuración</h3>
+    <h3>⚙️ Configuración del Sistema</h3>
+    
+    <!-- Panel de control de Impuestos en Firebase gestionado desde la Ruedita -->
+    <div style="text-align: left; margin-bottom: 1.2rem; background: #121824; padding: 1rem; border-radius: 10px; border: 1px solid #212d3f;">
+        <h4 style="color: #f1c40f; margin-bottom: 0.8rem; font-size: 1rem;">⚖️ Parámetros de Impuestos (Firebase)</h4>
+        
+        <label class="config-label">Mínimo Impuesto (Ej: 0.05 para 5%):</label>
+        <input type="number" id="inputMinTax" class="config-input" step="0.01" value="0.05">
+
+        <label class="config-label">Máximo Impuesto (Ej: 0.20 para 20%):</label>
+        <input type="number" id="inputMaxTax" class="config-input" step="0.01" value="0.20">
+
+        <label class="config-label">Gastos Varios Máximos (Bs):</label>
+        <input type="number" id="inputMaxExpenses" class="config-input" value="120">
+
+        <button class="modal-btn" style="background:#2ecc71; width:100%; margin-top:0.2rem;" onclick="guardarImpuestosFirebase()">💾 Guardar en Firebase</button>
+    </div>
+
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -411,6 +443,7 @@
     let currentUserUid = null;
     let gameInterval = null;
     let configEmpleosNiveles = [];
+    let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 120 };
     let financialModalTimer = null;
 
     let state = {
@@ -474,17 +507,53 @@
         }, 500); 
     }
 
-    // Cargar la configuración de empleos desde Firebase
+    // Cargar la configuración de empleos e impuestos leída estrictamente desde Firebase
     async function loadJobConfigFromFirebase() {
         try {
             const { doc, getDoc } = window.fb;
             const ref = doc(window.db, "configuracion", "empleos");
             const snap = await getDoc(ref);
-            if (snap.exists() && snap.data().niveles) {
-                configEmpleosNiveles = snap.data().niveles;
+            if (snap.exists()) {
+                const data = snap.data();
+                if (data.niveles) {
+                    configEmpleosNiveles = data.niveles;
+                }
+                if (data.impuestosConfig) {
+                    configImpuestos = data.impuestosConfig;
+                    // Sincronizar inputs del panel de configuración
+                    document.getElementById('inputMinTax').value = configImpuestos.minPorcentaje;
+                    document.getElementById('inputMaxTax').value = configImpuestos.maxPorcentaje;
+                    document.getElementById('inputMaxExpenses').value = configImpuestos.maxGastos;
+                }
             }
         } catch (e) {
-            console.error("No se pudo cargar la configuración de empleos:", e);
+            console.error("No se pudo cargar la configuración de Firebase:", e);
+        }
+    }
+
+    // Guardar los parámetros de impuestos directamente en Firebase desde el panel de la ruedita
+    async function guardarImpuestosFirebase() {
+        try {
+            const { doc, setDoc } = window.fb;
+            const ref = doc(window.db, "configuracion", "empleos");
+            
+            const minT = parseFloat(document.getElementById('inputMinTax').value);
+            const maxT = parseFloat(document.getElementById('inputMaxTax').value);
+            const maxG = parseFloat(document.getElementById('inputMaxExpenses').value);
+
+            configImpuestos = {
+                minPorcentaje: minT,
+                maxPorcentaje: maxT,
+                maxGastos: maxG
+            };
+
+            // Guardar usando merge para no pisar los niveles de empleos existentes
+            await setDoc(ref, { impuestosConfig: configImpuestos }, { merge: true });
+            showModal("Guardado Exitoso", "Los parámetros de impuestos se han actualizado en Firebase.");
+            toggleSettings(false);
+        } catch (e) {
+            console.error("Error al guardar impuestos en Firebase:", e);
+            showModal("Error", "No se pudo actualizar la configuración en Firebase.");
         }
     }
 
@@ -533,7 +602,7 @@
         }
     }
 
-    // Ciclo de pagos, impuestos y deducciones ejecutado y validado en la transacción de Firebase (Seguro anti-hackers)
+    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase (Anti-hacker total)
     function startServerSideFinancialCycle() {
         if (gameInterval) clearInterval(gameInterval);
         
@@ -557,10 +626,10 @@
                     let currentData = userDoc.data();
                     let currentCash = Number(currentData.cash || 0);
 
-                    // Impuestos y deducciones calculados de forma segura en Firebase
-                    const porcentajeImpuesto = Math.random() * (0.20 - 0.05) + 0.05; // 5% a 20%
+                    // Análisis de impuestos y deducciones estrictamente regidos por Firebase
+                    const porcentajeImpuesto = Math.random() * (configImpuestos.maxPorcentaje - configImpuestos.minPorcentaje) + configImpuestos.minPorcentaje;
                     const deduccionImpuestos = ingresosBrutos * porcentajeImpuesto;
-                    const gastosVarios = Math.random() * 120;
+                    const gastosVarios = Math.random() * configImpuestos.maxGastos;
                     
                     deduccionesTotales = deduccionImpuestos + gastosVarios;
                     netoCalculado = ingresosBrutos - deduccionesTotales;
@@ -578,7 +647,7 @@
 
                     currentData.cash = Number(currentCash.toFixed(2));
 
-                    // Actualización segura en Firestore
+                    // Actualización segura y atómica en Firestore
                     transaction.update(userRef, {
                         cash: currentData.cash,
                         transactions: currentData.transactions

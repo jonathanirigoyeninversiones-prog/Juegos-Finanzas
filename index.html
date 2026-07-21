@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Precios Reales  RichMan Web - Mi Cartera</title>
+    <title>Max c MAx v  RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -29,7 +29,7 @@
         window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
-        /* --- CSS COMPLETO --- */
+        /* --- CSS COMPLETO CON RESPONSIVIDAD HORIZONTAL Y VERTICAL --- */
         * {
             margin: 0;
             padding: 0;
@@ -43,12 +43,13 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             transition: background 0.3s, color 0.3s;
+            overflow-x: auto;
         }
         
         /* Contenedor de Auth */
-        #authScreen { width: 100%; max-width: 400px; background: #121824; padding: 2rem; border-radius: 12px; border: 1px solid #212d3f; text-align: center; }
+        #authScreen { width: 100%; max-width: 400px; background: #121824; padding: 2rem; border-radius: 12px; border: 1px solid #212d3f; text-align: center; margin: auto; }
         #authScreen h2 { color: #f39c12; margin-bottom: 1.5rem; }
         .auth-input { width: 100%; padding: 0.8rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #212d3f; background: #07090e; color: #f0f4f8; font-size: 1rem; }
         .auth-btn { width: 100%; padding: 0.8rem; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; background: #3498db; color: #fff; font-size: 1rem; transition: 0.2s; }
@@ -60,6 +61,7 @@
             max-width: 1300px;
             width: 100%;
             display: none;
+            margin: 0 auto;
         }
         #stickyHeader {
             position: sticky;
@@ -71,6 +73,7 @@
             border-radius: 16px 16px 0 0;
             margin-bottom: 1.5rem;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            width: 100%;
         }
         .header {
             background: transparent;
@@ -149,6 +152,7 @@
             gap: 0.8rem;
             padding: 0.5rem 1.5rem;
             background: transparent;
+            overflow-x: auto;
         }
         .main-tabs button {
             background: transparent;
@@ -160,6 +164,7 @@
             cursor: pointer;
             border-radius: 30px 30px 0 0;
             border-bottom: 3px solid transparent;
+            white-space: nowrap;
         }
         .main-tabs button.active {
             color: #f1c40f;
@@ -173,6 +178,8 @@
             border-radius: 20px;
             padding: 1.2rem;
             border: 1px solid #2a3442;
+            width: 100%;
+            overflow-x: auto;
         }
         .portfolio-summary, .business-summary {
             display: flex;
@@ -198,6 +205,7 @@
         .portfolio-table, .market-table, .history-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 600px;
         }
         .portfolio-table th, .market-table th, .history-table th {
             text-align: left;
@@ -207,6 +215,7 @@
             cursor: pointer;
             user-select: none;
             transition: background 0.2s;
+            white-space: nowrap;
         }
         .portfolio-table th:hover, .market-table th:hover {
             background: #253042;
@@ -216,6 +225,7 @@
             padding: 0.6rem 0.5rem;
             border-bottom: 1px solid #1e2635;
             font-size: 0.95rem;
+            white-space: nowrap;
         }
         .text-green { color: #2ecc71; font-weight: bold; }
         .text-red { color: #e74c3c; font-weight: bold; }
@@ -261,11 +271,13 @@
             padding: 1rem;
             border: 1px solid #2a3442;
         }
-        .btn-buy, .btn-sell, .btn-upgrade-business {
-            padding: 0.4rem 1rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+        .btn-buy, .btn-sell, .btn-max-buy, .btn-max-sell, .btn-upgrade-business {
+            padding: 0.4rem 0.8rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; margin-right: 3px;
         }
         .btn-buy { background: #2ecc71; color: #0b0e14; }
         .btn-sell { background: #e74c3c; color: #fff; }
+        .btn-max-buy { background: #3498db; color: #fff; }
+        .btn-max-sell { background: #e67e22; color: #fff; }
         .btn-upgrade-business { background: #f39c12; color: #0b0e14; }
 
         /* --- ESTILOS DEL MODAL FINANCIERO INFERIOR DERECHO --- */
@@ -381,8 +393,8 @@
     <section id="marketSection" class="section">
         <div class="portfolio-section">
             <h2>📈 Mercado (Criptomonedas Binance)</h2>
-            <div id="marketTableWrap">
-                <table class="market-table">
+            <div id="marketTableWrap" style="overflow-x: auto;">
+                <table class="market-table" style="min-width: 700px;">
                     <thead>
                         <tr>
                             <th onclick="sortMarket('nombre')">Nombre / Símbolo ↕</th>
@@ -407,8 +419,8 @@
     <section id="historySection" class="section">
         <div class="history-section">
             <h2>📜 Historial de Operaciones</h2>
-            <div class="history-table-wrap">
-                <table class="history-table">
+            <div class="history-table-wrap" style="overflow-x: auto;">
+                <table class="history-table" style="min-width: 500px;">
                     <thead><tr><th>Fecha</th><th>Tipo</th><th>Total</th></tr></thead>
                     <tbody id="historyBody"></tbody>
                 </table>
@@ -454,7 +466,6 @@
     let financialModalTimer = null;
     let cryptoListCache = [];
 
-    // Estados de ordenamiento
     let portfolioSortField = null;
     let portfolioSortAsc = true;
     let marketSortField = null;
@@ -473,6 +484,10 @@
         const parts = (num || 0).toFixed(2).split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         return parts.join(',') + ' Bs';
+    }
+
+    function formatCryptoQty(num) {
+        return Number((num || 0).toFixed(8)).toString();
     }
 
     function showModal(title, msg) {
@@ -604,7 +619,6 @@
         }
     }
 
-    // --- SCRIPT DEL BOTÓN DE CONFIGURACIÓN CON PRECIOS REALISTAS Y ESCALADOS ---
     async function inicializarHistorialYEMAsFirebase() {
         if (!window.db) return;
         try {
@@ -621,66 +635,26 @@
                 return Number(ema.toFixed(4));
             }
 
-            // Rangos de precios base realistas para simulación en Bolívares
             const preciosBaseReales = {
-                'BTC': 180000.00,
-                'ETH': 95000.00,
-                'BNB': 35000.00,
-                'SOL': 12000.00,
-                'DOT': 450.00,
-                'ADA': 320.00,
-                'AVAX': 1800.00,
-                'LINK': 900.00,
-                'MATIC': 250.00,
-                'XRP': 400.00,
-                'DOGE': 150.00,
-                'SHIB': 0.05,
-                'BONK': 0.01,
-                'PEPE': 0.03,
-                'FLOKI': 0.08,
-                'NEAR': 850.00,
-                'UNI': 1100.00,
-                'ATOM': 650.00,
-                'LTC': 4500.00,
-                'BCH': 12000.00,
-                'XLM': 120.00,
-                'ICP': 1400.00,
-                'APT': 2200.00,
-                'SUI': 900.00,
-                'RENDER': 2500.00,
-                'INJ': 4500.00,
-                'TIA': 1800.00,
-                'SEI': 450.00,
-                'MANA': 350.00,
-                'SAND': 380.00,
-                'AXS': 750.00,
-                'CRV': 120.00,
-                'CHZ': 180.00,
-                'ENJ': 220.00,
-                'SUSHI': 300.00,
-                'SNX': 850.00,
-                'COMP': 5500.00,
-                'AAVE': 8500.00,
-                'MKR': 45000.00,
-                'YFI': 75000.00,
-                'EGLD': 3500.00,
-                'ETC': 2500.00,
-                'ZIL': 45.00,
-                'AR': 1500.00,
-                'FTM': 500.00,
-                'RUNE': 1100.00,
-                'KAS': 150.00,
-                'ICP': 1400.00,
-                'STX': 950.00,
-                'OP': 1200.00,
-                'ARB': 800.00
+                'BTC': 180000.00, 'ETH': 95000.00, 'BNB': 35000.00, 'SOL': 12000.00,
+                'DOT': 450.00, 'ADA': 320.00, 'AVAX': 1800.00, 'LINK': 900.00,
+                'MATIC': 250.00, 'XRP': 400.00, 'DOGE': 150.00, 'SHIB': 0.05,
+                'BONK': 0.01, 'PEPE': 0.03, 'FLOKI': 0.08, 'NEAR': 850.00,
+                'UNI': 1100.00, 'ATOM': 650.00, 'LTC': 4500.00, 'BCH': 12000.00,
+                'XLM': 120.00, 'ICP': 1400.00, 'APT': 2200.00, 'SUI': 900.00,
+                'RENDER': 2500.00, 'INJ': 4500.00, 'TIA': 1800.00, 'SEI': 450.00,
+                'MANA': 350.00, 'SAND': 380.00, 'AXS': 750.00, 'CRV': 120.00,
+                'CHZ': 180.00, 'ENJ': 220.00, 'SUSHI': 300.00, 'SNX': 850.00,
+                'COMP': 5500.00, 'AAVE': 8500.00, 'MKR': 45000.00, 'YFI': 75000.00,
+                'EGLD': 3500.00, 'ETC': 2500.00, 'ZIL': 45.00, 'AR': 1500.00,
+                'FTM': 500.00, 'RUNE': 1100.00, 'KAS': 150.00, 'STX': 950.00,
+                'OP': 1200.00, 'ARB': 800.00
             };
 
             for (let documentSnap of querySnapshot.docs) {
                 let cryptoId = documentSnap.id;
                 let data = documentSnap.data();
                 
-                // Asignar precio base realista o un valor por defecto seguro (ej: 100)
                 let precioBaseRef = preciosBaseReales[cryptoId] || Number(data.precio || 100);
                 if (precioBaseRef < 0.01) precioBaseRef = 0.01;
 
@@ -826,15 +800,43 @@
                 <td><strong>${crypto.nombre || crypto.id}</strong></td>
                 <td>${formatNumber(crypto.precio)}</td>
                 <td>
+                    <button class="btn-max-buy" onclick="maxComprarCripto('${crypto.id}', ${crypto.precio})">Max Compra</button>
                     <button class="btn-buy" onclick="comprarCripto('${crypto.id}', ${crypto.precio})">Comprar</button>
-                    <button class="btn-sell" style="margin-left: 5px;" onclick="venderCripto('${crypto.id}', ${crypto.precio})">Vender</button>
+                    <button class="btn-max-sell" onclick="maxVenderCripto('${crypto.id}', ${crypto.precio})">Max Venta</button>
+                    <button class="btn-sell" onclick="venderCripto('${crypto.id}', ${crypto.precio})">Venta</button>
                 </td>
             </tr>
         `).join('');
     }
 
+    // --- ACCIÓN DE MÁXIMO Y COMPRA/VENTA FRACCIONADA (HASTA 8 DECIMALES) ---
+    function maxComprarCripto(id, precio) {
+        let maxCantidad = state.cash / precio;
+        if (maxCantidad <= 0) {
+            showModal("Fondos insuficientes", `No tienes suficiente efectivo para comprar unidades de ${id}.`);
+            return;
+        }
+        showModal("Cantidad Máxima", `Puedes comprar un máximo de ${formatCryptoQty(maxCantidad)} unidades de ${id} por ${formatNumber(state.cash)}.`);
+    }
+
+    function maxVenderCripto(id, precio) {
+        let asset = state.portfolio_crypto[id];
+        let cantidadPoseida = asset ? asset.cantidad : 0;
+        if (cantidadPoseida <= 0) {
+            showModal("Sin tenencias", `No posees unidades de ${id} para vender.`);
+            return;
+        }
+        showModal("Tenencia Máxima", `Tienes un total de ${formatCryptoQty(cantidadPoseida)} unidades de ${id} disponibles para vender por ${formatNumber(cantidadPoseida * precio)}.`);
+    }
+
     async function comprarCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
+        let cantidadAComprar = state.cash / precio;
+
+        if (cantidadAComprar <= 0) {
+            showModal("Fondos insuficientes", `No tienes suficiente efectivo para comprar ${id}.`);
+            return;
+        }
 
         try {
             const { doc, runTransaction } = window.fb;
@@ -847,24 +849,27 @@
                 let data = userDoc.data();
                 let cash = Number(data.cash || 0);
 
-                if (cash < precio) {
+                if (cash < (cantidadAComprar * precio)) {
                     throw new Error("Fondos insuficientes");
                 }
 
-                cash -= precio;
+                let costoTotalGasto = cash; // Gasta todo el efectivo disponible al dar clic en "Comprar"
+                let cantidadFraccionada = costoTotalGasto / precio;
+
+                cash = 0;
                 if (!data.portfolio_crypto) data.portfolio_crypto = {};
                 if (!data.portfolio_crypto[id]) {
                     data.portfolio_crypto[id] = { cantidad: 0, costoTotal: 0 };
                 }
 
-                data.portfolio_crypto[id].cantidad += 1;
-                data.portfolio_crypto[id].costoTotal += Number(precio);
+                data.portfolio_crypto[id].cantidad += cantidadFraccionada;
+                data.portfolio_crypto[id].costoTotal += Number(costoTotalGasto);
 
                 if (!data.transactions) data.transactions = [];
                 data.transactions.push({
                     id: Date.now(),
-                    type: `Compra Cripto (${id})`,
-                    total: -precio,
+                    type: `Compra Cripto (${formatCryptoQty(cantidadFraccionada)}x ${id})`,
+                    total: -costoTotalGasto,
                     timestamp: new Date().toLocaleString()
                 });
 
@@ -880,10 +885,10 @@
             });
 
             renderAll();
-            showModal("¡Compra Exitosa!", `Has comprado 1 ${id} por ${formatNumber(precio)}.`);
+            showModal("¡Compra Exitosa!", `Has comprado fracciones de ${id} por ${formatNumber(cantidadAComprar * precio)}.`);
         } catch (e) {
             if (e.message === "Fondos insuficientes") {
-                showModal("Fondos insuficientes", `No tienes suficiente efectivo para comprar 1 ${id}.`);
+                showModal("Fondos insuficientes", `No tienes suficiente efectivo para completar la compra.`);
             } else {
                 console.error("Error en transacción de compra:", e);
                 showModal("Error", "No se pudo procesar la compra en el servidor.");
@@ -906,25 +911,23 @@
                 let portfolio = data.portfolio_crypto || {};
                 let asset = portfolio[id];
 
-                if (!asset || asset.cantidad < 1) {
+                if (!asset || asset.cantidad <= 0) {
                     throw new Error("Sin tenencias");
                 }
 
-                let costoPromedioActual = asset.costoTotal / asset.cantidad;
-                asset.cantidad -= 1;
-                asset.costoTotal -= costoPromedioActual;
+                let cantidadAVender = asset.cantidad;
+                let costoReducido = asset.costoTotal;
 
-                if (asset.cantidad <= 0) {
-                    delete portfolio[id];
-                }
+                delete portfolio[id];
 
-                let cash = Number(data.cash || 0) + Number(precio);
+                let totalVenta = cantidadAVender * precio;
+                let cash = Number(data.cash || 0) + Number(totalVenta);
 
                 if (!data.transactions) data.transactions = [];
                 data.transactions.push({
                     id: Date.now(),
-                    type: `Venta Cripto (${id})`,
-                    total: Number(precio),
+                    type: `Venta Cripto (${formatCryptoQty(cantidadAVender)}x ${id})`,
+                    total: Number(totalVenta),
                     timestamp: new Date().toLocaleString()
                 });
 
@@ -940,7 +943,7 @@
             });
 
             renderAll();
-            showModal("¡Venta Exitosa!", `Has vendido 1 ${id} por ${formatNumber(precio)}.`);
+            showModal("¡Venta Exitosa!", `Has vendido todas tus tenencias de ${id} por ${formatNumber(precio * (state.portfolio_crypto[id]?.cantidad || 0))}.`);
         } catch (e) {
             if (e.message === "Sin tenencias") {
                 showModal("Sin tenencias", `No posees unidades de ${id} para vender.`);
@@ -1011,7 +1014,7 @@
             html += `
                 <tr>
                     <td><strong>${item.id}</strong></td>
-                    <td>${item.cantidad}</td>
+                    <td>${formatCryptoQty(item.cantidad)}</td>
                     <td>${formatNumber(item.precioPromedio)}</td>
                     <td>${formatNumber(item.precioActual)}</td>
                     <td><strong>${formatNumber(item.posicion)}</strong></td>

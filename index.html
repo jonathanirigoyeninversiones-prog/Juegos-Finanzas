@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>xxx RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -349,6 +349,8 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
+    <!-- Botón secreto para subir los 100 empleos a Firebase -->
+    <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom:1rem;" onclick="generarYSubir100Empleos()">🚀 Generar y Subir 100 Empleos</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -357,13 +359,13 @@
     let isRegistering = false;
     let currentUserUid = null;
     let gameInterval = null;
-    let configEmpleosNiveles = []; // Aquí guardaremos los niveles leídos de Firebase
+    let configEmpleosNiveles = [];
 
     let state = {
         cash: 100,
         title: 'Mi Cartera',
         transactions: [],
-        job: { level: 0, baseSalary: 100, upgradeCost: 300, active: true },
+        job: { level: 0, active: true },
         businesses: [{ id: 'b1', level: 0 }]
     };
 
@@ -381,7 +383,7 @@
         document.getElementById('modalOverlay').classList.remove('active');
     }
 
-    // Cargar la configuración de empleos desde Firebase (/configuracion/empleos)
+    // Cargar la configuración de empleos desde Firebase
     async function loadJobConfigFromFirebase() {
         try {
             const { doc, getDoc } = window.fb;
@@ -395,28 +397,55 @@
         }
     }
 
-    // Obtener los datos del nivel actual (leyendo de Firebase o calculando si excede)
+    // Obtener los datos del nivel actual estrictamente desde Firebase
     function getCurrentJobData() {
         const lvl = state.job.level;
-        // Si el nivel existe en la base de datos de Firebase cargada, lo usamos
         if (configEmpleosNiveles && configEmpleosNiveles[lvl]) {
             return {
                 salary: Number(configEmpleosNiveles[lvl].salario),
                 cost: Number(configEmpleosNiveles[lvl].costo)
             };
         }
-        
-        // Si el usuario pasa de los niveles creados, calculamos automáticamente con un incremento del 28%
-        let baseSal = 100;
-        let baseCost = 300;
-        for (let i = 0; i < lvl; i++) {
-            baseSal *= 1.28;
-            baseCost *= 2.11;
+        // Si el usuario llega al límite y no hay más niveles cargados, se queda en el último disponible
+        if (configEmpleosNiveles.length > 0) {
+            const ultimo = configEmpleosNiveles[configEmpleosNiveles.length - 1];
+            return { salary: Number(ultimo.salario), cost: Number(ultimo.costo) };
         }
-        return {
-            salary: Math.round(baseSal * 100) / 100,
-            cost: Math.round(baseCost * 100) / 100
-        };
+        return { salary: 127.50, cost: 532.40 };
+    }
+
+    // Función exclusiva de administrador para generar y subir los 100 empleos a Firebase de golpe
+    async function generarYSubir100Empleos() {
+        if (!confirm("¿Estás seguro de generar y subir los 100 empleos a Firebase?")) return;
+
+        let nivelesArray = [];
+        let salarioActual = 127.50;
+        let costoActual = 532.40;
+
+        for (let i = 0; i < 100; i++) {
+            if (i > 0) {
+                salarioActual = salarioActual * 1.285; 
+                costoActual = costoActual * 1.113;     
+            }
+
+            nivelesArray.push({
+                salario: Math.round(salarioActual * 100) / 100,
+                costo: Math.round(costoActual * 100) / 100,
+                incrementoSalario: (27.5 + (i * 0.1)).toFixed(1) + "%"
+            });
+        }
+
+        try {
+            const { doc, setDoc } = window.fb;
+            await setDoc(doc(window.db, "configuracion", "empleos"), { niveles: nivelesArray });
+            alert("¡Listo! Los 100 empleos se han subido exitosamente a Firebase.");
+            toggleSettings(false);
+            await loadJobConfigFromFirebase();
+            renderAll();
+        } catch (e) {
+            console.error("Error al subir los empleos:", e);
+            alert("Hubo un error al subir los datos. Revisa la consola.");
+        }
     }
 
     async function saveUserData() {
@@ -431,7 +460,7 @@
 
     async function loadUserData(uid) {
         try {
-            await loadJobConfigFromFirebase(); // Leemos primero la configuración de empleos
+            await loadJobConfigFromFirebase(); 
             const { doc, getDoc, setDoc } = window.fb;
             const userRef = doc(window.db, "partidas", uid);
             const snap = await getDoc(userRef);
@@ -448,7 +477,6 @@
         }
     }
 
-    // Sistema de salario en tiempo real
     function startLiveJobEarnings() {
         if (gameInterval) clearInterval(gameInterval);
         
@@ -476,19 +504,18 @@
         document.getElementById('netWorthDisplay').textContent = formatNumber(state.cash);
         
         const jobData = getCurrentJobData();
-        const nextJobData = (() => {
-            const oldLvl = state.job.level;
-            state.job.level += 1;
-            const next = getCurrentJobData();
-            state.job.level = oldLvl;
-            return next;
-        })();
+        
+        // Obtener el costo del siguiente nivel desde Firebase
+        let costToNext = jobData.cost;
+        if (configEmpleosNiveles && configEmpleosNiveles[state.job.level + 1]) {
+            costToNext = Number(configEmpleosNiveles[state.job.level + 1].costo);
+        }
 
         // Resumen Cartera
         document.getElementById('portfolioSummary').innerHTML = `
             <div>💵 Efectivo: <strong>${formatNumber(state.cash)}</strong></div>
             <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(jobData.salary)}/min)</div>
-            <button class="btn-collect-dividends" onclick="upgradeJob()">📈 Mejorar Empleo (${formatNumber(nextJobData.cost)})</button>
+            <button class="btn-collect-dividends" onclick="upgradeJob()">📈 Mejorar Empleo (${formatNumber(costToNext)})</button>
         `;
 
         // Negocios
@@ -510,15 +537,12 @@
     }
 
     function upgradeJob() {
-        const nextJobData = (() => {
-            const oldLvl = state.job.level;
-            state.job.level += 1;
-            const next = getCurrentJobData();
-            state.job.level = oldLvl;
-            return next;
-        })();
+        if (!configEmpleosNiveles || !configEmpleosNiveles[state.job.level + 1]) {
+            showModal("Límite alcanzado", "Has llegado al nivel máximo de empleo disponible.");
+            return;
+        }
 
-        const costToUpgrade = nextJobData.cost;
+        const costToUpgrade = Number(configEmpleosNiveles[state.job.level + 1].costo);
 
         if (state.cash < costToUpgrade) {
             showModal("Fondos insuficientes", "No tienes suficiente efectivo para mejorar el empleo.");
@@ -546,14 +570,13 @@
 
     function resetGameData() {
         if (confirm("¿Seguro que deseas reiniciar tu partida?")) {
-            state = { cash: 100, title: 'Mi Cartera', transactions: [], job: { level: 0, baseSalary: 100, upgradeCost: 300, active: true }, businesses: [{ id: 'b1', level: 0 }] };
+            state = { cash: 100, title: 'Mi Cartera', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }] };
             saveUserData();
             renderAll();
             toggleSettings(false);
         }
     }
 
-    // Configuración UI
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsPanel = document.getElementById('settingsPanel');
     const settingsOverlay = document.getElementById('settingsOverlay');
@@ -565,7 +588,6 @@
     settingsToggle.addEventListener('click', () => toggleSettings(true));
     settingsOverlay.addEventListener('click', () => toggleSettings(false));
 
-    // Pestañas
     document.querySelectorAll('.main-tabs button').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
@@ -575,7 +597,6 @@
         });
     });
 
-    // Auth Listeners
     window.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             if (window.fb && window.auth) {

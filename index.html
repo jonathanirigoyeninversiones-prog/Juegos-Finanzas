@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Token Lipio RichMan Web - Mi Cartera</title>
+    <title>Menu RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -26,7 +26,7 @@
 
         window.db = db;
         window.auth = auth;
-        window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, onSnapshot, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+        window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
         /* --- CSS COMPLETO CON RESPONSIVIDAD HORIZONTAL Y VERTICAL --- */
@@ -171,6 +171,36 @@
             border-bottom-color: #f1c40f;
             background: #161c27;
         }
+
+        /* --- SUB-CINTILLO DE MERCADO --- */
+        .market-sub-tabs {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.8rem 1.2rem 0 1.2rem;
+            background: #141b26;
+            border-bottom: 1px solid #2a3442;
+            overflow-x: auto;
+        }
+        .market-sub-tabs button {
+            background: #1a2230;
+            border: 1px solid #2a3442;
+            color: #8d9bb5;
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 0.4rem 1.2rem;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .market-sub-tabs button.active {
+            color: #0b0e14;
+            background: #f1c40f;
+            border-color: #f1c40f;
+        }
+        .market-sub-section { display: none; }
+        .market-sub-section.active { display: block; }
+
         .section { display: none; }
         .section.active { display: block; }
         .portfolio-section, .history-section {
@@ -409,21 +439,43 @@
         </div>
     </section>
 
+    <!-- 📈 SECCIÓN MERCADO CON SUB-CINTILLO -->
     <section id="marketSection" class="section">
-        <div class="portfolio-section">
-            <h2>📈 Mercado (Criptomonedas Binance)</h2>
-            <div id="marketTableWrap" style="overflow-x: auto;">
-                <table class="market-table" style="min-width: 800px;">
-                    <thead>
-                        <tr>
-                            <th onclick="sortMarket('nombre')">Nombre / Símbolo ↕</th>
-                            <th onclick="sortMarket('precio')">Precio (Bs) ↕</th>
-                            <th>Cantidad / Operación</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="marketBody"></tbody>
-                </table>
+        <div class="market-sub-tabs">
+            <button class="active" data-market-sub="spot">Spot</button>
+            <button data-market-sub="futures">Futuros</button>
+            <button data-market-sub="stocks">Acciones</button>
+        </div>
+
+        <div class="portfolio-section" style="border-radius: 0 0 20px 20px; border-top: none;">
+            <!-- SUB-SECCIÓN SPOT -->
+            <div id="spotMarketSub" class="market-sub-section active">
+                <h2>📈 Mercado Spot (Criptomonedas Binance)</h2>
+                <div id="marketTableWrap" style="overflow-x: auto;">
+                    <table class="market-table" style="min-width: 800px; margin-top: 1rem;">
+                        <thead>
+                            <tr>
+                                <th onclick="sortMarket('nombre')">Nombre / Símbolo ↕</th>
+                                <th onclick="sortMarket('precio')">Precio (Bs) ↕</th>
+                                <th>Cantidad / Operación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="marketBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUB-SECCIÓN FUTUROS -->
+            <div id="futuresMarketSub" class="market-sub-section">
+                <h2>⚡ Mercado de Futuros (Próximamente)</h2>
+                <p style="color: #8d9bb5; margin-top: 1rem;">Aquí podrás operar con apalancamiento próximamente.</p>
+            </div>
+
+            <!-- SUB-SECCIÓN ACCIONES -->
+            <div id="stocksMarketSub" class="market-sub-section">
+                <h2>🏢 Mercado de Acciones / BVC (Próximamente)</h2>
+                <p style="color: #8d9bb5; margin-top: 1rem;">Aquí podrás comprar acciones nacionales e internacionales.</p>
             </div>
         </div>
     </section>
@@ -480,8 +532,6 @@
     let currentUserUid = null;
     let gameInterval = null;
     let marketInterval = null;
-    let sessionHeartbeatInterval = null;
-    const deviceSessionId = '_' + Math.random().toString(36).substr(2, 9);
 
     let configEmpleosNiveles = [];
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
@@ -605,45 +655,6 @@
 
     async function loadUserData(uid) {
         try {
-            const { doc, getDoc, setDoc } = window.fb;
-            const userRef = doc(window.db, "partidas", uid);
-            const snap = await getDoc(userRef);
-
-            let lastToken = null;
-            let lastTimestamp = 0;
-
-            if (snap.exists()) {
-                const dataRemota = snap.data();
-                lastToken = dataRemota.activeSessionToken;
-                lastTimestamp = dataRemota.sessionTimestamp || 0;
-            }
-
-            const ahora = Date.now();
-            // Si el token activo fue actualizado hace menos de 45 segundos, significa que hay otra sesión real jugando ahora mismo.
-            if (lastToken && lastToken !== deviceSessionId && (ahora - lastTimestamp < 45000)) {
-                await window.fb.signOut(window.auth);
-                showModal("Acceso Denegado", "Esta cuenta ya está abierta y activa en otro dispositivo.");
-                return;
-            }
-
-            // Tomar posesión o refrescar la sesión actual
-            await setDoc(userRef, { 
-                activeSessionToken: deviceSessionId,
-                sessionTimestamp: ahora
-            }, { merge: true });
-
-            if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);
-            sessionHeartbeatInterval = setInterval(async () => {
-                if (!currentUserUid || !window.db) return;
-                try {
-                    await setDoc(doc(window.db, "partidas", currentUserUid), { 
-                        sessionTimestamp: Date.now() 
-                    }, { merge: true });
-                } catch (err) {
-                    console.error("Error actualizando latido de sesión:", err);
-                }
-            }, 15000);
-
             state = {
                 cash: 100,
                 title: 'RichMan Web',
@@ -654,6 +665,9 @@
             };
 
             await loadJobConfigFromFirebase(); 
+            const { doc, getDoc, setDoc } = window.fb;
+            const userRef = doc(window.db, "partidas", uid);
+            const snap = await getDoc(userRef);
 
             if (snap.exists()) {
                 const dataRemota = snap.data();
@@ -673,7 +687,7 @@
                 }
                 state.portfolio_crypto = formattedCrypto;
             } else {
-                await setDoc(userRef, state, { merge: true });
+                await setDoc(userRef, state);
             }
 
             renderAll();
@@ -809,6 +823,12 @@
         const marketTabBtn = document.querySelector('.main-tabs button[data-section="market"]');
         if (marketTabBtn) marketTabBtn.classList.add('active');
         document.getElementById('marketSection').classList.add('active');
+
+        // Asegurar que active la pestaña Spot
+        document.querySelectorAll('.market-sub-tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.market-sub-section').forEach(s => s.classList.remove('active'));
+        document.querySelector('.market-sub-tabs button[data-market-sub="spot"]').classList.add('active');
+        document.getElementById('spotMarketSub').classList.add('active');
 
         cargarMercadoCripto();
     }
@@ -1196,6 +1216,7 @@
     settingsToggle.addEventListener('click', () => toggleSettings(true));
     settingsOverlay.addEventListener('click', () => toggleSettings(false));
 
+    // Navegación de pestañas principales (Cartera, Mercado, Negocios, Historial)
     document.querySelectorAll('.main-tabs button').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
@@ -1204,6 +1225,20 @@
             document.getElementById(this.dataset.section + 'Section').classList.add('active');
             if (this.dataset.section === 'market') {
                 preferredMarketAsset = null;
+                cargarMercadoCripto();
+            }
+        });
+    });
+
+    // Navegación del sub-cintillo de Mercado (Spot, Futuros, Acciones)
+    document.querySelectorAll('.market-sub-tabs button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.market-sub-tabs button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.market-sub-section').forEach(s => s.classList.remove('active'));
+            this.classList.add('active');
+            const subName = this.dataset.marketSub;
+            document.getElementById(subName + 'MarketSub').classList.add('active');
+            if (subName === 'spot') {
                 cargarMercadoCripto();
             }
         });
@@ -1222,7 +1257,6 @@
                         currentUserUid = null;
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
-                        if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);
                         state = {
                             cash: 100,
                             title: 'RichMan Web',
@@ -1274,14 +1308,8 @@
 
     async function logoutUser() {
         try {
-            if (currentUserUid && window.db) {
-                // Limpiar el token activo en Firebase al salir formalmente
-                const { doc, setDoc } = window.fb;
-                await setDoc(doc(window.db, "partidas", currentUserUid), { activeSessionToken: "", sessionTimestamp: 0 }, { merge: true });
-            }
             if (gameInterval) clearInterval(gameInterval);
             if (marketInterval) clearInterval(marketInterval);
-            if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);
             currentUserUid = null;
             await window.fb.signOut(window.auth);
         } catch (e) {

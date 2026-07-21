@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Mwrcado RichMan Web - Mi Cartera</title>
+    <title>222 RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -474,8 +474,8 @@
 
             <!-- SUB-SECCIÓN ACCIONES -->
             <div id="stocksMarketSub" class="market-sub-section">
-                <h2>🏢 Mercado de Acciones / BVC (Próximamente)</h2>
-                <p style="color: #8d9bb5; margin-top: 1rem;">Aquí podrás comprar acciones nacionales e internacionales.</p>
+                <h2>🏢 Mercado de Acciones / BVC y Wall Street</h2>
+                <p style="color: #8d9bb5; margin-top: 1rem;">Próximamente disponible con el motor sincronizado en Firebase.</p>
             </div>
         </div>
     </section>
@@ -523,8 +523,8 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <!-- 🛠️ BOTÓN CON ICONO EN CONFIGURACIÓN PARA ACTUALIZAR MOTOR FIREBASE (5.1%) -->
-    <button class="modal-btn" style="background:#3498db; width:100%; margin-bottom: 1rem;" onclick="actualizarMotorFirebase()">🛠️ Actualizar Motor en Firebase (5.1%)</button>
+    <!-- 📈 BOTÓN DE ACTUALIZACIÓN DE ACCIONES Y MERCADOS EN FIREBASE -->
+    <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="actualizarAccionesFirebase()">📈 Actualizar Acciones y Mercados en Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -655,24 +655,37 @@
         }
     }
 
-    // 🛠️ FUNCIÓN PARA ACTUALIZAR MOTOR EN FIREBASE (Permitida por reglas)
-    async function actualizarMotorFirebase() {
+    // 📈 SCRIPT PARA INICIALIZAR Y ACTUALIZAR ACCIONES Y MERCADOS EN FIREBASE
+    async function actualizarAccionesFirebase() {
         if (!window.db) {
             showModal("Error", "No hay conexión con Firebase.");
             return;
         }
         try {
             const { doc, setDoc } = window.fb;
-            await setDoc(doc(window.db, "configuracion", "mercado"), {
-                volatilidadPorcentaje: 5.1,
-                actualizadoEn: new Date().toLocaleString()
-            }, { merge: true });
+            
+            // Listado base de acciones recomendadas (BVC y Wall Street)
+            const accionesIniciales = [
+                { id: "BVC_BVL", nombre: "Bolsa de Valores (BVL)", mercado: "BVC", precio: 150.00 },
+                { id: "US_AAPL", nombre: "Apple Inc. (AAPL)", mercado: "Wall Street", precio: 2400.00 },
+                { id: "US_TSLA", nombre: "Tesla Inc. (TSLA)", mercado: "Wall Street", precio: 1800.00 },
+                { id: "US_MSFT", nombre: "Microsoft Corp. (MSFT)", mercado: "Wall Street", precio: 3200.00 }
+            ];
 
-            showModal("Motor Actualizado", "Se ha configurado la volatilidad del 5.1% exitosamente en el servidor de Firebase.");
+            for (let acc of accionesIniciales) {
+                await setDoc(doc(window.db, "mercado_acciones", acc.id), {
+                    nombre: acc.nombre,
+                    mercado: acc.mercado,
+                    precio: acc.precio,
+                    historial_velas: [{ open: acc.precio, close: acc.precio, high: acc.precio, low: acc.precio }]
+                }, { merge: true });
+            }
+
+            showModal("Mercado Actualizado", "Se han registrado y actualizado exitosamente las acciones de BVC y Wall Street en Firebase.");
             toggleSettings(false);
         } catch (e) {
-            console.error("Error al actualizar motor en Firebase:", e);
-            showModal("Error", "No se pudo actualizar el motor en la base de datos.");
+            console.error("Error al actualizar acciones en Firebase:", e);
+            showModal("Error", "No se pudo actualizar el mercado de acciones en la base de datos.");
         }
     }
 

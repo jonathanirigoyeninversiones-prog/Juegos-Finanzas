@@ -796,5 +796,39 @@
     }
 
     async function handleAuth() {
-        const email = document.getElementById('emailInput55'); // <-- ERROR AQUÍ
-        // ...
+        const email = document.getElementById('emailInput').value.trim();
+        const password = document.getElementById('passwordInput').value.trim();
+        const errorDiv = document.getElementById('authError');
+        errorDiv.textContent = "";
+
+        if (!email || !password) {
+            errorDiv.textContent = "Por favor ingresa correo y contraseña.";
+            return;
+        }
+
+        try {
+            const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = window.fb;
+            if (isRegistering) {
+                await createUserWithEmailAndPassword(window.auth, email, password);
+            } else {
+                await signInWithEmailAndPassword(window.auth, email, password);
+            }
+        } catch (err) {
+            errorDiv.textContent = "Error: " + err.message;
+        }
+    }
+
+    async function logoutUser() {
+        try {
+            if (gameInterval) clearInterval(gameInterval);
+            if (marketInterval) clearInterval(marketInterval);
+            currentUserUid = null;
+            await window.fb.signOut(window.auth);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+</script>
+
+</body>
+</html>

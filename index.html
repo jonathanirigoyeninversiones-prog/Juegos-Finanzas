@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>xxx RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -357,6 +357,7 @@
     let isRegistering = false;
     let currentUserUid = null;
     let gameInterval = null;
+    let configEmpleosNiveles = []; // Aquí guardaremos los niveles leídos de Firebase
 
     let state = {
         cash: 100,
@@ -380,6 +381,44 @@
         document.getElementById('modalOverlay').classList.remove('active');
     }
 
+    // Cargar la configuración de empleos desde Firebase (/configuracion/empleos)
+    async function loadJobConfigFromFirebase() {
+        try {
+            const { doc, getDoc } = window.fb;
+            const ref = doc(window.db, "configuracion", "empleos");
+            const snap = await getDoc(ref);
+            if (snap.exists() && snap.data().niveles) {
+                configEmpleosNiveles = snap.data().niveles;
+            }
+        } catch (e) {
+            console.error("No se pudo cargar la configuración de empleos:", e);
+        }
+    }
+
+    // Obtener los datos del nivel actual (leyendo de Firebase o calculando si excede)
+    function getCurrentJobData() {
+        const lvl = state.job.level;
+        // Si el nivel existe en la base de datos de Firebase cargada, lo usamos
+        if (configEmpleosNiveles && configEmpleosNiveles[lvl]) {
+            return {
+                salary: Number(configEmpleosNiveles[lvl].salario),
+                cost: Number(configEmpleosNiveles[lvl].costo)
+            };
+        }
+        
+        // Si el usuario pasa de los niveles creados, calculamos automáticamente con un incremento del 28%
+        let baseSal = 100;
+        let baseCost = 300;
+        for (let i = 0; i < lvl; i++) {
+            baseSal *= 1.28;
+            baseCost *= 2.11;
+        }
+        return {
+            salary: Math.round(baseSal * 100) / 100,
+            cost: Math.round(baseCost * 100) / 100
+        };
+    }
+
     async function saveUserData() {
         if (!currentUserUid || !window.db) return;
         try {
@@ -392,6 +431,7 @@
 
     async function loadUserData(uid) {
         try {
+            await loadJobConfigFromFirebase(); // Leemos primero la configuración de empleos
             const { doc, getDoc, setDoc } = window.fb;
             const userRef = doc(window.db, "partidas", uid);
             const snap = await getDoc(userRef);
@@ -408,13 +448,14 @@
         }
     }
 
-    // Sistema de salario y negocios en tiempo real estricto (Solo paga activo en sesión)
+    // Sistema de salario en tiempo real
     function startLiveJobEarnings() {
         if (gameInterval) clearInterval(gameInterval);
         
         gameInterval = setInterval(() => {
             if (currentUserUid && state.job.active) {
-                const grossPerMin = state.job.baseSalary * (1 + state.job.level * 0.15);
+                const jobData = getCurrentJobData();
+                const grossPerMin = jobData.salary;
                 state.cash += grossPerMin;
                 
                 state.transactions.push({
@@ -434,12 +475,20 @@
         document.getElementById('cashDisplay').textContent = formatNumber(state.cash);
         document.getElementById('netWorthDisplay').textContent = formatNumber(state.cash);
         
+        const jobData = getCurrentJobData();
+        const nextJobData = (() => {
+            const oldLvl = state.job.level;
+            state.job.level += 1;
+            const next = getCurrentJobData();
+            state.job.level = oldLvl;
+            return next;
+        })();
+
         // Resumen Cartera
-        const grossPerMin = state.job.baseSalary * (1 + state.job.level * 0.15);
         document.getElementById('portfolioSummary').innerHTML = `
             <div>💵 Efectivo: <strong>${formatNumber(state.cash)}</strong></div>
-            <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(grossPerMin)}/min)</div>
-            <button class="btn-collect-dividends" onclick="upgradeJob()">📈 Mejorar Empleo (${formatNumber(state.job.upgradeCost)})</button>
+            <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(jobData.salary)}/min)</div>
+            <button class="btn-collect-dividends" onclick="upgradeJob()">📈 Mejorar Empleo (${formatNumber(nextJobData.cost)})</button>
         `;
 
         // Negocios
@@ -461,13 +510,22 @@
     }
 
     function upgradeJob() {
-        if (state.cash < state.job.upgradeCost) {
+        const nextJobData = (() => {
+            const oldLvl = state.job.level;
+            state.job.level += 1;
+            const next = getCurrentJobData();
+            state.job.level = oldLvl;
+            return next;
+        })();
+
+        const costToUpgrade = nextJobData.cost;
+
+        if (state.cash < costToUpgrade) {
             showModal("Fondos insuficientes", "No tienes suficiente efectivo para mejorar el empleo.");
             return;
         }
-        state.cash -= state.job.upgradeCost;
+        state.cash -= costToUpgrade;
         state.job.level += 1;
-        state.job.upgradeCost = Math.floor(state.job.upgradeCost * 2.5);
         saveUserData();
         renderAll();
         showModal("¡Mejora Exitosa!", `Has ascendido a Nivel ${state.job.level}`);

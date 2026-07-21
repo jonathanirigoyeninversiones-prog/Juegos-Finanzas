@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>zzz RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -208,7 +208,11 @@
         .portfolio-table td, .market-table td, .history-table td {
             padding: 0.6rem 0.5rem;
             border-bottom: 1px solid #1e2635;
+            font-size: 0.95rem;
         }
+        .text-green { color: #2ecc71; font-weight: bold; }
+        .text-red { color: #e74c3c; font-weight: bold; }
+
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -345,12 +349,23 @@
             <div class="portfolio-summary" id="portfolioSummary"></div>
             <div id="portfolioTables">
                 <h3>Mis Criptomonedas</h3>
-                <table class="portfolio-table" style="margin-top: 1rem;">
-                    <thead><tr><th>Activo</th><th>Cantidad</th><th>Precio Actual</th><th>Valor Total</th></tr></thead>
-                    <tbody id="portfolioCryptoBody">
-                        <tr><td colspan="4" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table class="portfolio-table" style="margin-top: 1rem; min-width: 600px;">
+                        <thead>
+                            <tr>
+                                <th>Activo</th>
+                                <th>Cantidad</th>
+                                <th>Precio Promedio</th>
+                                <th>Precio Actual</th>
+                                <th>G/P</th>
+                                <th>ROI (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="portfolioCryptoBody">
+                            <tr><td colspan="6" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </section>
@@ -430,7 +445,7 @@
         transactions: [],
         job: { level: 0, active: true },
         businesses: [{ id: 'b1', level: 0 }],
-        portfolio_crypto: {}
+        portfolio_crypto: {} // Estructura: { BTC: { cantidad: 2, costoTotal: 50000 } }
     };
 
     function formatNumber(num) {
@@ -524,7 +539,6 @@
 
     async function loadUserData(uid) {
         try {
-            // Limpieza estricta del estado local en memoria para cada cuenta nueva/diferente
             state = {
                 cash: 100,
                 title: 'RichMan Web',
@@ -540,13 +554,23 @@
             const snap = await getDoc(userRef);
 
             if (snap.exists()) {
-                // Fusionar datos asegurando que si la cuenta es nueva, portfolio_crypto esté vacío
                 const dataRemota = snap.data();
                 state.cash = dataRemota.cash !== undefined ? dataRemota.cash : 100;
                 state.transactions = dataRemota.transactions || [];
                 state.job = dataRemota.job || { level: 0, active: true };
                 state.businesses = dataRemota.businesses || [{ id: 'b1', level: 0 }];
-                state.portfolio_crypto = dataRemota.portfolio_crypto || {};
+                
+                // Asegurar compatibilidad si el formato anterior era simple (número) o avanzado (objeto)
+                let rawCrypto = dataRemota.portfolio_crypto || {};
+                let formattedCrypto = {};
+                for (let key in rawCrypto) {
+                    if (typeof rawCrypto[key] === 'number') {
+                        formattedCrypto[key] = { cantidad: rawCrypto[key], costoTotal: rawCrypto[key] * 100 };
+                    } else {
+                        formattedCrypto[key] = rawCrypto[key];
+                    }
+                }
+                state.portfolio_crypto = formattedCrypto;
             } else {
                 await setDoc(userRef, state);
             }
@@ -634,7 +658,13 @@
         try {
             state.cash -= costoTotal;
             if (!state.portfolio_crypto) state.portfolio_crypto = {};
-            state.portfolio_crypto[id] = (state.portfolio_crypto[id] || 0) + 1;
+            
+            if (!state.portfolio_crypto[id]) {
+                state.portfolio_crypto[id] = { cantidad: 0, costoTotal: 0 };
+            }
+
+            state.portfolio_crypto[id].cantidad += 1;
+            state.portfolio_crypto[id].costoTotal += precio;
 
             state.transactions.push({
                 id: Date.now(),
@@ -655,7 +685,8 @@
     async function venderCripto(id, precio) {
         if (!currentUserUid || !window.db) return;
 
-        const tenencia = state.portfolio_crypto && state.portfolio_crypto[id] ? state.portfolio_crypto[id] : 0;
+        const asset = state.portfolio_crypto && state.portfolio_crypto[id] ? state.portfolio_crypto[id] : null;
+        const tenencia = asset ? asset.cantidad : 0;
 
         if (tenencia < 1) {
             showModal("Sin tenencias", `No posees unidades de ${id} para vender.`);
@@ -663,8 +694,12 @@
         }
 
         try {
-            state.portfolio_crypto[id] -= 1;
-            if (state.portfolio_crypto[id] <= 0) {
+            // Calcular el costo proporcional que se va a descontar
+            let costoPromedioActual = asset.costoTotal / asset.cantidad;
+            asset.cantidad -= 1;
+            asset.costoTotal -= costoPromedioActual;
+
+            if (asset.cantidad <= 0) {
                 delete state.portfolio_crypto[id];
             }
 
@@ -692,10 +727,10 @@
         if (!tbody) return;
 
         const cryptoPortfolio = state.portfolio_crypto || {};
-        const chaves = Object.keys(cryptoPortfolio);
+        const keys = Object.keys(cryptoPortfolio);
 
-        if (chaves.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
+        if (keys.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
             document.getElementById('netWorthDisplay').textContent = formatNumber(state.cash);
             return;
         }
@@ -703,19 +738,33 @@
         let html = '';
         let totalCryptoWorth = 0;
 
-        chaves.forEach(id => {
-            const cantidad = cryptoPortfolio[id];
+        keys.forEach(id => {
+            const item = cryptoPortfolio[id];
+            const cantidad = item.cantidad || 0;
+            const costoTotal = item.costoTotal || 0;
+            const precioPromedio = cantidad > 0 ? costoTotal / cantidad : 0;
+
             const cryptoObj = cryptoListCache.find(c => c.id === id);
-            const precioActual = cryptoObj ? cryptoObj.precio : 0;
-            const valorTotal = cantidad * precioActual;
-            totalCryptoWorth += valorTotal;
+            const precioActual = cryptoObj ? cryptoObj.precio : precioPromedio;
+            
+            const valorActualTotal = cantidad * precioActual;
+            totalCryptoWorth += valorActualTotal;
+
+            // Cálculo de Ganancias/Pérdidas (G/P) y ROI en %
+            const gananciaPerdida = valorActualTotal - (cantidad * precioPromedio);
+            const roi = precioPromedio > 0 ? ((precioActual - precioPromedio) / precioPromedio) * 100 : 0;
+
+            const gpClass = gananciaPerdida >= 0 ? 'text-green' : 'text-red';
+            const roiClass = roi >= 0 ? 'text-green' : 'text-red';
 
             html += `
                 <tr>
                     <td><strong>${id}</strong></td>
                     <td>${cantidad}</td>
+                    <td>${formatNumber(precioPromedio)}</td>
                     <td>${formatNumber(precioActual)}</td>
-                    <td>${formatNumber(valorTotal)}</td>
+                    <td class="${gpClass}">${gananciaPerdida >= 0 ? '+' : ''}${formatNumber(gananciaPerdida)}</td>
+                    <td class="${roiClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
                 </tr>
             `;
         });
@@ -899,7 +948,6 @@
                         currentUserUid = null;
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
-                        // Limpieza profunda de memoria y tablas al salir
                         state = {
                             cash: 100,
                             title: 'RichMan Web',
@@ -908,7 +956,7 @@
                             businesses: [{ id: 'b1', level: 0 }],
                             portfolio_crypto: {}
                         };
-                        document.getElementById('portfolioCryptoBody').innerHTML = `<tr><td colspan="4" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>`;
+                        document.getElementById('portfolioCryptoBody').innerHTML = `<tr><td colspan="6" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>`;
                         document.getElementById('historyBody').innerHTML = '';
                         document.getElementById('authScreen').style.display = 'block';
                         document.getElementById('app').style.display = 'none';

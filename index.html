@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>1000 trabajos RichMan Web - Mi Cartera</title>
+    <title>1000 RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -798,8 +798,8 @@
 
             if (snap.exists()) {
                 const dataRemota = snap.data();
-                state.cash = dataRemota.cash !== undefined ? dataRemota.cash : 100;
-                state.pending_dividends = dataRemota.pending_dividends || 0;
+                state.cash = (dataRemota.cash !== undefined && dataRemota.cash !== null) ? Number(dataRemota.cash) : 100;
+                state.pending_dividends = Number(dataRemota.pending_dividends || 0);
                 state.transactions = dataRemota.transactions || [];
                 state.job = dataRemota.job || { level: 0, active: true };
                 state.businesses = dataRemota.businesses || [{ id: 'b1', level: 0 }];
@@ -856,6 +856,7 @@
                 }
 
                 await setDoc(userRef, {
+                    cash: state.cash,
                     pending_dividends: state.pending_dividends,
                     last_active: Date.now()
                 }, { merge: true });
@@ -1095,7 +1096,7 @@
         if (!bvcBody || !usBody || !euBody) return;
 
         if (stocksListCache.length === 0) {
-            bvcBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas. Ve a Configuración y presiona Cargar 60 Compañías.</td></tr>`;
+            bvcBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas. Ve a Configuración y presiona Generar 1000 Niveles de Empleo.</td></tr>`;
             usBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
             euBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
             return;
@@ -1684,7 +1685,7 @@
                     if (!userDoc.exists()) return;
 
                     let currentData = userDoc.data();
-                    let currentCash = Number(currentData.cash || 0);
+                    let currentCash = (currentData.cash !== undefined && currentData.cash !== null) ? Number(currentData.cash) : 100;
 
                     const porcentajeImpuesto = Math.random() * ((configImpuestos.maxPorcentaje ?? 0.20) - (configImpuestos.minPorcentaje ?? 0.05)) + (configImpuestos.minPorcentaje ?? 0.05);
                     const deduccionImpuestos = ingresosBrutos * porcentajeImpuesto;

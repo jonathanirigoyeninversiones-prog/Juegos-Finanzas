@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>No Scrpit RichMan Web - Mi Cartera</title>
+    <title>Token  RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -26,7 +26,7 @@
 
         window.db = db;
         window.auth = auth;
-        window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+        window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, onSnapshot, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
         /* --- CSS COMPLETO CON RESPONSIVIDAD HORIZONTAL Y VERTICAL --- */
@@ -480,6 +480,9 @@
     let currentUserUid = null;
     let gameInterval = null;
     let marketInterval = null;
+    let sessionListener = null; // Listener para controlar la sesión única
+    const deviceSessionId = '_' + Math.random().toString(36).substr(2, 9); // ID único para esta pestaña/dispositivo
+
     let configEmpleosNiveles = [];
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
     let financialModalTimer = null;
@@ -602,6 +605,28 @@
 
     async function loadUserData(uid) {
         try {
+            const { doc, getDoc, setDoc, onSnapshot } = window.fb;
+            const userRef = doc(window.db, "partidas", uid);
+
+            // Registrar el token de esta sesión activa en Firestore
+            await setDoc(userRef, { activeSessionToken: deviceSessionId }, { merge: true });
+
+            // Escuchar cambios en la sesión para expulsar si se abre en otro dispositivo
+            if (sessionListener) sessionListener();
+            sessionListener = onSnapshot(userRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.activeSessionToken && data.activeSessionToken !== deviceSessionId) {
+                        // Otro dispositivo inició sesión, cerramos aquí
+                        if (gameInterval) clearInterval(gameInterval);
+                        if (marketInterval) clearInterval(marketInterval);
+                        if (sessionListener) sessionListener();
+                        window.fb.signOut(window.auth);
+                        showModal("Sesión Cerrada", "Tu cuenta ha sido abierta en otro dispositivo.");
+                    }
+                }
+            });
+
             state = {
                 cash: 100,
                 title: 'RichMan Web',
@@ -612,8 +637,6 @@
             };
 
             await loadJobConfigFromFirebase(); 
-            const { doc, getDoc, setDoc } = window.fb;
-            const userRef = doc(window.db, "partidas", uid);
             const snap = await getDoc(userRef);
 
             if (snap.exists()) {
@@ -634,7 +657,7 @@
                 }
                 state.portfolio_crypto = formattedCrypto;
             } else {
-                await setDoc(userRef, state);
+                await setDoc(userRef, state, { merge: true });
             }
 
             renderAll();
@@ -1183,6 +1206,7 @@
                         currentUserUid = null;
                         if (gameInterval) clearInterval(gameInterval);
                         if (marketInterval) clearInterval(marketInterval);
+                        if (sessionListener) sessionListener();
                         state = {
                             cash: 100,
                             title: 'RichMan Web',
@@ -1236,6 +1260,7 @@
         try {
             if (gameInterval) clearInterval(gameInterval);
             if (marketInterval) clearInterval(marketInterval);
+            if (sessionListener) sessionListener();
             currentUserUid = null;
             await window.fb.signOut(window.auth);
         } catch (e) {

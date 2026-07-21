@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>111 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -411,7 +411,7 @@
     let currentUserUid = null;
     let gameInterval = null;
     let configEmpleosNiveles = [];
-    let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 120 };
+    let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 }; // maxGastos configurado al 120% del salario
     let financialModalTimer = null;
 
     let state = {
@@ -540,7 +540,7 @@
         }
     }
 
-    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase usando los parámetros de Firestore
+    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase (Basado en el 120% del salario)
     function startServerSideFinancialCycle() {
         if (gameInterval) clearInterval(gameInterval);
         
@@ -564,16 +564,19 @@
                     let currentData = userDoc.data();
                     let currentCash = Number(currentData.cash || 0);
 
-                    // Análisis de impuestos y deducciones estrictamente regidos por Firebase
+                    // Análisis de impuestos y deducciones basados en el porcentaje configurado (Ej: 120% del salario)
                     const porcentajeImpuesto = Math.random() * (configImpuestos.maxPorcentaje - configImpuestos.minPorcentaje) + configImpuestos.minPorcentaje;
                     const deduccionImpuestos = ingresosBrutos * porcentajeImpuesto;
-                    const gastosVarios = Math.random() * configImpuestos.maxGastos;
+                    
+                    // Deducciones / Gastos variables calculados como porcentaje del salario (hasta el 120%)
+                    const factorGastoAleatorio = Math.random() * (configImpuestos.maxGastos || 1.2);
+                    const gastosVarios = ingresosBrutos * factorGastoAleatorio;
                     
                     deduccionesTotales = deduccionImpuestos + gastosVarios;
-                    netoCalculado = ingresosBrutos - deduccionesTotales;
+                    netoCalculado = ingresosBrutos - deduccionesTotales; // Puede dar negativo si las deducciones superan el bruto
                     
                     currentCash += netoCalculado;
-                    if (currentCash < 0) currentCash = 0;
+                    if (currentCash < 0) currentCash = 0; // Control de piso para evitar saldos negativos absurdos
 
                     if (!currentData.transactions) currentData.transactions = [];
                     currentData.transactions.push({

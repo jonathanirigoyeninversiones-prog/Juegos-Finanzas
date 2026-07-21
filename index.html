@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Sin Lupa RichMan Web - Mi Cartera</title>
+    <title>No Scrpit RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -471,7 +471,6 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="inicializarHistorialYEMAsFirebase()">📊 INICIALIZAR 210 VELAS Y EMAs</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -644,91 +643,6 @@
             cargarMercadoCripto();
         } catch (e) {
             console.error("Error al cargar de Firebase:", e);
-        }
-    }
-
-    async function inicializarHistorialYEMAsFirebase() {
-        if (!window.db) return;
-        try {
-            const { collection, getDocs, doc, setDoc } = window.fb;
-            const querySnapshot = await getDocs(collection(window.db, "mercado_cripto"));
-            
-            function calcularEMA(precios, periodo) {
-                if (precios.length === 0) return 0;
-                let k = 2 / (periodo + 1);
-                let ema = precios[0];
-                for (let i = 1; i < precios.length; i++) {
-                    ema = (precios[i] * k) + (ema * (1 - k));
-                }
-                return Number(ema.toFixed(4));
-            }
-
-            const preciosBaseReales = {
-                'BTC': 180000.00, 'ETH': 95000.00, 'BNB': 35000.00, 'SOL': 12000.00,
-                'DOT': 450.00, 'ADA': 320.00, 'AVAX': 1800.00, 'LINK': 900.00,
-                'MATIC': 250.00, 'XRP': 400.00, 'DOGE': 150.00, 'SHIB': 0.05,
-                'BONK': 0.01, 'PEPE': 0.03, 'FLOKI': 0.08, 'NEAR': 850.00,
-                'UNI': 1100.00, 'ATOM': 650.00, 'LTC': 4500.00, 'BCH': 12000.00,
-                'XLM': 120.00, 'ICP': 1400.00, 'APT': 2200.00, 'SUI': 900.00,
-                'RENDER': 2500.00, 'INJ': 4500.00, 'TIA': 1800.00, 'SEI': 450.00,
-                'MANA': 350.00, 'SAND': 380.00, 'AXS': 750.00, 'CRV': 120.00,
-                'CHZ': 180.00, 'ENJ': 220.00, 'SUSHI': 300.00, 'SNX': 850.00,
-                'COMP': 5500.00, 'AAVE': 8500.00, 'MKR': 45000.00, 'YFI': 75000.00,
-                'EGLD': 3500.00, 'ETC': 2500.00, 'ZIL': 45.00, 'AR': 1500.00,
-                'FTM': 500.00, 'RUNE': 1100.00, 'KAS': 150.00, 'STX': 950.00,
-                'OP': 1200.00, 'ARB': 800.00
-            };
-
-            for (let documentSnap of querySnapshot.docs) {
-                let cryptoId = documentSnap.id;
-                let data = documentSnap.data();
-                
-                let precioBaseRef = preciosBaseReales[cryptoId] || Number(data.precio || 100);
-                if (precioBaseRef < 0.01) precioBaseRef = 0.01;
-
-                let velas = [];
-                let preciosCierre = [];
-
-                let p = precioBaseRef * 0.85;
-                for (let i = 0; i < 210; i++) {
-                    let variacion = (Math.random() * 0.04) - 0.02;
-                    p = p * (1 + variacion);
-                    if (p < 0.001) p = 0.001;
-                    
-                    let apertura = p;
-                    let cierre = p * (1 + ((Math.random() * 0.02) - 0.01));
-                    let maximo = Math.max(apertura, cierre) * (1 + Math.random() * 0.005);
-                    let minimo = Math.min(apertura, cierre) * (1 - Math.random() * 0.005);
-
-                    velas.push({
-                        open: Number(apertura.toFixed(4)),
-                        high: Number(maximo.toFixed(4)),
-                        low: Number(minimo.toFixed(4)),
-                        close: Number(cierre.toFixed(4))
-                    });
-                    preciosCierre.push(cierre);
-                }
-
-                let precioFinalActual = preciosCierre[preciosCierre.length - 1];
-                let ema50 = calcularEMA(preciosCierre.slice(-50), 50);
-                let ema100 = calcularEMA(preciosCierre.slice(-100), 100);
-                let ema200 = calcularEMA(preciosCierre.slice(-200), 200);
-
-                await setDoc(doc(window.db, "mercado_cripto", cryptoId), {
-                    precio: Number(precioFinalActual.toFixed(4)),
-                    historial_velas: velas,
-                    ema_50: ema50,
-                    ema_100: ema100,
-                    ema_200: ema200
-                }, { merge: true });
-            }
-
-            showModal("¡Inicialización Exitosa!", "Se han configurado los precios reales y las 210 velas con EMAs en Firebase.");
-            toggleSettings(false);
-            cargarMercadoCripto();
-        } catch (e) {
-            console.error("Error al inicializar velas y EMAs con precios realistas:", e);
-            showModal("Error", "No se pudo completar la inicialización en Firebase.");
         }
     }
 
@@ -1152,7 +1066,6 @@
     function renderAll() {
         const cashEl = document.getElementById('cashDisplay');
         cashEl.textContent = formatNumber(state.cash);
-        // Si el efectivo es negativo, se muestra en rojo con el signo menos
         if (state.cash < 0) {
             cashEl.className = 'text-red';
         } else {
@@ -1166,7 +1079,7 @@
         }
 
         document.getElementById('portfolioSummary').innerHTML = `
-            <div>💵 Efectivo: <strong>${formatNumber(state.cash)}</strong></div>
+            <div>💵 Efectivo: <strong class="${state.cash < 0 ? 'text-red' : ''}">${formatNumber(state.cash)}</strong></div>
             <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(jobData.salary)}/min bruto)</div>
             <button class="btn-collect-dividends" onclick="upgradeJob()">📈 Mejorar Empleo (${formatNumber(costToNext)})</button>
         `;

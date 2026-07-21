@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Token 1 Cuebta RichMan Web - Mi Cartera</title>
+    <title>Token Lipio RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -619,21 +619,19 @@
             }
 
             const ahora = Date.now();
-            // Si hay un token activo y la "última actividad" fue hace menos de 70 segundos, consideramos que la sesión sigue abierta en otro equipo
-            if (lastToken && lastToken !== deviceSessionId && (ahora - lastTimestamp < 70000)) {
-                // Hay otra sesión activa: cerramos sesión aquí y avisamos
+            // Si el token activo fue actualizado hace menos de 45 segundos, significa que hay otra sesión real jugando ahora mismo.
+            if (lastToken && lastToken !== deviceSessionId && (ahora - lastTimestamp < 45000)) {
                 await window.fb.signOut(window.auth);
                 showModal("Acceso Denegado", "Esta cuenta ya está abierta y activa en otro dispositivo.");
                 return;
             }
 
-            // Si no hay sesión activa o la anterior expiró, tomamos posesión de la sesión registrando nuestro token y timestamp
+            // Tomar posesión o refrescar la sesión actual
             await setDoc(userRef, { 
                 activeSessionToken: deviceSessionId,
                 sessionTimestamp: ahora
             }, { merge: true });
 
-            // Mantener vivo el "latido" (heartbeat) de la sesión cada 30 segundos
             if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);
             sessionHeartbeatInterval = setInterval(async () => {
                 if (!currentUserUid || !window.db) return;
@@ -644,7 +642,7 @@
                 } catch (err) {
                     console.error("Error actualizando latido de sesión:", err);
                 }
-            }, 30000);
+            }, 15000);
 
             state = {
                 cash: 100,
@@ -1246,7 +1244,7 @@
     function toggleAuthMode() {
         isRegistering = !isRegistering;
         document.getElementById('authTitle').textContent = isRegistering ? "Crear Cuenta Nueva" : "Iniciar Sesión";
-        document.getElementById('authSubmitBtn',).textContent = isRegistering ? "Registrarse" : "Entrar";
+        document.getElementById('authSubmitBtn').textContent = isRegistering ? "Registrarse" : "Entrar";
         document.querySelector('.auth-toggle').textContent = isRegistering ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate aquí";
         document.getElementById('authError').textContent = "";
     }
@@ -1276,6 +1274,11 @@
 
     async function logoutUser() {
         try {
+            if (currentUserUid && window.db) {
+                // Limpiar el token activo en Firebase al salir formalmente
+                const { doc, setDoc } = window.fb;
+                await setDoc(doc(window.db, "partidas", currentUserUid), { activeSessionToken: "", sessionTimestamp: 0 }, { merge: true });
+            }
             if (gameInterval) clearInterval(gameInterval);
             if (marketInterval) clearInterval(marketInterval);
             if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);

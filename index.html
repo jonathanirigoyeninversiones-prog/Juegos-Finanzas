@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>Timpo Dividendis RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -585,6 +585,9 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
+    <!-- NUEVO BOTÓN PARA CORREGIR EL BUG DE LOS DIVIDENDOS -->
+    <button class="modal-btn" style="background:#f39c12; width:100%; margin-bottom: 1rem;" onclick="corregirBugDividendos()">🐛 Corregir Bug Dividendos (74M)</button>
+    
     <button class="modal-btn" style="background:#2ecc71; width:100%; margin-bottom: 1rem;" onclick="inicializar60AccionesFirebase()">📈 Cargar 60 Compañías en Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
@@ -732,6 +735,17 @@
         }
     }
 
+    // NUEVA FUNCIÓN PARA LIMPIAR EL BUG DESDE EL MENÚ DE CONFIGURACIÓN
+    async function corregirBugDividendos() {
+        if (confirm("¿Seguro que deseas limpiar tus dividendos acumulados a 0 Bs? Tu efectivo, empleo y activos se mantendrán intactos.")) {
+            state.pending_dividends = 0;
+            await saveUserData();
+            renderAll();
+            toggleSettings(false);
+            showModal("Bug Corregido", "Los dividendos se han reiniciado a 0 Bs en tu base de datos de Firebase.");
+        }
+    }
+
     async function inicializar60AccionesFirebase() {
         if (!window.db) {
             showModal("Error", "No hay conexión con Firebase.");
@@ -865,7 +879,7 @@
                 state.portfolio_crypto = formattedCrypto;
                 state.portfolio_stocks = dataRemota.portfolio_stocks || {};
 
-                // 🛡️ CÁLCULO DE DIVIDENDOS OFFLINE CORREGIDO Y PROTEGIDO
+                // 🛡️ CÁLCULO DE DIVIDENDOS OFFLINE CORREGIDO Y PROTEGIDO CON NUEVO MULTIPLICADOR (0.0001)
                 if (dataRemota.last_active) {
                     let lastActiveTime;
                     
@@ -897,7 +911,8 @@
                             if (cantidad > 0) {
                                 let stockObj = stocksListCache.find(s => s.id === stockId);
                                 let precioActual = stockObj ? stockObj.precio : 100;
-                                dividendosOfflineTotal += (cantidad * precioActual) * 0.0003 * diffMinutes;
+                                // APLICADO EL MULTIPLICADOR REALISTA DE 0.0001
+                                dividendosOfflineTotal += (cantidad * precioActual) * 0.0001 * diffMinutes;
                             }
                         }
 
@@ -1034,7 +1049,8 @@
                         if (cantidad > 0) {
                             let stockObj = stocksListCache.find(s => s.id === stockId);
                             let precioActual = stockObj ? stockObj.precio : 100;
-                            acumuladoMinuto += (cantidad * precioActual) * 0.0003;
+                            // APLICADO EL MULTIPLICADOR REALISTA DE 0.0001
+                            acumuladoMinuto += (cantidad * precioActual) * 0.0001;
                         }
                     }
 

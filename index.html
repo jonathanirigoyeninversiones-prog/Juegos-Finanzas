@@ -300,6 +300,21 @@
         .close-financial-btn:hover {
             color: #fff;
         }
+        .config-input {
+            width: 100%;
+            padding: 0.6rem;
+            margin: 0.4rem 0 1rem 0;
+            background: #07090e;
+            border: 1px solid #212d3f;
+            color: #fff;
+            border-radius: 6px;
+        }
+        .config-label {
+            font-size: 0.9rem;
+            color: #aab3c5;
+            text-align: left;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -401,7 +416,18 @@
 
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
-    <h3>⚙️ Configuración</h3>
+    <h3>⚙️ Configuración del Sistema</h3>
+    
+    <!-- Panel para configurar el porcentaje máximo de gastos (ej: 1.2 para el 120%) guardado en Firebase -->
+    <div style="text-align: left; margin-bottom: 1.2rem; background: #121824; padding: 1rem; border-radius: 10px; border: 1px solid #212d3f;">
+        <h4 style="color: #f1c40f; margin-bottom: 0.8rem; font-size: 1rem;">📊 Factor Máximo de Gastos (% del Salario)</h4>
+        
+        <label class="config-label">Máximo Gastos (Ej: 1.2 para 120%):</label>
+        <input type="number" id="inputMaxExpenses" class="config-input" step="0.05" value="1.2">
+
+        <button class="modal-btn" style="background:#2ecc71; width:100%; margin-top:0.2rem;" onclick="guardarImpuestosFirebase()">💾 Guardar en Firebase</button>
+    </div>
+
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -411,7 +437,7 @@
     let currentUserUid = null;
     let gameInterval = null;
     let configEmpleosNiveles = [];
-    let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 }; // maxGastos configurado al 120% del salario
+    let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
     let financialModalTimer = null;
 
     let state = {
@@ -487,11 +513,34 @@
                     configEmpleosNiveles = data.niveles;
                 }
                 if (data.impuestosConfig) {
-                    configImpuestos = data.impuestosConfig;
+                    configImpuestos = { ...configImpuestos, ...data.impuestosConfig };
+                    if (configImpuestos.maxGastos !== undefined) {
+                        document.getElementById('inputMaxExpenses').value = configImpuestos.maxGastos;
+                    }
                 }
             }
         } catch (e) {
             console.error("No se pudo cargar la configuración de Firebase:", e);
+        }
+    }
+
+    // Guardar el porcentaje de maxGastos directamente en Firebase desde el panel de la ruedita
+    async function guardarImpuestosFirebase() {
+        try {
+            const { doc, setDoc } = window.fb;
+            const ref = doc(window.db, "configuracion", "empleos");
+            
+            const maxG = parseFloat(document.getElementById('inputMaxExpenses').value);
+
+            configImpuestos.maxGastos = maxG;
+
+            // Guardar usando merge para actualizar únicamente el nodo de configuración sin afectar niveles
+            await setDoc(ref, { impuestosConfig: configImpuestos }, { merge: true });
+            showModal("Guardado Exitoso", "El factor máximo de gastos se ha actualizado en Firebase.");
+            toggleSettings(false);
+        } catch (e) {
+            console.error("Error al guardar en Firebase:", e);
+            showModal("Error", "No se pudo actualizar la configuración en Firebase.");
         }
     }
 
@@ -540,7 +589,7 @@
         }
     }
 
-    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase (Basado en el 120% del salario)
+    // Ciclo de pagos y deducciones operado y validado en el servidor de Firebase (Basado en el porcentaje de maxGastos)
     function startServerSideFinancialCycle() {
         if (gameInterval) clearInterval(gameInterval);
         
@@ -564,19 +613,19 @@
                     let currentData = userDoc.data();
                     let currentCash = Number(currentData.cash || 0);
 
-                    // Análisis de impuestos y deducciones basados en el porcentaje configurado (Ej: 120% del salario)
-                    const porcentajeImpuesto = Math.random() * (configImpuestos.maxPorcentaje - configImpuestos.minPorcentaje) + configImpuestos.minPorcentaje;
+                    // Análisis de impuestos y deducciones estrictamente regidos por Firebase
+                    const porcentajeImpuesto = Math.random() * ((configImpuestos.maxPorcentaje ?? 0.20) - (configImpuestos.minPorcentaje ?? 0.05)) + (configImpuestos.minPorcentaje ?? 0.05);
                     const deduccionImpuestos = ingresosBrutos * porcentajeImpuesto;
                     
-                    // Deducciones / Gastos variables calculados como porcentaje del salario (hasta el 120%)
-                    const factorGastoAleatorio = Math.random() * (configImpuestos.maxGastos || 1.2);
+                    // Deducciones / Gastos variables calculados como porcentaje del salario actual (ej. hasta el 120%)
+                    const factorGastoAleatorio = Math.random() * (configImpuestos.maxGastos ?? 1.2);
                     const gastosVarios = ingresosBrutos * factorGastoAleatorio;
                     
                     deduccionesTotales = deduccionImpuestos + gastosVarios;
-                    netoCalculado = ingresosBrutos - deduccionesTotales; // Puede dar negativo si las deducciones superan el bruto
+                    netoCalculado = ingresosBrutos - deduccionesTotales;
                     
                     currentCash += netoCalculado;
-                    if (currentCash < 0) currentCash = 0; // Control de piso para evitar saldos negativos absurdos
+                    if (currentCash < 0) currentCash = 0;
 
                     if (!currentData.transactions) currentData.transactions = [];
                     currentData.transactions.push({

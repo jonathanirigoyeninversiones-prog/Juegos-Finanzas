@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Venta Cripto RichMan Web - Mi Cartera</title>
+    <title>Sin Lupa RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -230,7 +230,6 @@
         .clickable-asset {
             color: #3498db;
             cursor: pointer;
-            text-decoration: underline;
             transition: color 0.2s;
         }
         .clickable-asset:hover {
@@ -486,7 +485,7 @@
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
     let financialModalTimer = null;
     let cryptoListCache = [];
-    let preferredMarketAsset = null; // Variable para recordar qué activo destacar en el mercado
+    let preferredMarketAsset = null;
 
     let portfolioSortField = null;
     let portfolioSortAsc = true;
@@ -810,7 +809,6 @@
 
         let sortedList = [...cryptoListCache];
 
-        // Si el usuario hizo clic en una cripto desde su cartera, la ponemos de primera
         if (preferredMarketAsset) {
             let index = sortedList.findIndex(c => c.id === preferredMarketAsset);
             if (index > -1) {
@@ -849,11 +847,9 @@
         `).join('');
     }
 
-    // --- FUNCIÓN PARA NAVEGAR Y DESTACAR EL ACTIVO DESDE LA CARTERA ---
     function navegarAMercado(assetId) {
-        preferredMarketAsset = assetId; // Guarda el activo preferido para ponerlo de primero
+        preferredMarketAsset = assetId;
         
-        // Cambiar de pestaña visualmente a Mercado
         document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         
@@ -1074,7 +1070,7 @@
 
             html += `
                 <tr>
-                    <td><strong class="clickable-asset" onclick="navegarAMercado('${item.id}')" title="Ver en Mercado">${item.id} 🔍</strong></td>
+                    <td><strong class="clickable-asset" onclick="navegarAMercado('${item.id}')" title="Ver en Mercado">${item.id}</strong></td>
                     <td>${formatCryptoQty(item.cantidad)}</td>
                     <td>${formatCryptoPrice(item.precioPromedio)}</td>
                     <td>${formatCryptoPrice(item.precioActual)}</td>
@@ -1154,7 +1150,14 @@
     }
 
     function renderAll() {
-        document.getElementById('cashDisplay').textContent = formatNumber(state.cash);
+        const cashEl = document.getElementById('cashDisplay');
+        cashEl.textContent = formatNumber(state.cash);
+        // Si el efectivo es negativo, se muestra en rojo con el signo menos
+        if (state.cash < 0) {
+            cashEl.className = 'text-red';
+        } else {
+            cashEl.className = '';
+        }
         
         const jobData = getCurrentJobData();
         let costToNext = jobData.cost;
@@ -1248,7 +1251,7 @@
             this.classList.add('active');
             document.getElementById(this.dataset.section + 'Section').classList.add('active');
             if (this.dataset.section === 'market') {
-                preferredMarketAsset = null; // Limpia la preferencia al hacer clic manual en la pestaña Mercado
+                preferredMarketAsset = null;
                 cargarMercadoCripto();
             }
         });

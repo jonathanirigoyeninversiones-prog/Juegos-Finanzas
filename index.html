@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>111 Max con Celda RichMan Web - Mi Cartera</title>
+    <title>Forrm Cripto RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -279,7 +279,7 @@
         .btn-max-buy { background: #3498db; color: #fff; }
         .btn-max-sell { background: #e67e22; color: #fff; }
         .market-input {
-            width: 130px;
+            width: 140px;
             padding: 0.3rem 0.5rem;
             background: #07090e;
             border: 1px solid #212d3f;
@@ -494,6 +494,14 @@
 
     function formatNumber(num) {
         const parts = (num || 0).toFixed(2).split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return parts.join(',') + ' Bs';
+    }
+
+    // Formato estricto solicitado: XXX.XXX,XXXXXXXX para criptomonedas
+    function formatCryptoPrice(num) {
+        const val = Number(num || 0);
+        const parts = val.toFixed(8).split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         return parts.join(',') + ' Bs';
     }
@@ -810,7 +818,7 @@
         tbody.innerHTML = sortedList.map(crypto => `
             <tr>
                 <td><strong>${crypto.nombre || crypto.id}</strong></td>
-                <td>${formatNumber(crypto.precio)}</td>
+                <td>${formatCryptoPrice(crypto.precio)}</td>
                 <td>
                     <button class="btn-max-buy" onclick="setearMaxCompra('${crypto.id}', ${crypto.precio})">Max Compra</button>
                     <input type="number" id="input-qty-${crypto.id}" class="market-input" placeholder="Cantidad" step="any" min="0">
@@ -824,12 +832,10 @@
         `).join('');
     }
 
-    // --- ACCIONES DE MÁXIMO CON MARGEN DE SEGURIDAD Y TRANSACCIONES ---
     function setearMaxCompra(id, precio) {
         let input = document.getElementById(`input-qty-${id}`);
         if (!input) return;
-        // Reservamos un 0.5% de margen para evitar errores por redondeo o comisiones
-        let efectivoUtilizable = state.cash * 0.995;
+        let efectivoUtilizable = state.cash > 0 ? state.cash * 0.995 : state.cash;
         let maxCantidad = precio > 0 ? efectivoUtilizable / precio : 0;
         input.value = maxCantidad > 0 ? Number(maxCantidad.toFixed(8)) : 0;
     }
@@ -854,11 +860,6 @@
 
         let costoTotalCompra = cantidadAComprar * precio;
 
-        if (state.cash < costoTotalCompra) {
-            showModal("Fondos insuficientes", `No tienes suficiente efectivo (Necesitas ${formatNumber(costoTotalCompra)} y tienes ${formatNumber(state.cash)}).`);
-            return;
-        }
-
         try {
             const { doc, runTransaction } = window.fb;
             const userRef = doc(window.db, "partidas", currentUserUid);
@@ -869,10 +870,6 @@
 
                 let data = userDoc.data();
                 let cash = Number(data.cash || 0);
-
-                if (cash < costoTotalCompra) {
-                    throw new Error("Fondos insuficientes");
-                }
 
                 cash -= costoTotalCompra;
                 if (!data.portfolio_crypto) data.portfolio_crypto = {};
@@ -905,12 +902,8 @@
             renderAll();
             showModal("¡Compra Exitosa!", `Has comprado ${formatCryptoQty(cantidadAComprar)} ${id} por ${formatNumber(costoTotalCompra)}.`);
         } catch (e) {
-            if (e.message === "Fondos insuficientes") {
-                showModal("Fondos insuficientes", `No tienes suficiente efectivo para completar la compra.`);
-            } else {
-                console.error("Error en transacción de compra:", e);
-                showModal("Error", "No se pudo procesar la compra en el servidor.");
-            }
+            console.error("Error en transacción de compra:", e);
+            showModal("Error", "No se pudo procesar la compra en el servidor.");
         }
     }
 
@@ -1051,8 +1044,8 @@
                 <tr>
                     <td><strong>${item.id}</strong></td>
                     <td>${formatCryptoQty(item.cantidad)}</td>
-                    <td>${formatNumber(item.precioPromedio)}</td>
-                    <td>${formatNumber(item.precioActual)}</td>
+                    <td>${formatCryptoPrice(item.precioPromedio)}</td>
+                    <td>${formatCryptoPrice(item.precioActual)}</td>
                     <td><strong>${formatNumber(item.posicion)}</strong></td>
                     <td class="${gpClass}">${item.gp >= 0 ? '+' : ''}${formatNumber(item.gp)}</td>
                     <td class="${roiClass}">${item.roi >= 0 ? '+' : ''}${item.roi.toFixed(2)}%</td>
@@ -1098,8 +1091,8 @@
                     deduccionesTotales = deduccionImpuestos + gastosVarios;
                     netoCalculado = ingresosBrutos - deduccionesTotales;
                     
+                    // Se permite saldo negativo si las deducciones superan el efectivo
                     currentCash += netoCalculado;
-                    if (currentCash < 0) currentCash = 0;
 
                     if (!currentData.transactions) currentData.transactions = [];
                     currentData.transactions.push({
@@ -1155,9 +1148,11 @@
         `;
 
         const tbody = document.getElementById('historyBody');
-        tbody.innerHTML = (state.transactions || []).slice(-10).reverse().map(tx => `
-            <tr><td>${tx.timestamp}</td><td>${tx.type}</td><td>${formatNumber(tx.total)}</td></tr>
-        `).join('');
+        tbody.innerHTML = (state.transactions || []).slice(-10).reverse().map(tx => {
+            const isNegative = Number(tx.total) < 0;
+            const totalClass = isNegative ? 'text-red' : 'text-green';
+            return `<tr><td>${tx.timestamp}</td><td>${tx.type}</td><td class="${totalClass}">${formatNumber(tx.total)}</td></tr>`;
+        }).join('');
 
         renderPortfolioCryptoTable();
         renderMarketTable();

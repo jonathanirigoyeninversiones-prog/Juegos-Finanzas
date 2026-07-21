@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>ccc Juego Financiero - Cartera Principal</title>
+    <title>Juego Financiero - Sincronización Persistente</title>
     <!-- Configuración e inicialización de Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -221,7 +221,7 @@
             gameIntervalMs: 60000,
             jobUpgradeCost: 500,
             dividendsAccrued: 120,
-            assets: INITIAL_ASSETS,
+            assets: JSON.parse(JSON.stringify(INITIAL_ASSETS)),
             businesses: [],
             transactions: []
         };
@@ -254,7 +254,7 @@
 
         function restartGameLoop() {
             if (gameTimer) clearInterval(gameTimer);
-            gameTimer = setInterval(() => {
+            gameTimer = setInterval(async () => {
                 let totalIncome = state.jobSalary; 
                 state.businesses.forEach(b => {
                     const userBiz = state.businesses.find(item => item.id === b.id);
@@ -266,7 +266,7 @@
                 
                 state.transactions.push({ 
                     timestamp: new Date().toLocaleString(), 
-                    name: `Salario (${state.jobSalary} Bs) y Rendimientos`, 
+                    name: `Salario de 1 minuto (${state.jobSalary} Bs) y Rendimientos`, 
                     total: totalIncome 
                 });
 
@@ -275,7 +275,7 @@
                     a.price = Math.max(1, Math.round((a.price * (1 + change)) * 100) / 100);
                 });
 
-                saveState();
+                await saveState();
                 renderAll();
             }, state.gameIntervalMs || 60000);
         }
@@ -290,7 +290,27 @@
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
                         const cloudData = docSnap.data();
-                        state = { ...state, ...cloudData };
+                        // Fusionar datos de la nube asegurando la persistencia de activos y transacciones
+                        state.cash = cloudData.cash !== undefined ? cloudData.cash : state.cash;
+                        state.credit = cloudData.credit !== undefined ? cloudData.credit : state.credit;
+                        state.jobLevel = cloudData.jobLevel !== undefined ? cloudData.jobLevel : state.jobLevel;
+                        state.jobSalary = cloudData.jobSalary !== undefined ? cloudData.jobSalary : state.jobSalary;
+                        state.gameIntervalMs = cloudData.gameIntervalMs !== undefined ? cloudData.gameIntervalMs : state.gameIntervalMs;
+                        state.jobUpgradeCost = cloudData.jobUpgradeCost !== undefined ? cloudData.jobUpgradeCost : state.jobUpgradeCost;
+                        state.dividendsAccrued = cloudData.dividendsAccrued !== undefined ? cloudData.dividendsAccrued : state.dividendsAccrued;
+                        state.businesses = cloudData.businesses || [];
+                        state.transactions = cloudData.transactions || [];
+
+                        if (cloudData.assets && Array.isArray(cloudData.assets)) {
+                            state.assets = INITIAL_ASSETS.map(initAsset => {
+                                const found = cloudData.assets.find(ca => ca.id === initAsset.id);
+                                if (found) {
+                                    return { ...initAsset, owned: found.owned || 0, costBasis: found.costBasis || 0, price: found.price || initAsset.price };
+                                }
+                                return initAsset;
+                            });
+                        }
+
                         document.getElementById('cloudStatusBanner').textContent = "☁️ Partida cargada desde Firebase Firestore";
                     } else {
                         await saveState();
@@ -311,14 +331,16 @@
                             if (needsRestart) {
                                 restartGameLoop();
                             }
-                            renderAll();
                         }
                     });
                 }
             } catch (e) {
                 console.error("Error al configurar Firebase:", e);
                 const local = localStorage.getItem('juego_state_backup');
-                if (local) state = JSON.parse(local);
+                if (local) {
+                    const localData = JSON.parse(local);
+                    state = { ...state, ...localData };
+                }
             }
         }
 

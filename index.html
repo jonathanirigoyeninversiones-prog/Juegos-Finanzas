@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>1111 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -402,8 +402,6 @@
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
-    <!-- Botón para inicializar/sincronizar las criptomonedas de Binance en Firebase -->
-    <button class="modal-btn" style="background:#3498db; width:100%; margin-bottom:1rem;" onclick="inicializarCriptomonedasBinance()">🌐 Cargar Criptos Binance a Firebase</button>
     <button class="modal-btn" style="background:#e74c3c; width:100%;" onclick="resetGameData()">🔄 RESETAR PARTIDA</button>
     <button class="modal-btn" style="width:100%; margin-top:1rem;" onclick="toggleSettings(false)">Cerrar</button>
 </div>
@@ -475,36 +473,6 @@
         setTimeout(() => {
             modal.style.display = 'none';
         }, 500); 
-    }
-
-    // Script de la ruedita para inicializar o poblar las criptomonedas de Binance en Firebase
-    async function inicializarCriptomonedasBinance() {
-        try {
-            const { doc, setDoc } = window.fb;
-            const simbolosBinance = [
-                "BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "DOGE", "AVAX", "DOT", "LINK", 
-                "MATIC", "LTC", "UNI", "BCH", "ATOM", "XLM", "NEAR", "ETC", "APT", "ICP", 
-                "RENDER", "SUI", "FET", "INJ", "OP", "ARB", "STX", "IMX", "TIA", "SEI", 
-                "PEPE", "SHIB", "FLOKI", "WIF", "BONK", "JUP", "PYTH", "GRT", "RUNE", "FTM",
-                "ALGO", "SAND", "MANA", "AXS", "THETA", "EGLD", "FLOW", "CHZ", "KAS", "AR",
-                "CRV", "SNX", "LDO", "GALA", "ENJ", "BAT", "ZIL", "IOST", "KAVA", "ONE"
-            ];
-
-            for (let crypto of simbolosBinance) {
-                let precioInicial = Math.random() * (50000 - 10) + 10;
-                await setDoc(doc(window.db, "mercado_cripto", crypto), {
-                    nombre: crypto,
-                    precio: Number(precioInicial.toFixed(2))
-                }, { merge: true });
-            }
-
-            showModal("¡Éxito!", "Se han cargado/actualizado todas las criptomonedas de Binance en la base de datos de Firebase.");
-            toggleSettings(false);
-            cargarMercadoCripto();
-        } catch (e) {
-            console.error("Error al inicializar criptomonedas:", e);
-            showModal("Error", "No se pudieron sincronizar las criptomonedas en Firebase.");
-        }
     }
 
     // Cargar la configuración de empleos e impuestos leída estrictamente desde Firebase
@@ -587,12 +555,10 @@
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 10);
                     
-                    // Variación aleatoria exacta de más / menos 2% (-0.02 a +0.02)[cite: 2]
-                    let variacionPorcentual = (Math.random() * 0.04) - 0.02;
-                    let nuevoPrecio = precioActual * (1 + variacionPorcentual);
+                    let variacionPorcentual = (Math.random() * 0.04) - 0.02;[cite: 2]
+                    let nuevoPrecio = precioActual * (1 + variacionPorcentual);[cite: 2]
                     
-                    // Asegurar piso mínimo de 10 Bs y límite ilimitado hacia arriba[cite: 2]
-                    if (nuevoPrecio < 10) nuevoPrecio = 10;
+                    if (nuevoPrecio < 10) nuevoPrecio = 10;[cite: 2]
 
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
                         precio: Number(nuevoPrecio.toFixed(2))
@@ -623,7 +589,7 @@
         const tbody = document.getElementById('marketBody');
         if (!tbody) return;
         if (cryptoListCache.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1rem;">No hay criptomonedas cargadas. Ve a la ruedita (⚙️) y haz clic en "Cargar Criptos Binance a Firebase".</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 1rem;">No hay criptomonedas cargadas en Firebase.</td></tr>`;
             return;
         }
         tbody.innerHTML = cryptoListCache.map(crypto => `

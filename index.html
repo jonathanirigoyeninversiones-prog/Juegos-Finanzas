@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>tiempo RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -865,11 +865,29 @@
                 state.portfolio_crypto = formattedCrypto;
                 state.portfolio_stocks = dataRemota.portfolio_stocks || {};
 
-                // CÁLCULO DE DIVIDENDOS OFFLINE USANDO DATE.NOW()
+                // 🛡️ CÁLCULO DE DIVIDENDOS OFFLINE CORREGIDO Y PROTEGIDO
                 if (dataRemota.last_active) {
-                    const lastActiveTime = Number(dataRemota.last_active);
+                    let lastActiveTime;
+                    
+                    // Verificamos si es el formato viejo (Timestamp de Firebase) o el nuevo (milisegundos)
+                    if (typeof dataRemota.last_active.toDate === 'function') {
+                        lastActiveTime = dataRemota.last_active.toDate().getTime();
+                    } else {
+                        lastActiveTime = Number(dataRemota.last_active);
+                    }
+
+                    // Si el número es 0 (1970) o inválido, usamos la hora actual para no regalar dinero
+                    if (!lastActiveTime || lastActiveTime < 1000000000000) {
+                        lastActiveTime = Date.now();
+                    }
+
                     const nowTime = Date.now();
-                    const diffMinutes = Math.floor((nowTime - lastActiveTime) / 60000);
+                    let diffMinutes = Math.floor((nowTime - lastActiveTime) / 60000);
+
+                    // 🛑 SEGURO ANTIFALLOS: Tope máximo de 7 días offline (10.080 minutos)
+                    if (diffMinutes > 10080) {
+                        diffMinutes = 10080;
+                    }
 
                     if (diffMinutes > 0 && Object.keys(state.portfolio_stocks).length > 0) {
                         let dividendosOfflineTotal = 0;

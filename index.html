@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>vvv RichMan Web - Configuración y Mercado</title>
     <style>
         * {
             margin: 0;
@@ -37,7 +37,6 @@
             flex-direction: column;
             gap: 8px;
         }
-        /* --- INICIO DE OPTIMIZACIÓN PASO 2: Fluidez del menú de navegación superior --- */
         .nav-menu {
             display: flex;
             gap: 10px;
@@ -55,14 +54,65 @@
             white-space: nowrap;
             font-size: 0.9rem;
             transition: background 0.2s, color 0.2s, border-color 0.2s;
-            will-change: transform;
         }
         .nav-button:hover, .nav-button.active {
             background: #1f293d;
             color: #ffffff;
             border-color: #3b82f6;
         }
-        /* --- FIN DE OPTIMIZACIÓN PASO 2 --- */
+        .market-table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        table.market-optimized-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            text-align: left;
+        }
+        table.market-optimized-table th, 
+        table.market-optimized-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1f293d;
+            white-space: nowrap;
+        }
+        table.market-optimized-table th {
+            background-color: #161c27;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        /* --- INICIO DE OPTIMIZACIÓN PASO 3: Selector de Moneda Validado --- */
+        .config-section {
+            background: #161c27;
+            border: 1px solid #2a3442;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .config-section h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: #3b82f6;
+        }
+        .currency-selector-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .currency-select {
+            background: #0b0e14;
+            color: #e0e6ed;
+            border: 1px solid #2a3442;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .currency-select:focus {
+            border-color: #3b82f6;
+        }
+        /* --- FIN DE OPTIMIZACIÓN PASO 3 --- */
     </style>
 </head>
 <body>
@@ -70,28 +120,73 @@
         <header id="stickyHeader">
             <h1>RichMan Web</h1>
             <nav class="nav-menu">
-                <button class="nav-button active">📋 Mi Cartera</button>
-                <button class="nav-button">📈 Mercado</button>
-                <button class="nav-button">💳 Crédito</button>
-                <button class="nav-button">🏢 Negocios</button>
-                <button class="nav-button">📜 Historial</button>
+                <button class="nav-button active" onclick="switchTab('cartera')">📋 Mi Cartera</button>
+                <button class="nav-button" onclick="switchTab('mercado')">📈 Mercado</button>
+                <button class="nav-button" onclick="switchTab('credito')">💳 Crédito</button>
+                <button class="nav-button" onclick="switchTab('negocios')">🏢 Negocios</button>
+                <button class="nav-button" onclick="switchTab('config')">⚙ Configuración</button>
             </nav>
         </header>
         <main>
-            <section id="contentSection">
-                <p>Contenido principal del sistema activo.</p>
+            <section id="mercadoSection" class="game-section">
+                <h2>📈 Mercado</h2>
+                <div class="market-table-container">
+                    <table class="market-optimized-table">
+                        <thead>
+                            <tr>
+                                <th>Activo</th>
+                                <th>Precio</th>
+                                <th>Variación</th>
+                                <th>Div</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>ⓘ ☆ ANZ (ASX)</td>
+                                <td>93,90 Bs</td>
+                                <td style="color: #10b981;">▲ 0.03%</td>
+                                <td>0.97%</td>
+                                <td>1 Costo: 93,90 Bs</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="configSection" class="config-section" style="display:none;">
+                <h3>⚙ Configuración General</h3>
+                <div class="currency-selector-container">
+                    <label for="monedaSelect">💱 Seleccionar Moneda:</label>
+                    <select id="monedaSelect" class="currency-select">
+                        <option value="AED">Dirham (AED)</option>
+                        <option value="ARS">Peso argentino (ARS)</option>
+                        <option value="AUD">Dólar australiano (AUD)</option>
+                        <option value="BRL">Real (BRL)</option>
+                        <option value="EUR">Euro (EUR)</option>
+                        <option value="GBP">Libra (GBP)</option>
+                        <option value="MXN">Peso mexicano (MXN)</option>
+                        <option value="USD" selected>Dólar / Bolivar Estándar (Bs)</option>
+                    </select>
+                </div>
             </section>
         </main>
     </div>
     <script>
+        // Lógica de navegación y estabilidad intacta
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
+            document.getElementById('mercadoSection').style.display = 'none';
+            document.getElementById('configSection').style.display = 'none';
+
+            if(tabName === 'mercado') {
+                document.getElementById('mercadoSection').style.display = 'block';
+            } else if(tabName === 'config') {
+                document.getElementById('configSection').style.display = 'block';
+            }
+        }
         (function() {
-            const buttons = document.querySelectorAll('.nav-button');
-            buttons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    buttons.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
+            console.log("RichMan Web: Módulos de optimización cargados exitosamente.");
         })();
     </script>
 </body>

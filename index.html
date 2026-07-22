@@ -3,26 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cc RichMan Web - Juegos de Finanzas</title>
+    <title>Rich Man - Juegos de Finanzas</title>
     <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --border: #334155;
+        }
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 20px;
             line-height: 1.25;
         }
         header {
-            background-color: #1e293b;
-            color: #fff;
+            background-color: var(--card-bg);
             padding: 15px 20px;
             border-radius: 8px;
             margin-bottom: 20px;
+            border: 1px solid var(--border);
         }
         h1 {
-            margin: 0 0 10px 0;
-            font-size: 24px;
+            margin: 0 0 15px 0;
+            font-size: 22px;
+            color: var(--accent);
         }
         nav {
             display: flex;
@@ -31,7 +40,7 @@
         }
         .nav-btn {
             background-color: #334155;
-            color: #fff;
+            color: var(--text-color);
             border: none;
             padding: 8px 14px;
             border-radius: 4px;
@@ -43,21 +52,21 @@
         .nav-btn:hover {
             background-color: #475569;
         }
-        /* Jerarquía visual clara para el módulo activo */
+        /* Jerarquía visual clara para indicar el módulo activo */
         .nav-btn.active {
             background-color: #0284c7;
             font-weight: bold;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }
         main {
-            background-color: #ffffff;
+            background-color: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
         }
         h2 {
-            font-size: 20px;
-            border-bottom: 2px solid #e2e8f0;
+            font-size: 18px;
+            border-bottom: 2px solid var(--border);
             padding-bottom: 8px;
             margin-top: 0;
         }
@@ -69,21 +78,25 @@
         th, td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
         }
         th {
-            background-color: #f8fafc;
-            color: #475569;
+            background-color: #111827;
+            color: var(--text-muted);
         }
         .config-section {
-            margin-top: 20px;
+            margin-top: 25px;
         }
         select {
-            padding: 8px;
+            padding: 8px 12px;
             border-radius: 4px;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--border);
             font-size: 14px;
-            background-color: #fff;
+            background-color: #0f172a;
+            color: var(--text-color);
+            width: 100%;
+            max-width: 300px;
         }
     </style>
 </head>
@@ -118,7 +131,7 @@
                         <td>ⓘ ☆ ANZ (ASX)</td>
                         <td>93,90 Bs</td>
                         <td>▲ 0.03%</td>
-                        <td>Bs</td>
+                        <td>0.97%</td>
                         <td>1 Costo: 93,90 Bs</td>
                     </tr>
                 </tbody>

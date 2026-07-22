@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>bbb RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <style>
-        /* --- CSS COMPLETO (original con optimización visual de mercado aplicada) --- */
         * {
             margin: 0;
             padding: 0;
@@ -19,7 +18,6 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            transition: background 0.3s, color 0.3s;
         }
         #app {
             max-width: 1300px;
@@ -39,79 +37,61 @@
             flex-direction: column;
             gap: 8px;
         }
-        /* --- INICIO DE OPTIMIZACIÓN PASO 1: Tablas de mercado más limpias y adaptables --- */
-        .market-table-container {
-            width: 100%;
+        /* --- INICIO DE OPTIMIZACIÓN PASO 2: Fluidez del menú de navegación superior --- */
+        .nav-menu {
+            display: flex;
+            gap: 10px;
             overflow-x: auto;
-            margin-top: 10px;
+            padding-bottom: 5px;
+            scroll-behavior: smooth;
         }
-        table.market-optimized-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.95rem;
-            text-align: left;
-        }
-        table.market-optimized-table th, 
-        table.market-optimized-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #1f293d;
-            white-space: nowrap;
-        }
-        table.market-optimized-table th {
-            background-color: #161c27;
+        .nav-button {
+            background: #161c27;
             color: #94a3b8;
-            font-weight: 600;
+            border: 1px solid #2a3442;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 0.9rem;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            will-change: transform;
         }
-        /* --- FIN DE OPTIMIZACIÓN PASO 1 --- */
+        .nav-button:hover, .nav-button.active {
+            background: #1f293d;
+            color: #ffffff;
+            border-color: #3b82f6;
+        }
+        /* --- FIN DE OPTIMIZACIÓN PASO 2 --- */
     </style>
 </head>
 <body>
     <div id="app">
         <header id="stickyHeader">
-            <h1>RichMan Web - Mi Cartera</h1>
+            <h1>RichMan Web</h1>
+            <nav class="nav-menu">
+                <button class="nav-button active">📋 Mi Cartera</button>
+                <button class="nav-button">📈 Mercado</button>
+                <button class="nav-button">💳 Crédito</button>
+                <button class="nav-button">🏢 Negocios</button>
+                <button class="nav-button">📜 Historial</button>
+            </nav>
         </header>
         <main>
-            <section id="marketSection">
-                <h2>📈 Mercado</h2>
-                <div class="market-table-container">
-                    <table class="market-optimized-table">
-                        <thead>
-                            <tr>
-                                <th>Activo</th>
-                                <th>Precio</th>
-                                <th>Variación</th>
-                                <th>Div</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>ⓘ ☆ ANZ (ASX)</td>
-                                <td>93,90 Bs</td>
-                                <td style="color: #10b981;">▲ 0.03%</td>
-                                <td>0.97%</td>
-                                <td>1 Costo: 93,90 Bs</td>
-                            </tr>
-                            <tr>
-                                <td>ⓘ ☆ APA Group</td>
-                                <td>302,36 Bs</td>
-                                <td style="color: #ef4444;">▼ 1.86%</td>
-                                <td>2.01%</td>
-                                <td>1 Costo: 302,36 Bs</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <section id="contentSection">
+                <p>Contenido principal del sistema activo.</p>
             </section>
         </main>
     </div>
     <script>
-        // Lógica central del sistema intacta
         (function() {
-            function init() {
-                console.log("RichMan Web inicializado correctamente.");
-            }
-            init();
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    buttons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
         })();
     </script>
 </body>

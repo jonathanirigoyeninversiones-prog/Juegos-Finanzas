@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Protegido RichMan Web - Mi Cartera</title>
+    <title>Seguridad RichMan Web - Mi Cartera</title>
     <style>
         /* --- CSS COMPLETO --- */
         * {
@@ -35,7 +35,6 @@
             border-bottom: 1px solid #2a3442;
             border-radius: 16px 16px 0 0;
             margin-bottom: 1.5rem;
-            transition: background 0.3s, border-color 0.3s;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         body.theme-light #stickyHeader {
@@ -44,18 +43,12 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         .header {
-            background: transparent;
             padding: 1.5rem;
-            border-radius: 16px 16px 0 0;
-            margin-bottom: 0;
-            border: none;
-            box-shadow: none;
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
             gap: 1rem;
-            transition: background 0.3s, border-color 0.3s;
         }
         .header-left {
             display: flex;
@@ -68,29 +61,7 @@
             background: linear-gradient(135deg, #f5b041, #f1c40f);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
             cursor: pointer;
-            border: none;
-            outline: none;
-            padding: 0 5px;
-        }
-        .header-left .game-title-input {
-            font-size: clamp(1.2rem, 4vw, 1.8rem);
-            font-weight: 700;
-            background: transparent;
-            border: 1px dashed #4a5a72;
-            color: #f1c40f;
-            padding: 4px 10px;
-            border-radius: 8px;
-            outline: none;
-            width: auto;
-            min-width: 150px;
-            font-family: inherit;
-        }
-        .header-left .game-title-input:focus {
-            border-color: #f1c40f;
-            background: #1e2635;
-            color: #fff;
         }
         .header-right {
             display: flex;
@@ -111,30 +82,11 @@
             border-left: 3px solid #f1c40f;
             white-space: nowrap;
             font-size: clamp(0.75rem, 2vw, 1rem);
-            transition: background 0.3s;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .stats .net-worth {
             border-left-color: #2ecc71;
             font-weight: bold;
-        }
-        .news-status {
-            color: #fff;
-            font-style: italic;
-            background: #e74c3c;
-            padding: 0.2rem 0.8rem;
-            border-radius: 20px;
-            border: 1px solid #e74c3c;
-            display: none;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-        .news-status:hover {
-            transform: scale(1.05);
-            background: #c0392b;
         }
         .settings-btn {
             background: transparent;
@@ -164,20 +116,12 @@
             width: 90%;
             z-index: 10000;
             box-shadow: 0 8px 40px rgba(0,0,0,0.7);
-            transition: background 0.3s, border-color 0.3s;
             max-height: 90vh;
             overflow-y: auto;
         }
-        .settings-panel.active {
-            display: block;
-        }
-        .settings-panel h3 {
-            color: #f1c40f;
-            font-size: 1.4rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        .settings-panel .theme-toggle {
+        .settings-panel.active { display: block; }
+        .settings-panel h3 { color: #f1c40f; font-size: 1.4rem; margin-bottom: 1.5rem; text-align: center; }
+        .theme-toggle {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -186,527 +130,69 @@
             color: #aab3c5;
             margin-bottom: 1.5rem;
         }
-        .settings-panel .theme-toggle label {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #e0e6ed;
-        }
+        .theme-toggle label { cursor: pointer; display: flex; align-items: center; gap: 0.5rem; color: #e0e6ed; }
         .switch {
-            position: relative;
-            width: 50px;
-            height: 26px;
-            background: #2a3442;
-            border-radius: 13px;
-            cursor: pointer;
-            transition: background 0.3s;
+            position: relative; width: 50px; height: 26px; background: #2a3442; border-radius: 13px; cursor: pointer; transition: background 0.3s;
         }
         .switch .slider {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 22px;
-            height: 22px;
-            background: #f1c40f;
-            border-radius: 50%;
-            transition: transform 0.3s;
+            position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; background: #f1c40f; border-radius: 50%; transition: transform 0.3s;
         }
-        .switch.active .slider {
-            transform: translateX(24px);
-        }
-        .switch.active {
-            background: #f1c40f;
-        }
+        .switch.active .slider { transform: translateX(24px); }
+        .switch.active { background: #f1c40f; }
         .settings-panel .currency-group, .settings-panel .commission-group {
-            margin: 1rem 0;
-            padding: 0.8rem;
-            background: #0b0e14;
-            border-radius: 12px;
-            border: 1px solid #2a3442;
+            margin: 1rem 0; padding: 0.8rem; background: #0b0e14; border-radius: 12px; border: 1px solid #2a3442;
         }
-        .settings-panel .currency-group h4, .settings-panel .commission-group h4 {
-            color: #f1c40f;
-            font-size: 1rem;
-            margin-bottom: 0.6rem;
-            text-align: center;
-        }
+        .settings-panel .currency-group h4, .settings-panel .commission-group h4 { color: #f1c40f; font-size: 1rem; margin-bottom: 0.6rem; text-align: center; }
         .settings-panel .currency-group select {
-            width: 140px;
-            padding: 0.3rem 0.4rem;
-            border-radius: 6px;
-            border: 1px solid #2a3442;
-            background: #0b0e14;
-            color: #e0e6ed;
-            font-size: 0.9rem;
-            text-align: center;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .settings-panel .currency-group select:focus {
-            border-color: #f1c40f;
-        }
-        .settings-panel .currency-group .format-hint {
-            font-size: 0.8rem;
-            color: #8d9bb5;
-        }
-        .settings-panel .commission-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.3rem;
-        }
-        .settings-panel .commission-row label {
-            font-size: 0.9rem;
-            color: #aab3c5;
-            min-width: 70px;
-        }
-        .settings-panel .commission-row input {
-            width: 80px;
-            padding: 0.3rem 0.4rem;
-            border-radius: 6px;
-            border: 1px solid #2a3442;
-            background: #0b0e14;
-            color: #e0e6ed;
-            font-size: 0.9rem;
-            text-align: center;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .settings-panel .commission-row input:focus {
-            border-color: #f1c40f;
-        }
-        .settings-panel .commission-row span {
-            font-size: 0.8rem;
-            color: #8d9bb5;
-            min-width: 20px;
+            width: 140px; padding: 0.3rem 0.4rem; border-radius: 6px; border: 1px solid #2a3442; background: #0b0e14; color: #e0e6ed; font-size: 0.9rem; text-align: center; outline: none;
         }
         .settings-panel .close-settings {
-            background: #e74c3c;
-            color: #fff;
-            border: none;
-            padding: 0.4rem 1.5rem;
-            border-radius: 30px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 1.5rem;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            transition: background 0.2s;
-        }
-        .settings-panel .close-settings:hover {
-            background: #c0392b;
+            background: #e74c3c; color: #fff; border: none; padding: 0.4rem 1.5rem; border-radius: 30px; font-weight: 700; cursor: pointer; margin: 1.5rem auto 0 auto; display: block;
         }
         .settings-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(3px);
-            z-index: 9999;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); z-index: 9999;
         }
-        .settings-overlay.active {
-            display: block;
-        }
-        body.theme-light {
-            background: #f0f2f5;
-            color: #1a1a1a;
-        }
-        body.theme-light #stickyHeader {
-            background: rgba(255, 255, 255, 0.95);
-            border-bottom-color: #ccc;
-        }
-        body.theme-light .header {
-            background: transparent;
-        }
-        body.theme-light .stats span {
-            background: #e9ecef;
-            color: #1a1a1a;
-        }
-        body.theme-light .stats .net-worth {
-            border-left-color: #2ecc71;
-        }
-        body.theme-light .news-status {
-            border-color: #e74c3c;
-        }
-        body.theme-light .settings-btn {
-            color: #333;
-        }
-        body.theme-light .settings-panel {
-            background: #ffffff;
-            border-color: #ccc;
-        }
-        body.theme-light .settings-panel h3, body.theme-light .settings-panel .theme-toggle label {
-            color: #333;
-        }
-        body.theme-light .switch {
-            background: #ccc;
-        }
-        body.theme-light .switch.active {
-            background: #f1c40f;
-        }
-        body.theme-light .settings-panel .currency-group, body.theme-light .settings-panel .commission-group {
-            background: #f9f9f9;
-            border-color: #ccc;
-        }
-        body.theme-light .settings-panel .commission-group h4 {
-            color: #333;
-        }
-        body.theme-light .settings-panel .commission-row label {
-            color: #555;
-        }
-        body.theme-light .settings-panel .commission-row input {
-            background: #f9f9f9;
-            color: #1a1a1a;
-            border-color: #ccc;
-        }
-        body.theme-light .portfolio-section, body.theme-light .history-section {
-            background: #ffffff;
-            border-color: #ccc;
-        }
-        body.theme-light .portfolio-summary, body.theme-light .detail-row .chart-container, body.theme-light .portfolio-table .detail-row td {
-            background: #f9f9f9;
-        }
-        body.theme-light .portfolio-table th, body.theme-light .market-table th, body.theme-light .history-table th {
-            background: #e9ecef;
-            color: #333;
-        }
+        .settings-overlay.active { display: block; }
+        body.theme-light { background: #f0f2f5; color: #1a1a1a; }
+        body.theme-light #stickyHeader { background: rgba(255, 255, 255, 0.95); border-bottom-color: #ccc; }
+        body.theme-light .stats span { background: #e9ecef; color: #1a1a1a; }
+        body.theme-light .settings-panel { background: #ffffff; border-color: #ccc; }
         .main-tabs {
-            display: flex;
-            gap: 0.8rem;
-            padding: 0.5rem 1.5rem 0.5rem 1.5rem;
-            background: transparent;
+            display: flex; gap: 0.8rem; padding: 0.5rem 1.5rem;
         }
         .main-tabs button {
-            background: transparent;
-            border: none;
-            color: #8d9bb5;
-            font-size: clamp(1rem, 3vw, 1.2rem);
-            font-weight: 700;
-            padding: 0.6rem 1.5rem;
-            cursor: pointer;
-            border-radius: 30px 30px 0 0;
-            transition: 0.2s;
-            border-bottom: 3px solid transparent;
+            background: transparent; border: none; color: #8d9bb5; font-size: clamp(1rem, 3vw, 1.2rem); font-weight: 700; padding: 0.6rem 1.5rem; cursor: pointer; border-radius: 30px 30px 0 0; border-bottom: 3px solid transparent;
         }
-        .main-tabs button:hover, .main-tabs button.active {
-            color: #f1c40f;
-            background: #161c27;
-            border-bottom-color: #f1c40f;
+        .main-tabs button:hover, .main-tabs button.active { color: #f1c40f; background: #161c27; border-bottom-color: #f1c40f; }
+        body.theme-light .main-tabs button:hover, body.theme-light .main-tabs button.active { background: #e9ecef; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .portfolio-section, .history-section, .market-section {
+            background: #10161e; border-radius: 20px; padding: 1.2rem; border: 1px solid #2a3442; box-shadow: 0 4px 20px rgba(0,0,0,0.2); margin-bottom: 1.5rem;
         }
-        body.theme-light .main-tabs button:hover, body.theme-light .main-tabs button.active {
-            background: #e9ecef;
-            color: #f1c40f;
-        }
-        .section {
-            display: none;
-        }
-        .section.active {
-            display: block;
-        }
-        .portfolio-section, .history-section {
-            background: #10161e;
-            border-radius: 20px;
-            padding: 1.2rem;
-            border: 1px solid #2a3442;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        }
-        .portfolio-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .portfolio-header h2 {
-            font-size: clamp(1.2rem, 4vw, 1.5rem);
-            color: #f1c40f;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            margin: 0;
-        }
+        body.theme-light .portfolio-section, body.theme-light .history-section, body.theme-light .market-section { background: #ffffff; border-color: #ccc; }
+        .portfolio-header h2, .market-section h2, .history-section h2 { font-size: clamp(1.2rem, 4vw, 1.5rem); color: #f1c40f; margin-bottom: 1rem; }
         .portfolio-summary {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem 2rem;
-            margin-bottom: 1.5rem;
-            background: #0b0e14;
-            padding: 0.8rem 1.2rem;
-            border-radius: 16px;
-            flex-direction: column;
+            display: flex; flex-wrap: wrap; gap: 1rem 2rem; margin-bottom: 1.5rem; background: #0b0e14; padding: 0.8rem 1.2rem; border-radius: 16px; flex-direction: column;
         }
-        .portfolio-summary .item {
-            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
-        }
-        .portfolio-summary .item strong {
-            color: #fff;
-        }
-        body.theme-light .portfolio-summary .item strong {
-            color: #1a1a1a;
-        }
-        .portfolio-summary .item .green { color: #2ecc71; }
-        .portfolio-summary .item .red { color: #e74c3c; }
-        .btn-collect-dividends {
-            background: #f39c12;
-            color: #0b0e14;
-            border: none;
-            padding: 0.3rem 1rem;
-            border-radius: 30px;
-            font-weight: 700;
-            font-size: clamp(0.75rem, 2vw, 0.9rem);
-            cursor: pointer;
-            transition: 0.15s;
-            align-self: flex-start;
-            margin-top: 0.2rem;
-        }
-        .btn-collect-dividends:hover {
-            background: #e67e22;
-        }
-        .portfolio-table-wrap, .market-table-wrap, .history-table-wrap {
-            overflow-x: auto;
-            margin-bottom: 1.5rem;
-        }
-        .portfolio-table, .market-table, .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: clamp(0.8rem, 2.2vw, 0.9rem);
-            min-width: 600px;
-        }
-        .portfolio-table th, .market-table th, .history-table th {
-            text-align: left;
-            padding: 0.6rem 0.5rem;
-            background: #1a2230;
-            color: #aab3c5;
-            font-weight: 600;
-            border-bottom: 2px solid #2a3442;
-            cursor: pointer;
-            user-select: none;
-        }
-        .portfolio-table td, .market-table td, .history-table td {
-            padding: 0.6rem 0.5rem;
-            border-bottom: 1px solid #1e2635;
-        }
-        .portfolio-table .asset-row, .market-table .asset-row {
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .portfolio-table .asset-row:hover, .market-table .asset-row:hover {
-            background: #1a2230;
-        }
-        body.theme-light .portfolio-table .asset-row:hover, body.theme-light .market-table .asset-row:hover {
-            background: #e9ecef;
-        }
-        .portfolio-table .detail-row, .market-table .detail-row {
-            display: none;
-        }
-        .portfolio-table .detail-row.expanded, .market-table .detail-row.expanded {
-            display: table-row;
-        }
-        .portfolio-table .detail-row td, .market-table .detail-row td {
-            padding: 0.8rem 1rem;
-            background: #0b0e14;
-            border-bottom: 1px solid #2a3442;
-        }
-        .detail-row .chart-container {
-            width: 100%;
-            height: 150px;
-            background: #0b0e14;
-            border-radius: 8px;
-            margin-bottom: 0.8rem;
-        }
-        .detail-row .chart-container canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            border-radius: 8px;
-        }
-        .detail-row .controls {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .detail-row .controls input {
-            flex: 1 1 80px;
-            background: #0b0e14;
-            border: 1px solid #2a3442;
-            border-radius: 8px;
-            padding: 0.4rem 0.3rem;
-            color: #fff;
-            font-size: 0.95rem;
-            text-align: center;
-            outline: none;
-        }
-        body.theme-light .detail-row .controls input {
-            background: #f9f9f9;
-            color: #1a1a1a;
-            border-color: #ccc;
-        }
-        .detail-row .controls .total-cost {
-            font-size: 0.85rem;
-            color: #f1c40f;
-            background: #1e2635;
-            padding: 0.2rem 0.8rem;
-            border-radius: 12px;
-            white-space: nowrap;
-        }
-        .detail-row .controls .btn-max {
-            background: #f39c12;
-            color: #0b0e14;
-            padding: 0.4rem 0.8rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-        .detail-row .controls button {
-            padding: 0.4rem 1rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            cursor: pointer;
-        }
-        .btn-buy {
-            background: #2ecc71;
-            color: #0b0e14;
-        }
+        body.theme-light .portfolio-summary { background: #f9f9f9; }
+        .portfolio-table-wrap, .market-table-wrap, .history-table-wrap { overflow-x: auto; margin-bottom: 1.5rem; }
+        .portfolio-table, .market-table, .history-table { width: 100%; border-collapse: collapse; font-size: clamp(0.8rem, 2.2vw, 0.9rem); min-width: 600px; }
+        .portfolio-table th, .market-table th, .history-table th { text-align: left; padding: 0.6rem 0.5rem; background: #1a2230; color: #aab3c5; font-weight: 600; border-bottom: 2px solid #2a3442; }
+        body.theme-light .portfolio-table th, body.theme-light .market-table th, body.theme-light .history-table th { background: #e9ecef; color: #333; }
+        .portfolio-table td, .market-table td, .history-table td { padding: 0.6rem 0.5rem; border-bottom: 1px solid #1e2635; }
+        .btn-buy { background: #2ecc71; color: #0b0e14; border: none; padding: 0.4rem 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; }
         .btn-buy:hover { background: #27ae60; }
-        .btn-sell {
-            background: #e74c3c;
-            color: #fff;
-        }
-        .btn-sell:hover { background: #c0392b; }
-        .capital-breakdown {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.5rem 2.5rem;
-            padding-top: 0.8rem;
-            border-top: 1px solid #2a3442;
-            margin-top: 0.5rem;
-            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
-        }
-        .market-section h2, .history-section h2 {
-            font-size: clamp(1.2rem, 4vw, 1.5rem);
-            color: #f1c40f;
-            margin-bottom: 1rem;
-        }
-        .tabs {
-            display: flex;
-            gap: 0.8rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-        .tabs button {
-            background: #1e2635;
-            border: none;
-            color: #aab3c5;
-            padding: 0.5rem 1.5rem;
-            border-radius: 30px;
-            font-size: clamp(0.9rem, 2.5vw, 1rem);
-            font-weight: 600;
-            cursor: pointer;
-            border: 1px solid transparent;
-        }
-        .tabs button:hover, .tabs button.active {
-            background: #f1c40f;
-            color: #0b0e14;
-            border-color: #f1c40f;
-        }
-        .market-searches {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.8rem 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .market-searches .search-group {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            flex: 1 1 200px;
-        }
-        .market-searches .search-group input {
-            flex: 1;
-            background: #0b0e14;
-            border: 1px solid #2a3442;
-            border-radius: 8px;
-            padding: 0.4rem 0.8rem;
-            color: #e0e6ed;
-            font-size: 0.9rem;
-            outline: none;
-        }
-        body.theme-light .market-searches .search-group input {
-            background: #f9f9f9;
-            color: #1a1a1a;
-            border-color: #ccc;
-        }
-        .search-wrapper {
-            position: relative;
-            flex: 1;
-            display: flex;
-            align-items: center;
-        }
-        .clear-search {
-            position: absolute;
-            right: 8px;
-            cursor: pointer;
-            color: #8d9bb5;
-            font-weight: bold;
-            display: none;
-        }
-        .clear-search.visible { display: block; }
+        .tabs { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .tabs button { background: #1e2635; border: none; color: #aab3c5; padding: 0.5rem 1.5rem; border-radius: 30px; font-weight: 600; cursor: pointer; }
+        .tabs button.active { background: #f1c40f; color: #0b0e14; }
         .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(4px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 9999;
         }
         .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: linear-gradient(145deg, #1a2230, #0b0e14);
-            border-radius: 24px;
-            padding: 2rem;
-            max-width: 450px;
-            width: 90%;
-            border: 1px solid #f1c40f;
-            text-align: center;
-        }
-        body.theme-light .modal-box { background: #fff; }
-        .modal-title { font-size: 1.5rem; font-weight: 700; color: #f1c40f; margin-bottom: 0.8rem; }
-        .modal-message { font-size: 1rem; color: #c0c8d8; margin-bottom: 1.5rem; white-space: pre-wrap; }
-        body.theme-light .modal-message { color: #333; }
-        .modal-btn {
-            background: #f1c40f; color: #0b0e14; border: none; padding: 0.6rem 2rem;
-            border-radius: 30px; font-weight: 700; cursor: pointer;
-        }
-        .exchange-header { background: #1a2230; color: #f1c40f; font-weight: 700; }
-        .exchange-visibility { margin: 1rem 0; padding: 0.8rem; background: #0b0e14; border-radius: 12px; border: 1px solid #2a3442; }
-        .exchange-visibility .exchange-item { display: flex; justify-content: space-between; align-items: center; padding: 0.2rem 0; }
-        .settings-panel .reset-btn, .settings-panel .help-btn {
-            background: #e74c3c; color: #fff; border: none; padding: 0.5rem 1.5rem;
-            border-radius: 30px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 0.5rem;
-        }
-        .settings-panel .help-btn { background: #3498db; }
-        .futures-position { background: #1a2230; border-radius: 12px; padding: 0.8rem; margin: 0.3rem 0; border-left: 6px solid #f1c40f; }
-        .futures-position .pnl-positive { color: #2ecc71; font-weight: 700; }
-        .futures-position .pnl-negative { color: #e74c3c; font-weight: 700; }
-        .btn-close-future { background: #e74c3c; color: #fff; border: none; padding: 0.3rem 1rem; border-radius: 30px; cursor: pointer; font-size: 0.75rem; font-weight: 700; }
-        .prestamo-item, .prestamo-card, .business-card { background: #0b0e14; border-radius: 12px; padding: 0.6rem 1rem; margin-bottom: 0.5rem; }
-        body.theme-light .prestamo-item, body.theme-light .prestamo-card, body.theme-light .business-card { background: #f9f9f9; }
-        .business-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
-        .business-card.owned { border-color: #f1c40f; border: 1px solid #f1c40f; }
+        .modal-box { background: #1a2230; border-radius: 24px; padding: 2rem; max-width: 450px; width: 90%; border: 1px solid #f1c40f; text-align: center; color: #fff; }
+        body.theme-light .modal-box { background: #fff; color: #333; }
+        .modal-btn { background: #f1c40f; color: #0b0e14; border: none; padding: 0.6rem 2rem; border-radius: 30px; font-weight: 700; cursor: pointer; margin-top: 1rem; }
     </style>
 </head>
 <body>
@@ -714,235 +200,100 @@
     <div id="stickyHeader">
         <header class="header">
             <div class="header-left">
-                <h1 id="gameTitle" contenteditable="false">Mi Cartera</h1>
-                <input type="text" id="titleInput" class="game-title-input" style="display:none;" value="Mi Cartera">
+                <h1 id="gameTitle">Mi Cartera</h1>
             </div>
             <div class="header-right">
                 <div class="stats">
                     <span>💰 Efectivo: <strong id="cashDisplay">0</strong></span>
                     <span class="net-worth">🏆 Patrimonio: <strong id="netWorthDisplay">0</strong></span>
                 </div>
-                <span class="news-status" id="newsStatus">🔴 Noticia</span>
-                <button class="settings-btn" id="settingsToggle" aria-label="Configuración">⚙️</button>
+                <button class="settings-btn" id="settingsToggle">⚙️</button>
             </div>
         </header>
-
         <div class="main-tabs">
             <button class="active" data-section="portfolio">📋 Mi Cartera</button>
             <button data-section="market">📈 Mercado</button>
-            <button data-section="credit">💳 Crédito</button>
-            <button data-section="business">🏢 Negocios</button>
             <button data-section="history">📜 Historial</button>
         </div>
     </div>
 
+    <!-- SECCIÓN CARTERA -->
     <section id="portfolioSection" class="section active">
         <div class="portfolio-section">
             <div class="portfolio-header">
                 <h2>📋 Resumen de Cartera</h2>
             </div>
             <div class="portfolio-summary" id="portfolioSummary"></div>
-            <div id="portfolioTables"></div>
-            <div class="capital-breakdown" id="capitalBreakdown"></div>
+            <div class="portfolio-table-wrap">
+                <table class="portfolio-table">
+                    <thead>
+                        <tr>
+                            <th>Activo</th>
+                            <th>Cantidad</th>
+                            <th>Precio Promedio</th>
+                            <th>Precio Actual</th>
+                            <th>Valor Total</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolioBody"></tbody>
+                </table>
+            </div>
         </div>
     </section>
 
+    <!-- SECCIÓN MERCADO -->
     <section id="marketSection" class="section">
         <div class="market-section">
-            <h2>📈 Mercado</h2>
-            <div class="tabs" id="marketTabs">
-                <button class="active" data-filter="stock">📊 Acciones</button>
-                <button data-filter="crypto">🪙 Spot</button>
-                <button data-filter="futures">⚡ Futuros</button>
-                <button data-filter="positions" id="marketPositionsTab" style="display:none;">📊 Posiciones</button>
-                <button data-filter="watchlist">⭐ Siguiendo</button>
-            </div>
-            <div class="market-searches" id="marketSearchContainer">
-                <div class="search-group">
-                    <label for="searchMarket">🔍 Buscar</label>
-                    <div class="search-wrapper">
-                        <input type="text" id="searchMarket" placeholder="Buscar activo...">
-                        <span class="clear-search" id="clearSearchBtn">✕</span>
-                    </div>
-                </div>
-            </div>
-            <div class="market-table-wrap" id="marketTableWrap">
-                <table class="market-table" id="marketTable">
-                    <thead id="marketHead"></thead>
+            <h2>📈 Mercado Disponible</h2>
+            <div class="market-table-wrap">
+                <table class="market-table">
+                    <thead>
+                        <tr>
+                            <th>Activo</th>
+                            <th>Tipo</th>
+                            <th>Precio Actual</th>
+                            <th>Operación</th>
+                        </tr>
+                    </thead>
                     <tbody id="marketBody"></tbody>
                 </table>
             </div>
-            <div id="futuresPositionsContainer" style="display:none; margin-top:1.5rem;">
-                <h3 style="color:#f1c40f;">📊 Tus Posiciones en Futuros</h3>
-                <div id="futuresPositionsList"></div>
-            </div>
         </div>
     </section>
 
-    <section id="creditSection" class="section">
-        <div class="portfolio-section">
-            <h2 style="color:#f1c40f; margin-bottom:1rem;">💳 Crédito / Margen</h2>
-            <div class="portfolio-summary" id="creditSummary"></div>
-            <div style="display:flex; flex-wrap:wrap; gap:1rem; margin:1rem 0; align-items:center;">
-                <div style="flex:1; min-width:150px;">
-                    <label style="color:#aab3c5; font-size:0.9rem;">Cantidad a pedir</label>
-                    <input type="number" id="creditAmount" step="0.01" min="0" style="width:100%; padding:0.4rem; border-radius:8px; border:1px solid #2a3442; background:#0b0e14; color:#e0e6ed;">
-                </div>
-                <button id="requestCreditBtn" class="btn-buy" style="padding:0.6rem 1.5rem;">Pedir Crédito</button>
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:1rem; margin:1rem 0; align-items:center;">
-                <div style="flex:1; min-width:150px;">
-                    <label style="color:#aab3c5; font-size:0.9rem;">Adelantar pago</label>
-                    <input type="number" id="paymentAmount" step="0.01" min="0" style="width:100%; padding:0.4rem; border-radius:8px; border:1px solid #2a3442; background:#0b0e14; color:#e0e6ed;">
-                </div>
-                <button id="makePaymentBtn" class="btn-sell" style="padding:0.6rem 1.5rem;">Adelantar</button>
-                <button id="payFullBtn" class="btn-sell" style="padding:0.6rem 1.5rem; background:#e67e22;">Pagar todo</button>
-            </div>
-            <div style="display:flex; align-items:center; gap:1rem; margin-top:0.5rem; border-top:1px solid #2a3442; padding-top:1rem;">
-                <label style="color:#f1c40f; font-weight:600; cursor:pointer;">
-                    <input type="checkbox" id="autoPayMinCheck" style="accent-color:#f1c40f; width:18px; height:18px; margin-right:8px;">
-                    Pago minimo automático
-                </label>
-            </div>
-            <div class="prestamos-container" id="prestamosContainer">
-                <h3 style="color:#f1c40f; margin:0.5rem 0;">🤝 Prestar a terceros</h3>
-                <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.5rem;">
-                    <span style="color:#aab3c5;">Cuotas:</span>
-                    <input type="number" id="cuotasPrestamo" value="4" step="1" min="1" style="width:70px; background:#0b0e14; color:#fff; border:1px solid #2a3442; padding:2px; border-radius:4px;">
-                </div>
-                <div id="prestamoStats" style="margin:0.5rem 0; font-size:0.95rem; color:#e0e6ed;">
-                    <div>Personas en deuda: <span id="personasEnDeuda" style="color:#f1c40f;">0</span></div>
-                    <div>Monto final en deuda: <span id="montoFinalDeuda" style="color:#f1c40f;">0,00 Bs</span></div>
-                </div>
-                <div id="prestatariosLista"></div>
-                <div id="historialPrestamos" style="margin-top:1rem;">
-                    <h4 style="color:#aab3c5; font-size:0.95rem; margin-bottom:0.3rem;">📋 Historial de préstamos</h4>
-                    <div id="listaPrestamos"></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="businessSection" class="section">
-        <div class="portfolio-section">
-            <h2 style="color:#f1c40f; margin-bottom:0.5rem;">🏢 Negocios</h2>
-            <div class="portfolio-summary" id="businessSummary"></div>
-            <div class="market-searches" style="margin-top:1rem;">
-                <input type="text" id="businessSearch" placeholder="Buscar negocio..." style="background:#0b0e14; color:#fff; border:1px solid #2a3442; padding:0.4rem; border-radius:8px; flex:1;">
-            </div>
-            <div id="businessList" class="business-list"></div>
-        </div>
-    </section>
-
+    <!-- SECCIÓN HISTORIAL -->
     <section id="historySection" class="section">
         <div class="history-section">
             <h2>📜 Historial de Operaciones</h2>
-            <div id="totalComisiones" style="color:#f1c40f; font-weight:700; margin-bottom:1rem;">Total Comisiones pagadas: 0,00 $</div>
-            <div class="market-searches">
-                <div class="search-group">
-                    <label for="historySearch">🔍 Buscar</label>
-                    <div class="search-wrapper">
-                        <input type="text" id="historySearch" placeholder="Filtrar historial...">
-                        <span class="clear-search" id="clearHistorySearch">✕</span>
-                    </div>
-                </div>
-            </div>
             <div class="history-table-wrap">
-                <table class="history-table" id="historyTable">
+                <table class="history-table">
                     <thead>
                         <tr>
-                            <th data-sort="timestamp">Fecha <span class="sort-icon">▼</span></th>
-                            <th data-sort="symbol">Activo <span class="sort-icon">▼</span></th>
-                            <th data-sort="type">Tipo <span class="sort-icon">▼</span></th>
-                            <th data-sort="quantity">Cantidad <span class="sort-icon">▼</span></th>
-                            <th data-sort="price">Precio <span class="sort-icon">▼</span></th>
-                            <th data-sort="total">Total <span class="sort-icon">▼</span></th>
-                            <th data-sort="commission">Comisión <span class="sort-icon">▼</span></th>
-                            <th data-sort="saldo">Saldo <span class="sort-icon">▼</span></th>
+                            <th>Activo</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Precio</th>
                         </tr>
                     </thead>
-                    <tbody id="historyBody"></tbody>
+                    <tbody id="historyBody">
+                        <tr><td colspan="4" style="text-align:center;">Sin operaciones recientes.</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
     </section>
 </div>
-
-<!-- MODAL GENÉRICO -->
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal-box">
-        <div class="modal-title" id="modalTitle">Atención</div>
-        <div class="modal-message" id="modalMessage">Mensaje</div>
-        <button class="modal-btn" id="modalBtn">Entendido</button>
-    </div>
-</div>
-
-<!-- MODAL DE AYUDA -->
-<div class="modal-overlay" id="helpModalOverlay">
-    <div class="modal-box" style="text-align:left; max-height:80vh; overflow-y:auto;">
-        <h3 style="color:#2ecc71; margin-bottom:1rem;">❓ Ayuda y Aviso Legal</h3>
-        <div class="modal-message">
-            Este software es <strong>exclusivamente un simulador</strong> con fines educativos y de entretenimiento. Los datos son ficticios.
-        </div>
-        <button class="modal-btn" id="closeHelpBtn">Atrás</button>
-    </div>
-</div>
-
-<!-- MODAL INDICADORES -->
-<div class="modal-overlay" id="indicatorsModalOverlay">
-    <div class="modal-box" style="max-width:600px;">
-        <h3 style="color:#f1c40f; margin-bottom:1rem;">📊 Configuración de Indicadores</h3>
-        <div id="indicatorsList" style="max-height:50vh; overflow-y:auto; text-align:left;"></div>
-        <button class="modal-btn" id="closeIndicatorsModalBtn" style="margin-top:1rem;">Cerrar</button>
-    </div>
-</div>
-
-<!-- MODALES BACKUP -->
-<div class="modal-overlay" id="exportModalOverlay">
-    <div class="modal-box">
-        <h3 style="color:#f1c40f; margin-bottom:1rem;">📤 Exportar cartera</h3>
-        <div style="text-align:left; margin-bottom:1rem;">
-            <label><input type="checkbox" id="encryptCheckbox" checked> Encriptar con clave</label>
-            <div id="exportKeyFields" style="margin-top:0.5rem;">
-                <input type="password" id="exportKey1" placeholder="Clave (mín. 6 carac)" style="width:100%; padding:0.4rem; background:#0b0e14; color:#fff; border:1px solid #2a3442; border-radius:6px; margin-bottom:0.5rem;">
-                <input type="password" id="exportKey2" placeholder="Repetir clave" style="width:100%; padding:0.4rem; background:#0b0e14; color:#fff; border:1px solid #2a3442; border-radius:6px;">
-                <div id="exportKeyError" style="color:#e74c3c; font-size:0.8rem; display:none; margin-top:4px;">Las claves no coinciden o son cortas.</div>
-            </div>
-        </div>
-        <div style="display:flex; justify-content:flex-end; gap:1rem;">
-            <button id="cancelExportBtn" class="btn-sell" style="padding:0.4rem 1rem; border-radius:8px;">Cancelar</button>
-            <button id="confirmExportBtn" class="btn-buy" style="padding:0.4rem 1rem; border-radius:8px;">Exportar</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="importModalOverlay">
-    <div class="modal-box">
-        <h3 style="color:#f1c40f; margin-bottom:1rem;">📥 Importar cartera</h3>
-        <div style="text-align:left; margin-bottom:1rem;">
-            <div id="importStatus" style="font-size:0.9rem; color:#f1c40f; margin-bottom:0.5rem;">Selecciona un archivo...</div>
-            <div id="importKeySection" style="display:none;">
-                <input type="password" id="importKey" placeholder="Clave del archivo" style="width:100%; padding:0.4rem; background:#0b0e14; color:#fff; border:1px solid #2a3442; border-radius:6px;">
-                <div id="importKeyError" style="color:#e74c3c; font-size:0.8rem; display:none; margin-top:4px;">Clave incorrecta.</div>
-            </div>
-        </div>
-        <div style="display:flex; justify-content:flex-end; gap:1rem;">
-            <button id="cancelImportBtn" class="btn-sell" style="padding:0.4rem 1rem; border-radius:8px;">Cancelar</button>
-            <button id="confirmImportBtn" class="btn-buy" style="padding:0.4rem 1rem; border-radius:8px;">Importar</button>
-        </div>
-    </div>
-</div>
-<input type="file" id="importFileInput" accept=".richman,.json" style="display:none;">
 
 <!-- PANEL DE CONFIGURACIÓN -->
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
     <div class="commission-group" style="border-color: #2ecc71;">
-        <h4 style="color:#2ecc71;">💾 Seguridad y Respaldo</h4>
+        <h4 style="color:#2ecc71;">💾 Respaldo</h4>
         <div style="display:flex; gap:0.5rem; justify-content:center;">
-            <button id="exportBtn" class="btn-buy" style="padding:0.4rem 1rem; border-radius:8px;">⬆ Exportar</button>
-            <button id="importBtn" class="btn-buy" style="padding:0.4rem 1rem; background:#3498db; color:#fff; border-radius:8px;">⬇ Importar</button>
+            <button id="exportBtn" class="btn-buy">⬆ Exportar</button>
+            <button id="importBtn" class="btn-buy" style="background:#3498db; color:#fff;">⬇ Importar</button>
         </div>
     </div>
     <div class="theme-toggle">
@@ -950,17 +301,14 @@
         <div class="switch" id="themeSwitch"><div class="slider"></div></div>
         <label>☀️ Claro</label>
     </div>
-    <button class="help-btn" id="helpBtn">❓ Ayuda</button>
     <div class="currency-group">
         <h4>💱 Moneda</h4>
-        <div class="commission-row">
-            <label>Seleccionar</label>
-            <select id="currencySelect"></select>
-        </div>
+        <select id="currencySelect"></select>
     </div>
-    <button class="reset-btn" id="resetBtn">🔄 RESETAR</button>
+    <button id="resetBtn" style="background:#e74c3c; color:#fff; border:none; padding:0.5rem; border-radius:30px; font-weight:700; width:100%; cursor:pointer; margin-top:0.5rem;">🔄 RESETEAR</button>
     <button class="close-settings" id="closeSettings">Cerrar</button>
 </div>
+<input type="file" id="importFileInput" accept=".json" style="display:none;">
 
 <script>
     (function() {
@@ -972,7 +320,7 @@
             'EUR': { symbol: '€', label: 'Euro (EUR)' }
         };
 
-        // --- SISTEMA DE SEGURIDAD LOCAL (ANTI-TRAMPAS CON HASH) ---
+        // --- SISTEMA DE SEGURIDAD LOCAL CON HASH ---
         const SECRET_SALT = "RichManWebSecureKey2026_!@#";
 
         function simpleHash(str) {
@@ -1012,7 +360,7 @@
                 let calculatedSign = simpleHash(rawPayload + SECRET_SALT);
 
                 if (calculatedSign !== savedSign) {
-                    alert("⚠️ Alerta de Seguridad: Se detectó una alteración no autorizada en los datos del navegador. La partida se reiniciará por seguridad.");
+                    alert("⚠️ Alerta de Seguridad: Se detectó una alteración no autorizada en los datos. La partida se reiniciará por seguridad.");
                     localStorage.removeItem('richman_secure_data');
                     localStorage.removeItem('richman_secure_sign');
                     return null;
@@ -1025,102 +373,31 @@
             }
         }
 
-        // --- RESTO DE VARIABLES Y LÓGICA DEL JUEGO ---
-        const settingsToggle = document.getElementById('settingsToggle');
-        const settingsPanel = document.getElementById('settingsPanel');
-        const settingsOverlay = document.getElementById('settingsOverlay');
-        const closeSettingsBtn = document.getElementById('closeSettings');
-        const themeSwitch = document.getElementById('themeSwitch');
-        const resetBtn = document.getElementById('resetBtn');
-        const currencySelect = document.getElementById('currencySelect');
+        const DEFAULT_ASSETS = [
+            { id: 'btc', name: 'Bitcoin', symbol: 'BTC', type: 'Crypto', price: 45000, owned: 0, costBasis: 0 },
+            { id: 'eth', name: 'Ethereum', symbol: 'ETH', type: 'Crypto', price: 3000, owned: 0, costBasis: 0 },
+            { id: 'aapl', name: 'Apple', symbol: 'AAPL', type: 'Acción', price: 180, owned: 0, costBasis: 0 }
+        ];
 
-        let isPageVisible = true;
-        document.addEventListener('visibilitychange', () => { isPageVisible = !document.hidden; });
+        let state = loadState();
+        if (!state) {
+            state = {
+                cash: 10000,
+                assets: JSON.parse(JSON.stringify(DEFAULT_ASSETS)),
+                title: 'Mi Cartera',
+                currency: 'VES'
+            };
+            saveState();
+        }
 
         function getCurrencySymbol() {
             const code = state.currency || 'VES';
             return CURRENCIES[code] ? CURRENCIES[code].symbol : 'Bs';
         }
 
-        function formatNumber(num, decimals = 2, showSymbol = true) {
-            if (num === undefined || num === null) return '0,00';
-            let n = typeof num === 'string' ? parseFloat(num.replace(/\./g, '').replace(',', '.')) : num;
-            if (isNaN(n)) return '0,00';
-            const factor = Math.pow(10, decimals);
-            n = Math.round(n * factor) / factor;
-            const formatted = new Intl.NumberFormat('es-ES', {
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: decimals,
-                useGrouping: true
-            }).format(n);
-            return showSymbol ? formatted + ' ' + getCurrencySymbol() : formatted;
-        }
-
-        function applyTheme(theme) {
-            document.body.classList.remove('theme-light', 'theme-dark');
-            if (theme === 'light') {
-                document.body.classList.add('theme-light');
-                themeSwitch.classList.add('active');
-            } else {
-                document.body.classList.add('theme-dark');
-                themeSwitch.classList.remove('active');
-            }
-            localStorage.setItem('richman_theme', theme);
-        }
-
-        applyTheme(localStorage.getItem('richman_theme') || 'dark');
-
-        function populateCurrencySelect() {
-            currencySelect.innerHTML = '';
-            Object.keys(CURRENCIES).forEach(code => {
-                const opt = document.createElement('option');
-                opt.value = code;
-                opt.textContent = CURRENCIES[code].label;
-                currencySelect.appendChild(opt);
-            });
-            currencySelect.value = state.currency || 'VES';
-            currencySelect.onchange = function() {
-                state.currency = this.value;
-                saveState();
-                renderAll();
-            };
-        }
-
-        const BUSINESSES = [
-            { id: 'b1', name: 'Puesto de limonada', costBase: 500, incomeBase: 0.05 },
-            { id: 'b2', name: 'Máquina de snacks', costBase: 1200, incomeBase: 0.12 },
-            { id: 'b3', name: 'Cultivo de hierbas', costBase: 2000, incomeBase: 0.20 }
-        ];
-
-        const DEFAULT_ASSETS = [
-            { id: 'btc', name: 'Bitcoin', symbol: 'BTC', type: 'crypto', price: 45000, history: [45000], owned: 0, costBasis: 0, high: 45000, low: 45000 },
-            { id: 'eth', name: 'Ethereum', symbol: 'ETH', type: 'crypto', price: 3000, history: [3000], owned: 0, costBasis: 0, high: 3000, low: 3000 },
-            { id: 'aapl', name: 'Apple', symbol: 'AAPL', type: 'stock', exchange: 'NYSE', price: 180, history: [180], owned: 0, costBasis: 0, high: 180, low: 180, dividendYield: 1.5 }
-        ];
-
-        let state = loadState();
-        if (!state) {
-            state = {
-                cash: 1000,
-                assets: JSON.parse(JSON.stringify(DEFAULT_ASSETS)),
-                title: 'Mi Cartera',
-                totalDividends: 0,
-                lastDividendTime: Date.now(),
-                notifications: [],
-                transactions: [],
-                exchangeVisibility: { 'NYSE': true },
-                currency: 'VES',
-                job: { level: 0, baseSalary: 100, upgradeCost: 300, lastPayTime: Date.now(), active: true },
-                credit: { balance: 0, autoPayMin: false },
-                chartSettings: { global: { rsi: { active: false }, macd: { active: false } } },
-                alarmEnabled: true,
-                futuresPositions: [],
-                prestamos: [],
-                personas: [{ nombre: 'Juan Pérez', confianza: 50 }],
-                businesses: BUSINESSES.map(b => ({ id: b.id, level: 0 })),
-                watchlist: []
-            };
-            saveState();
+        function formatNumber(num) {
+            if (isNaN(num)) return '0,00';
+            return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num) + ' ' + getCurrencySymbol();
         }
 
         function calculateNetWorth() {
@@ -1130,54 +407,70 @@
         }
 
         function renderAll() {
-            renderHeader();
-            renderPortfolio();
-            renderMarket();
-            renderHistory();
-        }
-
-        function renderHeader() {
             document.getElementById('cashDisplay').textContent = formatNumber(state.cash);
             document.getElementById('netWorthDisplay').textContent = formatNumber(calculateNetWorth());
             document.getElementById('gameTitle').textContent = state.title || 'Mi Cartera';
-        }
 
-        function renderPortfolio() {
-            const summaryDiv = document.getElementById('portfolioSummary');
-            summaryDiv.innerHTML = `<div class="item">💵 Efectivo disponible: <strong>${formatNumber(state.cash)}</strong></div>`;
-            document.getElementById('portfolioTables').innerHTML = '<div style="padding:1rem;">Panel de cartera operativo. (Usa las pestañas para operar).</div>';
-        }
+            // Resumen de Cartera
+            document.getElementById('portfolioSummary').innerHTML = `
+                <div>💵 Efectivo disponible: <strong>${formatNumber(state.cash)}</strong></div>
+                <div>🏆 Patrimonio total: <strong>${formatNumber(calculateNetWorth())}</strong></div>
+            `;
 
-        function renderMarket() {
-            const tbody = document.getElementById('marketBody');
-            tbody.innerHTML = state.assets.map(a => `
-                <tr class="asset-row">
-                    <td>${a.name} (${a.symbol})</td>
+            // Tabla de Cartera (Solo muestra los que tienen owned > 0 o todos si prefieres)
+            const portfolioBody = document.getElementById('portfolioBody');
+            const ownedAssets = state.assets.filter(a => a.owned > 0);
+            if (ownedAssets.length === 0) {
+                portfolioBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:#8d9bb5;">No tienes activos en cartera. ¡Ve al mercado a comprar!</td></tr>`;
+            } else {
+                portfolioBody.innerHTML = ownedAssets.map(a => `
+                    <tr>
+                        <td>${a.name} (${a.symbol})</td>
+                        <td>${a.owned}</td>
+                        <td>${formatNumber(a.costBasis / a.owned)}</td>
+                        <td>${formatNumber(a.price)}</td>
+                        <td>${formatNumber(a.price * a.owned)}</td>
+                        <td><button class="btn-buy" style="background:#e74c3c; color:#fff;" onclick="sellAsset('${a.id}')">Vender</button></td>
+                    </tr>
+                `).join('');
+            }
+
+            // Tabla de Mercado
+            const marketBody = document.getElementById('marketBody');
+            marketBody.innerHTML = state.assets.map(a => `
+                <tr>
+                    <td><strong>${a.name}</strong> (${a.symbol})</td>
+                    <td>${a.type}</td>
                     <td>${formatNumber(a.price)}</td>
-                    <td><button class="btn-buy" onclick="buyAssetQuick('${a.id}')">Comprar</button></td>
+                    <td><button class="btn-buy" onclick="buyAsset('${a.id}')">Comprar (1)</button></td>
                 </tr>
             `).join('');
         }
 
-        window.buyAssetQuick = function(id) {
+        window.buyAsset = function(id) {
             const asset = state.assets.find(a => a.id === id);
             if (!asset || state.cash < asset.price) {
-                alert("Efectivo insuficiente o activo no encontrado.");
+                alert("Efectivo insuficiente.");
                 return;
             }
             state.cash -= asset.price;
-            asset.owned += 1;
             asset.costBasis += asset.price;
+            asset.owned += 1;
             saveState();
             renderAll();
         };
 
-        function renderHistory() {
-            const tbody = document.getElementById('historyBody');
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1rem;">Historial sincronizado de transacciones.</td></tr>`;
-        }
+        window.sellAsset = function(id) {
+            const asset = state.assets.find(a => a.id === id);
+            if (!asset || asset.owned <= 0) return;
+            state.cash += asset.price;
+            asset.costBasis -= (asset.costBasis / asset.owned);
+            asset.owned -= 1;
+            saveState();
+            renderAll();
+        };
 
-        // Configuración de UI Básica y Pestañas
+        // Pestañas
         document.querySelectorAll('.main-tabs button').forEach(btn => {
             btn.onclick = function() {
                 document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
@@ -1188,27 +481,59 @@
             };
         });
 
+        // Configuración y Tema
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const settingsOverlay = document.getElementById('settingsOverlay');
+        const closeSettingsBtn = document.getElementById('closeSettings');
+        const themeSwitch = document.getElementById('themeSwitch');
+
         settingsToggle.onclick = () => { settingsPanel.classList.add('active'); settingsOverlay.classList.add('active'); };
         closeSettingsBtn.onclick = settingsOverlay.onclick = () => { settingsPanel.classList.remove('active'); settingsOverlay.classList.remove('active'); };
-        themeSwitch.onclick = () => applyTheme(document.body.classList.contains('theme-dark') ? 'light' : 'dark');
+        
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.body.classList.add('theme-light');
+                themeSwitch.classList.add('active');
+            } else {
+                document.body.classList.remove('theme-light');
+                themeSwitch.classList.remove('active');
+            }
+            localStorage.setItem('richman_theme', theme);
+        }
+        applyTheme(localStorage.getItem('richman_theme') || 'dark');
+        themeSwitch.onclick = () => applyTheme(document.body.classList.contains('theme-light') ? 'dark' : 'light');
 
-        resetBtn.onclick = () => {
-            if (confirm("¿Resetear partida?")) {
+        // Moneda
+        const currencySelect = document.getElementById('currencySelect');
+        Object.keys(CURRENCIES).forEach(code => {
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = CURRENCIES[code].label;
+            currencySelect.appendChild(opt);
+        });
+        currencySelect.value = state.currency || 'VES';
+        currencySelect.onchange = function() {
+            state.currency = this.value;
+            saveState();
+            renderAll();
+        };
+
+        // Reset
+        document.getElementById('resetBtn').onclick = () => {
+            if (confirm("¿Estás seguro de reiniciar tu partida?")) {
                 localStorage.clear();
                 location.reload();
             }
         };
 
-        // Exportar / Importar lógica base compatible con encriptación
-        document.getElementById('exportBtn').onclick = () => document.getElementById('exportModalOverlay').classList.add('active');
-        document.getElementById('cancelExportBtn').onclick = () => document.getElementById('exportModalOverlay').classList.remove('active');
-        document.getElementById('confirmExportBtn').onclick = () => {
+        // Exportar / Importar
+        document.getElementById('exportBtn').onclick = () => {
             const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = 'RichMan_Partida.json';
             a.click();
-            document.getElementById('exportModalOverlay').classList.remove('active');
         };
 
         document.getElementById('importBtn').onclick = () => document.getElementById('importFileInput').click();
@@ -1228,7 +553,6 @@
             reader.readAsText(file);
         };
 
-        populateCurrencySelect();
         renderAll();
     })();
 </script>

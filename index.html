@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>vvv RichMan Web - Mi Cartera</title>
     <style>
         /* --- CSS COMPLETO --- */
         * {
@@ -163,6 +163,7 @@
             width: 90%;
             z-index: 10000;
             box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+            transition: background 0.3s, border-color 0.3s;
             max-height: 90vh;
             overflow-y: auto;
         }
@@ -240,13 +241,6 @@
             text-align: center;
             outline: none;
         }
-        .settings-panel .currency-group select:focus {
-            border-color: #f1c40f;
-        }
-        .settings-panel .currency-group .format-hint {
-            font-size: 0.8rem;
-            color: #8d9bb5;
-        }
         .settings-panel .commission-row {
             display: flex;
             justify-content: space-between;
@@ -257,7 +251,6 @@
         .settings-panel .commission-row label {
             font-size: 0.9rem;
             color: #aab3c5;
-            min-width: 70px;
         }
         .settings-panel .commission-row input {
             width: 80px;
@@ -270,30 +263,19 @@
             text-align: center;
             outline: none;
         }
-        .settings-panel .commission-row input:focus {
-            border-color: #f1c40f;
-        }
-        .settings-panel .commission-row span {
-            font-size: 0.8rem;
-            color: #8d9bb5;
-            min-width: 20px;
-        }
-        .settings-panel .close-settings {
-            background: #e74c3c;
-            color: #fff;
+        .settings-panel .close-settings, .settings-panel .reset-btn, .settings-panel .help-btn {
             border: none;
-            padding: 0.4rem 1.5rem;
+            padding: 0.5rem 1.5rem;
             border-radius: 30px;
             font-weight: 700;
             cursor: pointer;
-            margin-top: 1.5rem;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
+            margin-top: 0.5rem;
+            width: 100%;
+            font-size: 0.9rem;
         }
-        .settings-panel .close-settings:hover {
-            background: #c0392b;
-        }
+        .settings-panel .close-settings { background: #e74c3c; color: #fff; margin-top: 1.5rem; }
+        .settings-panel .reset-btn { background: #e74c3c; color: #fff; }
+        .settings-panel .help-btn { background: #3498db; color: #fff; }
         .settings-overlay {
             display: none;
             position: fixed;
@@ -305,46 +287,11 @@
             backdrop-filter: blur(3px);
             z-index: 9999;
         }
-        .settings-overlay.active {
-            display: block;
-        }
-        body.theme-light {
-            background: #f0f2f5;
-            color: #1a1a1a;
-        }
-        body.theme-light #stickyHeader {
-            background: rgba(255, 255, 255, 0.95);
-            border-bottom-color: #ccc;
-        }
-        body.theme-light .stats span {
-            background: #e9ecef;
-            color: #1a1a1a;
-        }
-        body.theme-light .stats .net-worth {
-            border-left-color: #2ecc71;
-        }
-        body.theme-light .settings-panel {
-            background: #ffffff;
-            border-color: #ccc;
-        }
-        body.theme-light .settings-panel h3, body.theme-light .settings-panel .theme-toggle label {
-            color: #333;
-        }
-        body.theme-light .switch {
-            background: #ccc;
-        }
-        body.theme-light .settings-panel .currency-group, body.theme-light .settings-panel .commission-group {
-            background: #f9f9f9;
-            border-color: #ccc;
-        }
-        body.theme-light .settings-panel .currency-group h4, body.theme-light .settings-panel .commission-group h4 {
-            color: #333;
-        }
-        body.theme-light .settings-panel .currency-group select, body.theme-light .settings-panel .commission-row input {
-            background: #f9f9f9;
-            color: #1a1a1a;
-            border-color: #ccc;
-        }
+        .settings-overlay.active { display: block; }
+        body.theme-light { background: #f0f2f5; color: #1a1a1a; }
+        body.theme-light #stickyHeader { background: rgba(255, 255, 255, 0.95); border-bottom-color: #ccc; }
+        body.theme-light .stats span { background: #e9ecef; color: #1a1a1a; }
+        body.theme-light .settings-panel { background: #ffffff; border-color: #ccc; }
         .main-tabs {
             display: flex;
             gap: 0.8rem;
@@ -360,49 +307,24 @@
             padding: 0.6rem 1.5rem;
             cursor: pointer;
             border-radius: 30px 30px 0 0;
-            transition: 0.2s;
             border-bottom: 3px solid transparent;
-        }
-        .main-tabs button:hover {
-            color: #e0e6ed;
-            background: #161c27;
         }
         .main-tabs button.active {
             color: #f1c40f;
             border-bottom-color: #f1c40f;
             background: #161c27;
         }
-        .section {
-            display: none;
-        }
-        .section.active {
-            display: block;
-        }
-        .portfolio-section, .market-section, .history-section {
+        .section { display: none; }
+        .section.active { display: block; }
+        .portfolio-section, .history-section {
             background: #10161e;
             border-radius: 20px;
             padding: 1.2rem;
             border: 1px solid #2a3442;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            transition: background 0.3s, border-color 0.3s;
         }
-        body.theme-light .portfolio-section, body.theme-light .market-section, body.theme-light .history-section {
-            background: #ffffff;
-            border-color: #ccc;
-        }
-        .portfolio-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .portfolio-header h2 {
-            font-size: clamp(1.2rem, 4vw, 1.5rem);
-            color: #f1c40f;
-        }
-        .portfolio-summary {
+        body.theme-light .portfolio-section, body.theme-light .history-section { background: #ffffff; border-color: #ccc; }
+        .portfolio-summary, .business-summary {
             display: flex;
             flex-wrap: wrap;
             gap: 1rem 2rem;
@@ -412,217 +334,25 @@
             border-radius: 16px;
             flex-direction: column;
         }
-        body.theme-light .portfolio-summary {
-            background: #f9f9f9;
-        }
-        .portfolio-summary .item {
-            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
-        }
-        .portfolio-summary .item strong {
-            color: #fff;
-        }
-        body.theme-light .portfolio-summary .item strong {
-            color: #1a1a1a;
-        }
-        .portfolio-summary .item .green { color: #2ecc71; }
-        .portfolio-summary .item .red { color: #e74c3c; }
-        .btn-collect-dividends {
-            background: #f39c12;
-            color: #0b0e14;
-            border: none;
-            padding: 0.3rem 1rem;
-            border-radius: 30px;
-            font-weight: 700;
-            font-size: clamp(0.75rem, 2vw, 0.9rem);
-            cursor: pointer;
-            align-self: flex-start;
-            margin-top: 0.2rem;
-        }
-        .btn-collect-dividends:hover {
-            background: #e67e22;
-        }
-        .portfolio-table-wrap, .market-table-wrap, .history-table-wrap {
-            overflow-x: auto;
-            margin-bottom: 1.5rem;
-        }
+        body.theme-light .portfolio-summary, body.theme-light .business-summary { background: #f9f9f9; }
         .portfolio-table, .market-table, .history-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: clamp(0.8rem, 2.2vw, 0.9rem);
-            min-width: 600px;
+            font-size: 0.9rem;
         }
         .portfolio-table th, .market-table th, .history-table th {
             text-align: left;
             padding: 0.6rem 0.5rem;
             background: #1a2230;
             color: #aab3c5;
-            font-weight: 600;
             border-bottom: 2px solid #2a3442;
-            cursor: pointer;
-            user-select: none;
-        }
-        body.theme-light .portfolio-table th, body.theme-light .market-table th, body.theme-light .history-table th {
-            background: #e9ecef;
-            color: #333;
-            border-bottom-color: #ccc;
         }
         .portfolio-table td, .market-table td, .history-table td {
             padding: 0.6rem 0.5rem;
             border-bottom: 1px solid #1e2635;
         }
-        body.theme-light .portfolio-table td, body.theme-light .market-table td, body.theme-light .history-table td {
-            border-bottom-color: #ddd;
-        }
-        .portfolio-table .asset-row, .market-table .asset-row {
-            cursor: pointer;
-        }
-        .portfolio-table .asset-row:hover, .market-table .asset-row:hover {
-            background: #1a2230;
-        }
-        body.theme-light .portfolio-table .asset-row:hover, body.theme-light .market-table .asset-row:hover {
-            background: #e9ecef;
-        }
-        .portfolio-table .detail-row, .market-table .detail-row {
-            display: none;
-        }
-        .portfolio-table .detail-row.expanded, .market-table .detail-row.expanded {
-            display: table-row;
-        }
-        .portfolio-table .detail-row td, .market-table .detail-row td {
-            padding: 0.8rem 1rem;
-            background: #0b0e14;
-            border-bottom: 1px solid #2a3442;
-        }
-        body.theme-light .portfolio-table .detail-row td, body.theme-light .market-table .detail-row td {
-            background: #f9f9f9;
-            border-bottom-color: #ddd;
-        }
-        .detail-row .chart-container {
-            width: 100%;
-            height: 150px;
-            background: #0b0e14;
-            border-radius: 8px;
-            margin-bottom: 0.8rem;
-        }
-        body.theme-light .detail-row .chart-container {
-            background: #f9f9f9;
-        }
-        .detail-row .chart-container canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            border-radius: 8px;
-        }
-        .detail-row .controls {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .detail-row .controls input {
-            flex: 1 1 80px;
-            background: #0b0e14;
-            border: 1px solid #2a3442;
-            border-radius: 8px;
-            padding: 0.4rem 0.3rem;
-            color: #fff;
-            font-size: 0.95rem;
-            text-align: center;
-            outline: none;
-        }
-        body.theme-light .detail-row .controls input {
-            background: #f9f9f9;
-            color: #1a1a1a;
-            border-color: #ccc;
-        }
-        .detail-row .controls .total-cost {
-            font-size: 0.85rem;
-            color: #f1c40f;
-            background: #1e2635;
-            padding: 0.2rem 0.8rem;
-            border-radius: 12px;
-            white-space: nowrap;
-        }
-        body.theme-light .detail-row .controls .total-cost {
-            background: #e9ecef;
-            color: #333;
-        }
-        .detail-row .controls .btn-max {
-            background: #f39c12;
-            color: #0b0e14;
-            padding: 0.4rem 0.8rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-        .detail-row .controls button {
-            padding: 0.4rem 1rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            cursor: pointer;
-        }
-        .btn-buy { background: #2ecc71; color: #0b0e14; }
-        .btn-buy:hover { background: #27ae60; }
-        .btn-sell { background: #e74c3c; color: #fff; }
-        .btn-sell:hover { background: #c0392b; }
-        .capital-breakdown {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.5rem 2.5rem;
-            padding-top: 0.8rem;
-            border-top: 1px solid #2a3442;
-            margin-top: 0.5rem;
-            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
-        }
-        body.theme-light .capital-breakdown { border-top-color: #ccc; }
-        .capital-breakdown .label { color: #aab3c5; }
-        body.theme-light .capital-breakdown .label { color: #666; }
-        .capital-breakdown .value { font-weight: 700; color: #fff; }
-        body.theme-light .capital-breakdown .value { color: #1a1a1a; }
-        .tabs {
-            display: flex;
-            gap: 0.8rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-        .tabs button {
-            background: #1e2635;
-            border: none;
-            color: #aab3c5;
-            padding: 0.5rem 1.5rem;
-            border-radius: 30px;
-            font-size: clamp(0.9rem, 2.5vw, 1rem);
-            font-weight: 600;
-            cursor: pointer;
-        }
-        body.theme-light .tabs button { background: #e9ecef; color: #333; }
-        .tabs button.active { background: #f1c40f; color: #0b0e14; }
-        .market-searches {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.8rem 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .market-searches .search-group {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            flex: 1 1 200px;
-        }
-        .market-searches .search-group input {
-            flex: 1;
-            background: #0b0e14;
-            border: 1px solid #2a3442;
-            border-radius: 8px;
-            padding: 0.4rem 0.8rem;
-            color: #e0e6ed;
-            outline: none;
-        }
-        body.theme-light .market-searches .search-group input { background: #f9f9f9; color: #1a1a1a; border-color: #ccc; }
+        .btn-buy { background: #2ecc71; color: #0b0e14; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-sell { background: #e74c3c; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -635,7 +365,7 @@
         }
         .modal-overlay.active { display: flex; }
         .modal-box {
-            background: #1a2230;
+            background: linear-gradient(145deg, #1a2230, #0b0e14);
             border-radius: 24px;
             padding: 2rem;
             max-width: 450px;
@@ -643,10 +373,9 @@
             border: 1px solid #f1c40f;
             text-align: center;
         }
-        body.theme-light .modal-box { background: #fff; border-color: #ccc; }
-        .info-icon { cursor: pointer; color: #f1c40f; font-weight: bold; margin-right: 6px; }
-        body.theme-light .info-icon { color: #333; }
-        .empty-msg { text-align: center; padding: 2rem; color: #5a6a82; }
+        .modal-box .modal-btn {
+            background: #f1c40f; color: #0b0e14; border: none; padding: 0.6rem 2rem; border-radius: 30px; font-weight: bold; cursor: pointer; margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -661,83 +390,78 @@
                     <span>💰 Efectivo: <strong id="cashDisplay">0</strong></span>
                     <span class="net-worth">🏆 Patrimonio: <strong id="netWorthDisplay">0</strong></span>
                 </div>
-                <span class="news-status" id="newsStatus">🔴 Noticia</span>
                 <button class="settings-btn" id="settingsToggle">⚙️</button>
             </div>
         </header>
         <div class="main-tabs">
             <button class="active" data-section="portfolio">📋 Mi Cartera</button>
             <button data-section="market">📈 Mercado</button>
-            <button data-section="credit">💳 Crédito</button>
-            <button data-section="business">🏢 Negocios</button>
-            <button data-section="history">📜 Historial</button>
         </div>
     </div>
 
     <section id="portfolioSection" class="section active">
         <div class="portfolio-section">
-            <div class="portfolio-header">
-                <h2>📋 Resumen de Cartera</h2>
-            </div>
+            <h2>📋 Resumen de Cartera</h2>
             <div class="portfolio-summary" id="portfolioSummary"></div>
-            <div id="portfolioTables"></div>
-            <div class="capital-breakdown" id="capitalBreakdown"></div>
         </div>
     </section>
 
     <section id="marketSection" class="section">
-        <div class="market-section">
+        <div class="portfolio-section">
             <h2>📈 Mercado</h2>
-            <div class="tabs" id="marketTabs">
-                <button class="active" data-filter="stock">📊 Acciones</button>
-                <button data-filter="crypto">🪙 Spot</button>
-            </div>
-            <div class="market-searches">
-                <div class="search-group">
-                    <input type="text" id="searchMarket" placeholder="Buscar activo...">
-                </div>
-            </div>
-            <div class="market-table-wrap">
-                <table class="market-table">
-                    <tbody id="marketBody"></tbody>
-                </table>
-            </div>
+            <p>Sección de mercado en desarrollo.</p>
         </div>
-    </section>
-
-    <section id="creditSection" class="section">
-        <div class="portfolio-section"><h2>💳 Crédito</h2></div>
-    </section>
-
-    <section id="businessSection" class="section">
-        <div class="portfolio-section"><h2>🏢 Negocios</h2></div>
-    </section>
-
-    <section id="historySection" class="section">
-        <div class="history-section"><h2>📜 Historial</h2></div>
     </section>
 </div>
 
+<!-- MODAL -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal-box">
-        <div class="modal-title" id="modalTitle">Atención</div>
-        <div class="modal-message" id="modalMessage">Mensaje</div>
-        <button class="btn-buy" id="modalBtn" style="padding:0.5rem 1.5rem; margin-top:1rem; border-radius:20px; border:none; cursor:pointer;">Entendido</button>
+        <div id="modalIcon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
+        <div id="modalTitle" style="font-size: 1.3rem; font-weight: bold; color: #f1c40f; margin-bottom: 0.5rem;">Atención</div>
+        <div id="modalMessage" style="margin-bottom: 1rem;">Mensaje</div>
+        <button class="modal-btn" id="modalBtn">Entendido</button>
     </div>
 </div>
 
+<!-- PANEL DE CONFIGURACIÓN -->
 <div class="settings-overlay" id="settingsOverlay"></div>
 <div class="settings-panel" id="settingsPanel">
     <h3>⚙️ Configuración</h3>
+
+    <!-- Copia de seguridad con Telegram integrado -->
+    <div class="commission-group" style="border-color: #2ecc71; margin-top: 0.5rem;">
+        <h4 style="color:#2ecc71;">💾 Copia de seguridad</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+            <button id="exportBtn" class="btn-buy" style="padding:0.4rem 1.2rem;">⬆ Exportar</button>
+            <button id="importBtn" class="btn-buy" style="padding:0.4rem 1.2rem; background:#3498db; color:#fff;">⬇ Importar</button>
+            <button id="exportTelegramBtn" class="btn-buy" style="padding:0.4rem 1.2rem; background:#24a1ee; color:#fff;">📤 Telegram</button>
+        </div>
+        <div style="font-size:0.75rem; color:#8d9bb5; text-align:center; margin-top:4px;">
+            Exporta tu cartera, impórtala o envíala directamente a Telegram.
+        </div>
+    </div>
+
     <div class="theme-toggle">
         <label>🌙 Oscuro</label>
-        <div class="switch" id="themeSwitch"><div class="slider"></div></div>
+        <div class="switch" id="themeSwitch">
+            <div class="slider"></div>
+        </div>
         <label>☀️ Claro</label>
     </div>
+
     <div class="currency-group">
         <h4>💱 Moneda</h4>
-        <select id="currencySelect"></select>
+        <div class="commission-row">
+            <label for="currencySelect">Seleccionar</label>
+            <select id="currencySelect">
+                <option value="VES">Bolívar (VES)</option>
+                <option value="USD">Dólar (USD)</option>
+                <option value="EUR">Euro (EUR)</option>
+            </select>
+        </div>
     </div>
+
     <button class="close-settings" id="closeSettings">Cerrar</button>
 </div>
 
@@ -745,68 +469,85 @@
     (function() {
         "use strict";
 
-        const CURRENCIES = {
-            'VES': { symbol: 'Bs', label: 'Bolívar (VES)' },
-            'USD': { symbol: '$', label: 'Dólar (USD)' },
-            'EUR': { symbol: '€', label: 'Euro (EUR)' }
-        };
-
-        let state = {
+        // Estado inicial de la aplicación
+        let state = JSON.parse(localStorage.getItem('richman_web_state')) || {
             cash: 1000,
-            assets: [
-                { id: 'btc', name: 'Bitcoin', symbol: 'BTC', type: 'crypto', price: 60000, owned: 0.1, costBasis: 5500, history: [59000, 60000] },
-                { id: 'aapl', name: 'Apple', symbol: 'AAPL', type: 'stock', price: 180, owned: 5, costBasis: 850, history: [175, 180], exchange: 'NASDAQ' }
-            ],
             currency: 'USD',
-            transactions: [],
-            notifications: []
+            assets: []
         };
 
-        function formatNumber(num, decimals = 2, showSymbol = true) {
-            if (isNaN(num)) return '0,00';
-            const formatted = new Intl.NumberFormat('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num);
-            return showSymbol ? formatted + ' ' + (CURRENCIES[state.currency]?.symbol || '$') : formatted;
+        function saveState() {
+            localStorage.setItem('richman_web_state', JSON.stringify(state));
         }
 
-        function renderPortfolio() {
+        function formatNumber(num) {
+            return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+        }
+
+        function renderApp() {
+            document.getElementById('cashDisplay').textContent = formatNumber(state.cash);
+            document.getElementById('netWorthDisplay').textContent = formatNumber(state.cash);
+            
             const summary = document.getElementById('portfolioSummary');
-            summary.innerHTML = `<div class="item">💵 Efectivo: <strong>${formatNumber(state.cash)}</strong></div>`;
-
-            const container = document.getElementById('portfolioTables');
-            let html = '<table class="portfolio-table"><thead><tr><th>Activo</th><th>Cantidad</th><th>Valor Actual</th></tr></thead><tbody>';
-            state.assets.forEach(a => {
-                if (a.owned > 0) {
-                    html += `<tr><td>${a.name}</td><td>${a.owned}</td><td>${formatNumber(a.price * a.owned)}</td></tr>`;
-                }
-            });
-            html += '</tbody></table>';
-            container.innerHTML = html;
+            summary.innerHTML = `<div class="item">💵 Efectivo disponible: <strong>${formatNumber(state.cash)}</strong></div>`;
         }
 
-        function renderAll() {
-            renderPortfolio();
-        }
-
-        document.getElementById('settingsToggle').addEventListener('click', () => {
-            document.getElementById('settingsPanel').classList.add('active');
-            document.getElementById('settingsOverlay').classList.add('active');
-        });
-        document.getElementById('closeSettings').addEventListener('click', () => {
-            document.getElementById('settingsPanel').classList.remove('active');
-            document.getElementById('settingsOverlay').classList.remove('active');
-        });
-
+        // Sistema de Pestañas Principales
         document.querySelectorAll('.main-tabs button').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
                 this.classList.add('active');
-                const target = this.dataset.section + 'Section';
-                document.getElementById(target).classList.add('active');
+                const target = this.dataset.section;
+                document.getElementById(target + 'Section').classList.add('active');
             });
         });
 
-        renderAll();
+        // Configuración y Modal
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const settingsOverlay = document.getElementById('settingsOverlay');
+        const closeSettingsBtn = document.getElementById('closeSettings');
+
+        function toggleSettings() {
+            settingsPanel.classList.toggle('active');
+            settingsOverlay.classList.toggle('active');
+        }
+
+        settingsToggle.addEventListener('click', toggleSettings);
+        settingsOverlay.addEventListener('click', toggleSettings);
+        closeSettingsBtn.addEventListener('click', toggleSettings);
+
+        function showModal(icon, title, message) {
+            document.getElementById('modalIcon').textContent = icon;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        document.getElementById('modalBtn').addEventListener('click', () => {
+            document.getElementById('modalOverlay').classList.remove('active');
+        });
+
+        // --- LÓGICA DE EXPORTACIÓN A TELEGRAM ---
+        function exportToTelegram() {
+            try {
+                const stateStr = JSON.stringify(state);
+                const mensaje = encodeURIComponent(
+                    "🤖 *Copia de seguridad - RichMan Web*\n\n" +
+                    "Copia el siguiente código JSON y guárdalo de forma segura:\n\n`" + stateStr + "`"
+                );
+                const telegramUrl = `https://t.me/share/url?url=&text=${mensaje}`;
+                window.open(telegramUrl, '_blank');
+            } catch (e) {
+                showModal('❌', 'Error', 'No se pudo generar el respaldo para Telegram: ' + e.message);
+            }
+        }
+
+        document.getElementById('exportTelegramBtn').addEventListener('click', exportToTelegram);
+
+        // Inicializar interfaz
+        renderApp();
     })();
 </script>
 </body>

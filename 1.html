@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>111 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -457,7 +457,6 @@
                     timestamp: Date.now()
                 };
                 localStorage.setItem('richman_backup', JSON.stringify(dataToSave));
-                // (opcional) console.log("💾 Estado guardado en localStorage");
             } catch (e) {
                 console.warn("No se pudo guardar en localStorage:", e);
             }
@@ -484,22 +483,51 @@
             } catch (e) { console.error("Error al cargar mercado cripto:", e); }
         }
 
+        // ---- CORRECCIÓN: asignar mercado correcto a cada acción ----
         async function cargarMercadoAcciones() {
             try {
                 const { doc, getDoc, setDoc } = window.fb;
                 const docRef = doc(window.db, "mercado_acciones", "precios");
                 const snap = await getDoc(docRef);
+
+                // Definir símbolos por bolsa (para asignar mercado al cargar)
+                const bvcSymbols = ['BVC-A', 'BVC-B', 'BVC-C', 'BVC-D', 'BVC-E', 'BVC-F', 'BVC-G', 'BVC-H', 'BVC-I', 'BVC-J',
+                                    'BVC-K', 'BVC-L', 'BVC-M', 'BVC-N', 'BVC-O', 'BVC-P', 'BVC-Q', 'BVC-R', 'BVC-S', 'BVC-T'];
+                const wallStreetSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NFLX', 'NVDA', 'JPM', 'V',
+                                           'WMT', 'PG', 'JNJ', 'HD', 'BAC', 'DIS', 'MA', 'PFE', 'TMO', 'ABT'];
+                const europaSymbols = ['SAP', 'ASML', 'NOVO', 'LVMH', 'TOTAL', 'SAN', 'BNP', 'AIR', 'ENEL', 'ING',
+                                       'DHL', 'BASF', 'BAYER', 'BMW', 'VW', 'SIEMENS', 'ADIDAS', 'ZARA', 'IBERDROLA', 'REPSOL'];
+
                 if (snap.exists()) {
                     const data = snap.data();
-                    stocksListCache = Object.keys(data).map(id => ({ id, precio: data[id], nombre: id, mercado: 'BVC' }));
+                    // Asignar mercado según el símbolo
+                    stocksListCache = Object.keys(data).map(id => {
+                        let mercado = 'BVC'; // por defecto
+                        if (wallStreetSymbols.includes(id)) mercado = 'Wall Street';
+                        else if (europaSymbols.includes(id)) mercado = 'Europa';
+                        // Si empieza con 'BVC-' también es BVC (por si acaso)
+                        else if (id.startsWith('BVC-')) mercado = 'BVC';
+                        return { id, precio: data[id], nombre: id, mercado };
+                    });
                 } else {
-                    const inicial = {
-                        'BVC-A': 120, 'BVC-B': 85, 'BVC-C': 200, 'BVC-D': 45, 'BVC-E': 310,
-                        'AAPL': 175, 'MSFT': 330, 'GOOGL': 140, 'AMZN': 185, 'TSLA': 240,
-                        'SAP': 130, 'ASML': 700, 'NOVO': 80, 'LVMH': 750, 'TOTAL': 60
-                    };
+                    // Inicializar con tres listas separadas
+                    const inicial = {};
+                    // Añadir BVC
+                    bvcSymbols.forEach(sym => { inicial[sym] = 100 + Math.random() * 200; });
+                    // Añadir Wall Street
+                    wallStreetSymbols.forEach(sym => { inicial[sym] = 150 + Math.random() * 300; });
+                    // Añadir Europa
+                    europaSymbols.forEach(sym => { inicial[sym] = 120 + Math.random() * 250; });
+
                     await setDoc(docRef, inicial);
-                    stocksListCache = Object.keys(inicial).map(id => ({ id, precio: inicial[id], nombre: id, mercado: 'BVC' }));
+                    // Crear lista con mercado asignado
+                    stocksListCache = Object.keys(inicial).map(id => {
+                        let mercado = 'BVC';
+                        if (wallStreetSymbols.includes(id)) mercado = 'Wall Street';
+                        else if (europaSymbols.includes(id)) mercado = 'Europa';
+                        else if (id.startsWith('BVC-')) mercado = 'BVC';
+                        return { id, precio: inicial[id], nombre: id, mercado };
+                    });
                 }
                 renderStocksTables();
                 renderPortfolioStocksTable();
@@ -1510,7 +1538,7 @@
             }, 500);
         });
 
-        console.log("🚀 Juego actualizado: precios en pantalla cada minuto, guardado en localStorage y Firebase cada 5 min.");
+        console.log("🚀 Juego actualizado: precios en pantalla cada minuto, guardado en localStorage y Firebase cada 5 min. Mercado de acciones corregido con tres bolsas.");
     </script>
 </body>
 </html>

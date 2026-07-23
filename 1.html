@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>xxx   RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -211,7 +211,7 @@
                 <div class="portfolio-summary" id="portfolioTotals" style="margin-top:1rem;">
                     <div>📊 Acciones: <strong id="stocksTotalDisplay">0,00 Bs</strong> (G/P: <span id="stocksGpDisplay" class="text-green">+0,00 Bs</span>)</div>
                     <div>🪙 Criptos: <strong id="cryptoTotalDisplay">0,00 Bs</strong> (G/P: <span id="cryptoGpDisplay" class="text-green">+0,00 Bs</span>)</div>
-                    <div>💰 Total: <strong id="grandTotalDisplay">0,00 Bs</strong> (G/P: <span id="grandGpDisplay" class="text-green">+0,00 Bs</span>)</div>
+                    <div>💰 Patrimonio: <strong id="grandTotalDisplay">0,00 Bs</strong> (G/P: <span id="grandGpDisplay" class="text-green">+0,00 Bs</span>)</div>
                 </div>
             </div>
         </div>
@@ -986,7 +986,6 @@
                     neto = ingresosBrutos - deducciones;
                     cash += neto;
 
-                    // Sumar ingresos pasivos de negocios
                     let ingresosNegocios = 0;
                     for (let id in data.negocios_owned) {
                         const neg = negociosCache.find(n => n.id === id);
@@ -1338,7 +1337,7 @@
     }
 
     // ============================================================
-    // 9. RENDERIZADO (corregido para evitar errores)
+    // 9. RENDERIZADO
     // ============================================================
     function renderMarketTable() {
         const tbody = document.getElementById('marketBody');
@@ -1535,7 +1534,6 @@
     }
 
     function renderAll() {
-        // ====== Seguridad: verificar que cada elemento exista ======
         const getSafe = (id) => document.getElementById(id);
         const cashEl = getSafe('cashDisplay');
         if (cashEl) cashEl.textContent = formatNumber(state.cash);
@@ -1545,7 +1543,6 @@
         const pendingEl = getSafe('pendingDividendsDisplay');
         if (pendingEl) pendingEl.textContent = formatNumber(state.pending_dividends);
 
-        // Patrimonio
         let totalCryptoWorth = 0;
         for (let id in state.portfolio_crypto) {
             let item = state.portfolio_crypto[id];
@@ -1564,7 +1561,6 @@
         const netEl = getSafe('netWorthDisplay');
         if (netEl) netEl.textContent = formatNumber(patrimonioTotal);
 
-        // Resumen empleo
         const jobData = getCurrentJobData();
         let costToNext = jobData.cost;
         if (configEmpleosNiveles && configEmpleosNiveles[state.job.level + 1]) {
@@ -1579,7 +1575,6 @@
             `;
         }
 
-        // Negocios (antiguo, se mantiene por compatibilidad)
         const b = state.businesses[0];
         const busSummary = getSafe('businessSummary');
         if (busSummary) busSummary.innerHTML = `<div>Negocio Activo - Nivel: ${b.level}</div>`;
@@ -1594,7 +1589,6 @@
             `;
         }
 
-        // Historial
         const histBody = getSafe('historyBody');
         if (histBody) {
             histBody.innerHTML = (state.transactions || []).slice(-10).reverse().map(tx => {
@@ -1604,13 +1598,12 @@
             }).join('');
         }
 
-        // Renderizar tablas
         renderPortfolioCryptoTable();
         renderPortfolioStocksTable();
         renderMarketTable();
         renderStocksTables();
 
-        // Totales de cartera
+        // ====== CÁLCULO DE TOTALES (INCLUYE EFECTIVO PARA QUE COINCIDA CON PATRIMONIO) ======
         let stocksTotal = 0, stocksGp = 0;
         for (let id in state.portfolio_stocks) {
             let item = state.portfolio_stocks[id];
@@ -1635,8 +1628,9 @@
             cryptoGp += posicion - costoTotal;
         }
 
-        let totalGeneral = stocksTotal + cryptoTotal;
-        let totalGp = stocksGp + cryptoGp;
+        // AHORA EL TOTAL INCLUYE EL EFECTIVO
+        let totalGeneral = stocksTotal + cryptoTotal + state.cash;
+        let totalGp = stocksGp + cryptoGp;  // El efectivo no tiene ganancia
 
         const stocksTotalEl = getSafe('stocksTotalDisplay');
         if (stocksTotalEl) stocksTotalEl.textContent = formatNumber(stocksTotal);
@@ -1788,13 +1782,12 @@
     }
 
     // ============================================================
-    // 12. CARGA DE DATOS DEL USUARIO (CORREGIDA Y ROBUSTA)
+    // 12. CARGA DE DATOS DEL USUARIO
     // ============================================================
     async function loadUserData(uid) {
         try {
             console.log("🔄 Cargando datos para UID:", uid);
 
-            // Resetear estado
             state = {
                 cash: 100,
                 pending_dividends: 0,
@@ -1807,15 +1800,11 @@
                 portfolio_stocks: {}
             };
 
-            // Cargar configuraciones
             await loadJobConfigFromFirebase();
-
-            // Cargar mercados
             await cargarMercadoCripto();
             await cargarMercadoAcciones();
             await cargarNegocios();
 
-            // Cargar datos del usuario
             const { doc, getDoc, setDoc } = window.fb;
             const userRef = doc(window.db, "partidas", uid);
             const snap = await getDoc(userRef);
@@ -1831,7 +1820,6 @@
                 state.businesses = data.businesses || [{ id: 'b1', level: 0 }];
                 state.negocios_owned = data.negocios_owned || {};
 
-                // Convertir cartera cripto
                 let rawCrypto = data.portfolio_crypto || {};
                 let formattedCrypto = {};
                 for (let key in rawCrypto) {
@@ -1852,7 +1840,6 @@
                 state.portfolio_crypto = formattedCrypto;
                 state.portfolio_stocks = data.portfolio_stocks || {};
 
-                // Cálculo offline
                 if (data.last_active) {
                     let lastActiveTime = (typeof data.last_active.toDate === 'function')
                         ? data.last_active.toDate().getTime()
@@ -1864,7 +1851,6 @@
                     console.log(`⏱️ Tiempo fuera: ${diffMinutes} minutos`);
 
                     if (diffMinutes > 0) {
-                        // Dividendos offline
                         let divOffline = 0;
                         for (let stockId in state.portfolio_stocks) {
                             let tenencia = state.portfolio_stocks[stockId];
@@ -1881,7 +1867,6 @@
                             mostrarModalFinanciero(`🏢 Dividendos fuera de línea: ${formatNumber(divOffline)}`);
                         }
 
-                        // Negocios offline
                         let negOffline = 0;
                         for (let id in state.negocios_owned) {
                             const neg = negociosCache.find(n => n.id === id);
@@ -1899,7 +1884,6 @@
 
                 console.log("✅ Datos cargados correctamente desde Firebase:", state);
             } else {
-                // Usuario nuevo
                 console.log("🆕 Usuario nuevo, creando documento...");
                 await setDoc(userRef, {
                     ...state,
@@ -1907,16 +1891,12 @@
                 });
             }
 
-            // Guardar en localStorage
             saveStateToLocalStorage();
-
-            // Iniciar ciclos
             startServerSideFinancialCycle();
             startServerSideCryptoCycle();
             startServerSideStockCycle();
             startServerSideDividendCycle();
 
-            // Renderizar
             renderAll();
             renderNegocios();
 
@@ -2064,7 +2044,7 @@
         }, 500);
     });
 
-    console.log("🚀 Juego actualizado con renderizado robusto.");
+    console.log("🚀 Juego completamente funcional, seguro y con patrimonio corregido.");
 </script>
 
 </body>

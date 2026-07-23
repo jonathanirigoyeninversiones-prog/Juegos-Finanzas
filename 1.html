@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>RichMan Web - Mi Cartera</title>
+    <title>1000 RichMan Web - Mi Cartera</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -182,6 +182,13 @@
                             <tr><td colspan="7" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- ========== NUEVO: RESUMEN DE TOTALES ========== -->
+                <div class="portfolio-summary" id="portfolioTotals" style="margin-top: 1rem;">
+                    <div>📊 Acciones: <strong id="stocksTotalDisplay">0,00 Bs</strong> (G/P: <span id="stocksGpDisplay" class="text-green">+0,00 Bs</span>)</div>
+                    <div>🪙 Criptos: <strong id="cryptoTotalDisplay">0,00 Bs</strong> (G/P: <span id="cryptoGpDisplay" class="text-green">+0,00 Bs</span>)</div>
+                    <div>💰 Total: <strong id="grandTotalDisplay">0,00 Bs</strong> (G/P: <span id="grandGpDisplay" class="text-green">+0,00 Bs</span>)</div>
                 </div>
             </div>
         </div>
@@ -1546,6 +1553,49 @@
         renderPortfolioStocksTable();
         renderMarketTable();
         renderStocksTables();
+
+        // ========== NUEVO: ACTUALIZAR TOTALES DE CARTERA ==========
+        let stocksTotal = 0, stocksGp = 0;
+        for (let id in state.portfolio_stocks) {
+            let item = state.portfolio_stocks[id];
+            let cantidad = item.cantidad || 0;
+            let costoTotal = item.costoTotal || 0;
+            let stockObj = stocksListCache.find(s => s.id === id);
+            let precioActual = stockObj ? stockObj.precio : (costoTotal / (cantidad || 1));
+            let posicion = cantidad * precioActual;
+            stocksTotal += posicion;
+            stocksGp += posicion - costoTotal;
+        }
+
+        let cryptoTotal = 0, cryptoGp = 0;
+        for (let id in state.portfolio_crypto) {
+            let item = state.portfolio_crypto[id];
+            let cantidad = item.cantidad || 0;
+            let costoTotal = item.costoTotal || 0;
+            let cryptoObj = cryptoListCache.find(c => c.id === id);
+            let precioActual = cryptoObj ? cryptoObj.precio : (costoTotal / (cantidad || 1));
+            let posicion = cantidad * precioActual;
+            cryptoTotal += posicion;
+            cryptoGp += posicion - costoTotal;
+        }
+
+        let totalGeneral = stocksTotal + cryptoTotal;
+        let totalGp = stocksGp + cryptoGp;
+
+        document.getElementById('stocksTotalDisplay').textContent = formatNumber(stocksTotal);
+        const stocksGpSpan = document.getElementById('stocksGpDisplay');
+        stocksGpSpan.textContent = (stocksGp >= 0 ? '+' : '') + formatNumber(stocksGp);
+        stocksGpSpan.className = stocksGp >= 0 ? 'text-green' : 'text-red';
+
+        document.getElementById('cryptoTotalDisplay').textContent = formatNumber(cryptoTotal);
+        const cryptoGpSpan = document.getElementById('cryptoGpDisplay');
+        cryptoGpSpan.textContent = (cryptoGp >= 0 ? '+' : '') + formatNumber(cryptoGp);
+        cryptoGpSpan.className = cryptoGp >= 0 ? 'text-green' : 'text-red';
+
+        document.getElementById('grandTotalDisplay').textContent = formatNumber(totalGeneral);
+        const grandGpSpan = document.getElementById('grandGpDisplay');
+        grandGpSpan.textContent = (totalGp >= 0 ? '+' : '') + formatNumber(totalGp);
+        grandGpSpan.className = totalGp >= 0 ? 'text-green' : 'text-red';
     }
 
     function upgradeJob() {

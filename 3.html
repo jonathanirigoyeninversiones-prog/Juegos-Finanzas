@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>pp333 RichMan Web - Mi Cartera</title>
+    <title>3 RichMan Web - Mi Cartera</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -28,7 +28,7 @@
         window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
-        /* ====== ESTILOS SIN CAMBIOS (son los mismos que tenías) ====== */
+        /* ====== ESTILOS (sin cambios) ====== */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Roboto,Arial,Helvetica,sans-serif; }
         body { background:#0b0e14; color:#e0e6ed; padding:2vw; min-height:100vh; display:flex; justify-content:center; align-items:flex-start; overflow-x:auto; }
         #authScreen { width:100%; max-width:400px; background:#121824; padding:2rem; border-radius:12px; border:1px solid #212d3f; text-align:center; margin:auto; }
@@ -473,7 +473,7 @@
     }
 
     // ============================================================
-    // 4. FUNCIONES DE GUARDADO EN FIREBASE
+    // 4. FUNCIONES DE GUARDADO EN FIREBASE (CADA 10 MINUTOS)
     // ============================================================
     async function saveUserDataToFirebase() {
         if (!currentUserUid || !window.db) return;
@@ -1908,15 +1908,10 @@
     // ============================================================
     async function logoutUser() {
         try {
-            // --- FORZAR GUARDADO DEL ESTADO COMPLETO ANTES DE CERRAR SESIÓN ---
-            if (currentUserUid && window.db) {
-                // Guardar datos del usuario (cash, carteras, etc.)
-                await saveUserDataToFirebase();
-                // Guardar precios de cripto y acciones
-                await saveCryptoPricesToFirebase();
-                await saveStockPricesToFirebase();
-                console.log("✅ Estado guardado antes de salir.");
-            }
+            // ====== GUARDAR TODOS LOS DATOS ANTES DE SALIR ======
+            await saveUserDataToFirebase();
+            await saveCryptoPricesToFirebase();
+            await saveStockPricesToFirebase();
 
             // Limpiar intervalos
             if (gameInterval) clearInterval(gameInterval);
@@ -1926,7 +1921,7 @@
             if (saveInterval) clearInterval(saveInterval);
             if (sesionVerificationInterval) clearInterval(sesionVerificationInterval);
 
-            // Cerrar sesión en Firebase Auth
+            // Cerrar sesión en Firebase
             currentUserUid = null;
             await window.fb.signOut(window.auth);
         } catch (e) {

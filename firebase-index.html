@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>1000 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <!-- Firebase SDK (Modular) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -417,27 +417,8 @@
             </div>
 
             <div id="portfolioTables">
-                <h3>Mis Criptomonedas</h3>
-                <div style="overflow-x: auto;">
-                    <table class="portfolio-table" style="margin-top: 1rem; min-width: 700px;">
-                        <thead>
-                            <tr>
-                                <th onclick="sortPortfolio('activo')">Activo ↕</th>
-                                <th onclick="sortPortfolio('cantidad')">Cantidad ↕</th>
-                                <th onclick="sortPortfolio('precioActual')">Precio Actual ↕</th>
-                                <th onclick="sortPortfolio('precioPromedio')">Precio Promedio ↕</th>
-                                <th onclick="sortPortfolio('posicion')">Posición ↕</th>
-                                <th onclick="sortPortfolio('gp')">G/P ↕</th>
-                                <th onclick="sortPortfolio('roi')">ROI (%) ↕</th>
-                            </tr>
-                        </thead>
-                        <tbody id="portfolioCryptoBody">
-                            <tr><td colspan="7" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3 style="margin-top: 2rem;">Mis Acciones</h3>
+                <!-- PRIMERO ACCIONES -->
+                <h3>Mis Acciones</h3>
                 <div style="overflow-x: auto;">
                     <table class="portfolio-table" style="margin-top: 1rem; min-width: 700px;">
                         <thead>
@@ -453,6 +434,27 @@
                         </thead>
                         <tbody id="portfolioStocksBody">
                             <tr><td colspan="7" style="text-align:center;">No tienes acciones en cartera.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- LUEGO CRIPTOMONEDAS -->
+                <h3 style="margin-top: 2rem;">Mis Criptomonedas</h3>
+                <div style="overflow-x: auto;">
+                    <table class="portfolio-table" style="margin-top: 1rem; min-width: 700px;">
+                        <thead>
+                            <tr>
+                                <th onclick="sortPortfolio('activo')">Activo ↕</th>
+                                <th onclick="sortPortfolio('cantidad')">Cantidad ↕</th>
+                                <th onclick="sortPortfolio('precioActual')">Precio Actual ↕</th>
+                                <th onclick="sortPortfolio('precioPromedio')">Precio Promedio ↕</th>
+                                <th onclick="sortPortfolio('posicion')">Posición ↕</th>
+                                <th onclick="sortPortfolio('gp')">G/P ↕</th>
+                                <th onclick="sortPortfolio('roi')">ROI (%) ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="portfolioCryptoBody">
+                            <tr><td colspan="7" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>
                         </tbody>
                     </table>
                 </div>

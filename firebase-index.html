@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>1000 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -28,7 +28,6 @@
         window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
-        /* ========== ESTILOS (sin cambios) ========== */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Roboto,Arial,Helvetica,sans-serif; }
         body { background:#0b0e14; color:#e0e6ed; padding:2vw; min-height:100vh; display:flex; justify-content:center; align-items:flex-start; overflow-x:auto; }
         #authScreen { width:100%; max-width:400px; background:#121824; padding:2rem; border-radius:12px; border:1px solid #212d3f; text-align:center; margin:auto; }
@@ -261,31 +260,29 @@
         let isRegistering = false;
         let currentUserUid = null;
 
-        // Intervalos
-        let gameInterval = null;          // ciclo financiero (ahora en memoria)
+        let gameInterval = null;          // ciclo financiero (en memoria, cada minuto)
         let marketInterval = null;        // actualización visual de cripto (cada minuto)
         let stockMarketInterval = null;   // actualización visual de acciones (cada minuto)
-        let dividendInterval = null;      // acumulación de dividendos en memoria
         let saveInterval = null;          // guardado en Firebase (cada 5 min)
 
-        // Configuración
         let configEmpleosNiveles = [];
         let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
 
-        // Cachés de precios (en memoria)
-        let cryptoListCache = [];          // array de { id, precio }
-        let stocksListCache = [];          // array de { id, precio, mercado, nombre }
+        let cryptoListCache = [];
+        let stocksListCache = [];
         let preferredMarketAsset = null;
         let preferredStockAsset = null;
 
-        // Orden
         let portfolioSortField = null;
         let portfolioSortAsc = true;
         let marketSortField = null;
         let marketSortAsc = true;
-        let stocksSortFields = { 'BVC': { field: null, asc: true }, 'Wall Street': { field: null, asc: true }, 'Europa': { field: null, asc: true } };
+        let stocksSortFields = {
+            'BVC': { field: null, asc: true },
+            'Wall Street': { field: null, asc: true },
+            'Europa': { field: null, asc: true }
+        };
 
-        // Estado del jugador (se guarda en Firebase periódicamente)
         let state = {
             cash: 100,
             pending_dividends: 0,
@@ -298,7 +295,7 @@
         };
 
         // ============================================================
-        // 2. FUNCIONES DE FORMATO Y UTILIDADES
+        // 2. FORMATO Y UTILIDADES
         // ============================================================
         function formatNumber(num) {
             if (num === undefined || num === null) num = 0;
@@ -353,7 +350,7 @@
         }
 
         // ============================================================
-        // 3. CONFIGURACIÓN DE EMPLEO (Firebase)
+        // 3. CONFIGURACIÓN DE EMPLEO
         // ============================================================
         async function loadJobConfigFromFirebase() {
             try {
@@ -419,7 +416,6 @@
             } catch (e) { console.error("Error al guardar en Firebase:", e); }
         }
 
-        // Guardar precios en Firebase (documento único)
         async function saveCryptoPrices() {
             if (!window.db || cryptoListCache.length === 0) return;
             try {
@@ -452,7 +448,6 @@
                     const data = snap.data();
                     cryptoListCache = Object.keys(data).map(id => ({ id, precio: data[id] }));
                 } else {
-                    // Inicializar con precios por defecto
                     const inicial = { BTC: 50000, ETH: 3000, BNB: 400, SOL: 100, ADA: 0.5, DOT: 7, AVAX: 20, MATIC: 0.8, LINK: 15, UNI: 6 };
                     await setDoc(docRef, inicial);
                     cryptoListCache = Object.keys(inicial).map(id => ({ id, precio: inicial[id] }));
@@ -469,13 +464,8 @@
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
                     const data = snap.data();
-                    stocksListCache = Object.keys(data).map(id => {
-                        // Los nombres y mercado los tenemos en el documento de configuración o los ponemos manualmente
-                        // Por simplicidad, asignamos un nombre y mercado por defecto
-                        return { id, precio: data[id], nombre: id, mercado: 'BVC' };
-                    });
+                    stocksListCache = Object.keys(data).map(id => ({ id, precio: data[id], nombre: id, mercado: 'BVC' }));
                 } else {
-                    // Inicializar con algunas acciones
                     const inicial = {
                         'BVC-A': 120, 'BVC-B': 85, 'BVC-C': 200, 'BVC-D': 45, 'BVC-E': 310,
                         'AAPL': 175, 'MSFT': 330, 'GOOGL': 140, 'AMZN': 185, 'TSLA': 240,
@@ -490,12 +480,11 @@
         }
 
         // ============================================================
-        // 6. CICLOS DE ACTUALIZACIÓN (en memoria cada minuto)
+        // 6. CICLOS DE ACTUALIZACIÓN VISUAL (cada minuto)
         // ============================================================
         function startVisualCryptoCycle() {
             if (marketInterval) clearInterval(marketInterval);
             marketInterval = setInterval(() => {
-                // Actualizar precios en memoria (cada minuto)
                 cryptoListCache.forEach(item => {
                     let variacion = (Math.random() * 0.102) - 0.051;
                     let nuevo = item.precio * (1 + variacion);
@@ -503,8 +492,8 @@
                 });
                 renderMarketTable();
                 renderPortfolioCryptoTable();
-                renderAll(); // para actualizar patrimonio
-            }, 60000); // 1 minuto
+                renderAll();
+            }, 60000);
         }
 
         function startVisualStockCycle() {
@@ -529,7 +518,7 @@
             gameInterval = setInterval(() => {
                 if (!currentUserUid || !state.job.active) return;
 
-                // --- Pago de empleo ---
+                // Pago de empleo
                 const jobData = getCurrentJobData();
                 const ingresosBrutos = jobData.salary;
                 const porcentajeImpuesto = Math.random() * ((configImpuestos.maxPorcentaje || 0.20) - (configImpuestos.minPorcentaje || 0.05)) + (configImpuestos.minPorcentaje || 0.05);
@@ -546,7 +535,7 @@
                     timestamp: new Date().toLocaleString()
                 });
 
-                // --- Dividendos (acumulación) ---
+                // Dividendos
                 let acumulado = 0;
                 for (let stockId in state.portfolio_stocks) {
                     let tenencia = state.portfolio_stocks[stockId];
@@ -562,12 +551,9 @@
                     state.pending_dividends += acumulado;
                 }
 
-                // Mostrar notificación cada minuto (opcional)
                 mostrarModalFinanciero(`Ingreso: ${formatNumber(ingresosBrutos)} | Neto: ${formatNumber(neto)}`);
-
-                // Renderizar
                 renderAll();
-            }, 60000); // 1 minuto
+            }, 60000);
         }
 
         // ============================================================
@@ -576,122 +562,719 @@
         function startPeriodicSave() {
             if (saveInterval) clearInterval(saveInterval);
             saveInterval = setInterval(async () => {
-                // Guardar estado del jugador
                 await saveUserDataToFirebase();
-                // Guardar precios (solo una escritura por colección)
                 await saveCryptoPrices();
                 await saveStockPrices();
                 console.log("✅ Datos guardados en Firebase (cada 5 min)");
-            }, 300000); // 5 minutos
+            }, 300000);
         }
 
         // ============================================================
-        // 9. FUNCIONES DE COMPRA/VENTA (usan transacciones de Firebase)
+        // 9. FUNCIONES DE COMPRA / VENTA (con transacciones)
         // ============================================================
-        // (Estas funciones son iguales a las que ya tenías, pero asegúrate de que usen los precios de la caché)
-        // Las dejo igual que antes para no alargar, pero si quieres puedo incluirlas completas.
-        // En este archivo ya las tienes en tu versión anterior; solo debes mantenerlas.
-        // Para no repetir todo, aquí pondré los nombres de las funciones que ya tienes:
-        // - comprarCripto(id, precio)
-        // - venderCripto(id, precio)
-        // - comprarAccion(id, precio)
-        // - venderAccion(id, precio)
-        // - cobrarDividendosAcciones()
-        // - setearMaxCompra, setearMaxVenta, etc.
-        // (El código completo está al final de este script)
+        function setearMaxCompra(id, precio) {
+            let input = document.getElementById(`input-qty-${id}`);
+            if (!input) return;
+            let efectivoUtilizable = state.cash > 0 ? state.cash * 0.995 : state.cash;
+            let maxCantidad = precio > 0 ? efectivoUtilizable / precio : 0;
+            input.value = maxCantidad > 0 ? Number(maxCantidad.toFixed(8)) : 0;
+        }
 
-        // ============================================================
-        // 10. RENDERIZADO (todas las tablas)
-        // ============================================================
-        function renderMarketTable() { /* ... igual que antes, usando cryptoListCache */ }
-        function renderStocksTables() { /* ... igual que antes */ }
-        function renderPortfolioCryptoTable() { /* ... */ }
-        function renderPortfolioStocksTable() { /* ... */ }
-        function renderAll() { /* ... actualiza cash, patrimonio, resumen, historial */ }
+        function setearMaxVenta(id) {
+            let input = document.getElementById(`input-qty-${id}`);
+            if (!input) return;
+            let asset = state.portfolio_crypto[id];
+            let cantidadPoseida = asset ? asset.cantidad : 0;
+            input.value = cantidadPoseida > 0 ? Number(cantidadPoseida.toFixed(8)) : 0;
+        }
 
-        // ============================================================
-        // 11. CONFIGURACIÓN DE PESTAÑAS Y AUTENTICACIÓN
-        // ============================================================
-        // (Sin cambios respecto a tu código original)
+        function setearMaxCompraStock(id, precio) {
+            let input = document.getElementById(`input-stock-qty-${id}`);
+            if (!input) return;
+            let efectivoUtilizable = state.cash > 0 ? state.cash * 0.995 : 0;
+            let maxUnidades = precio > 0 ? Math.floor(efectivoUtilizable / precio) : 0;
+            input.value = maxUnidades > 0 ? maxUnidades : 0;
+        }
 
-        // ============================================================
-        // 12. INICIO DE SESIÓN Y CARGA DE DATOS
-        // ============================================================
-        async function loadUserData(uid) {
+        function setearMaxVentaStock(id) {
+            let input = document.getElementById(`input-stock-qty-${id}`);
+            if (!input) return;
+            let asset = state.portfolio_stocks[id];
+            let cantidadPoseida = asset ? asset.cantidad : 0;
+            input.value = cantidadPoseida > 0 ? cantidadPoseida : 0;
+        }
+
+        async function comprarCripto(id, precio) {
+            if (!currentUserUid || !window.db) return;
+            let input = document.getElementById(`input-qty-${id}`);
+            let cantidadAComprar = input ? parseFloat(input.value) : NaN;
+            if (isNaN(cantidadAComprar) || cantidadAComprar <= 0) {
+                showModal("Cantidad Inválida", "Por favor ingresa una cantidad válida o presiona 'Max Compra'.");
+                return;
+            }
+            let costoTotalCompra = cantidadAComprar * precio;
             try {
-                // Resetear estado
-                state = { cash: 100, pending_dividends: 0, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, portfolio_stocks: {} };
-                await loadJobConfigFromFirebase();
-                const { doc, getDoc, setDoc } = window.fb;
-                const userRef = doc(window.db, "partidas", uid);
-                const snap = await getDoc(userRef);
-
-                // Cargar precios desde Firebase (documento único)
-                await cargarMercadoCripto();
-                await cargarMercadoAcciones();
-
-                if (snap.exists()) {
-                    const data = snap.data();
-                    state.cash = (data.cash !== undefined && data.cash !== null) ? Number(data.cash) : 100;
-                    state.pending_dividends = Number(data.pending_dividends || 0);
-                    state.transactions = data.transactions || [];
-                    state.job = data.job || { level: 0, active: true };
-                    state.businesses = data.businesses || [{ id: 'b1', level: 0 }];
-                    // Convertir carteras (si vienen como números simples, adaptar)
-                    let rawCrypto = data.portfolio_crypto || {};
-                    let formattedCrypto = {};
-                    for (let key in rawCrypto) {
-                        if (typeof rawCrypto[key] === 'number') {
-                            formattedCrypto[key] = { cantidad: rawCrypto[key], costoTotal: rawCrypto[key] * 100 };
-                        } else {
-                            formattedCrypto[key] = rawCrypto[key];
-                        }
+                const { doc, runTransaction } = window.fb;
+                const userRef = doc(window.db, "partidas", currentUserUid);
+                await runTransaction(window.db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) return;
+                    let data = userDoc.data();
+                    let cash = Number(data.cash || 0);
+                    cash -= costoTotalCompra;
+                    if (!data.portfolio_crypto) data.portfolio_crypto = {};
+                    if (!data.portfolio_crypto[id]) {
+                        data.portfolio_crypto[id] = { cantidad: 0, costoTotal: 0 };
                     }
-                    state.portfolio_crypto = formattedCrypto;
-                    state.portfolio_stocks = data.portfolio_stocks || {};
-
-                    // Cálculo de tiempo offline (igual que antes)
-                    if (data.last_active) {
-                        let lastActiveTime = (typeof data.last_active.toDate === 'function') ? data.last_active.toDate().getTime() : Number(data.last_active);
-                        if (!lastActiveTime || lastActiveTime < 1000000000000) lastActiveTime = Date.now();
-                        const nowTime = Date.now();
-                        let diffMinutes = Math.floor((nowTime - lastActiveTime) / 60000);
-                        if (diffMinutes > 10080) diffMinutes = 10080;
-                        if (diffMinutes > 0 && Object.keys(state.portfolio_stocks).length > 0) {
-                            let dividendosOffline = 0;
-                            for (let stockId in state.portfolio_stocks) {
-                                let tenencia = state.portfolio_stocks[stockId];
-                                let cantidad = tenencia.cantidad || 0;
-                                if (cantidad > 0) {
-                                    let stockObj = stocksListCache.find(s => s.id === stockId);
-                                    let precioActual = stockObj ? stockObj.precio : 100;
-                                    let factor = 0.00001 + Math.random() * (0.000015 - 0.00001);
-                                    dividendosOffline += (cantidad * precioActual) * factor * diffMinutes;
-                                }
-                            }
-                            if (dividendosOffline > 0) {
-                                state.pending_dividends += dividendosOffline;
-                                mostrarModalFinanciero(`🏢 Mientras estabas fuera (${diffMinutes} min), tus acciones generaron ${formatNumber(dividendosOffline)} en dividendos.`);
-                            }
-                        }
-                    }
-                }
-
-                // Iniciar ciclos
-                startVisualCryptoCycle();
-                startVisualStockCycle();
-                startFinancialAndDividendCycle();
-                startPeriodicSave();
-
-                // Render inicial
+                    data.portfolio_crypto[id].cantidad += cantidadAComprar;
+                    data.portfolio_crypto[id].costoTotal += Number(costoTotalCompra);
+                    if (!data.transactions) data.transactions = [];
+                    data.transactions.push({
+                        id: Date.now(),
+                        type: `Compra Cripto (${formatCryptoQty(cantidadAComprar)}x ${id})`,
+                        total: -costoTotalCompra,
+                        timestamp: new Date().toLocaleString()
+                    });
+                    transaction.update(userRef, {
+                        cash: Number(cash.toFixed(2)),
+                        portfolio_crypto: data.portfolio_crypto,
+                        transactions: data.transactions,
+                        last_active: Date.now()
+                    });
+                    state.cash = cash;
+                    state.portfolio_crypto = data.portfolio_crypto;
+                    state.transactions = data.transactions;
+                });
                 renderAll();
+                showModal("¡Compra Exitosa!", `Has comprado ${formatCryptoQty(cantidadAComprar)} ${id} por ${formatNumber(costoTotalCompra)}.`);
             } catch (e) {
-                console.error("Error al cargar datos:", e);
+                console.error("Error en compra:", e);
+                showModal("Error", "No se pudo procesar la compra en el servidor.");
+            }
+        }
+
+        async function venderCripto(id, precio) {
+            if (!currentUserUid || !window.db) return;
+            let input = document.getElementById(`input-qty-${id}`);
+            let cantidadAVender = input ? parseFloat(input.value) : NaN;
+            if (isNaN(cantidadAVender) || cantidadAVender <= 0) {
+                showModal("Cantidad Inválida", "Por favor ingresa una cantidad válida o presiona 'Max Venta'.");
+                return;
+            }
+            let asset = state.portfolio_crypto[id];
+            if (!asset || asset.cantidad < cantidadAVender) {
+                showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender.`);
+                return;
+            }
+            try {
+                const { doc, runTransaction } = window.fb;
+                const userRef = doc(window.db, "partidas", currentUserUid);
+                await runTransaction(window.db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) return;
+                    let data = userDoc.data();
+                    let portfolio = data.portfolio_crypto || {};
+                    let targetAsset = portfolio[id];
+                    if (!targetAsset || targetAsset.cantidad < cantidadAVender) {
+                        throw new Error("Sin tenencias");
+                    }
+                    let costoPromedioUnitario = targetAsset.costoTotal / targetAsset.cantidad;
+                    let costoReducido = costoPromedioUnitario * cantidadAVender;
+                    targetAsset.cantidad -= cantidadAVender;
+                    targetAsset.costoTotal -= costoReducido;
+                    if (targetAsset.cantidad <= 0.00000001) {
+                        delete portfolio[id];
+                    }
+                    let totalVenta = cantidadAVender * precio;
+                    let cash = Number(data.cash || 0) + Number(totalVenta);
+                    if (!data.transactions) data.transactions = [];
+                    data.transactions.push({
+                        id: Date.now(),
+                        type: `Venta Cripto (${formatCryptoQty(cantidadAVender)}x ${id})`,
+                        total: Number(totalVenta),
+                        timestamp: new Date().toLocaleString()
+                    });
+                    transaction.update(userRef, {
+                        cash: Number(cash.toFixed(2)),
+                        portfolio_crypto: portfolio,
+                        transactions: data.transactions,
+                        last_active: Date.now()
+                    });
+                    state.cash = cash;
+                    state.portfolio_crypto = portfolio;
+                    state.transactions = data.transactions;
+                });
+                renderAll();
+                showModal("¡Venta Exitosa!", `Has vendido ${formatCryptoQty(cantidadAVender)} ${id} por ${formatNumber(cantidadAVender * precio)}.`);
+            } catch (e) {
+                if (e.message === "Sin tenencias") {
+                    showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender.`);
+                } else {
+                    console.error("Error en venta:", e);
+                    showModal("Error", "No se pudo procesar la venta en el servidor.");
+                }
+            }
+        }
+
+        async function comprarAccion(id, precio) {
+            if (!currentUserUid || !window.db) return;
+            let input = document.getElementById(`input-stock-qty-${id}`);
+            let cantidadAComprar = input ? parseInt(input.value) : NaN;
+            if (isNaN(cantidadAComprar) || cantidadAComprar <= 0) {
+                showModal("Cantidad Inválida", "Por favor ingresa un número entero válido o presiona 'Max Compra'.");
+                return;
+            }
+            let costoTotalCompra = cantidadAComprar * precio;
+            try {
+                const { doc, runTransaction } = window.fb;
+                const userRef = doc(window.db, "partidas", currentUserUid);
+                await runTransaction(window.db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) return;
+                    let data = userDoc.data();
+                    let cash = Number(data.cash || 0);
+                    cash -= costoTotalCompra;
+                    if (!data.portfolio_stocks) data.portfolio_stocks = {};
+                    if (!data.portfolio_stocks[id]) {
+                        data.portfolio_stocks[id] = { cantidad: 0, costoTotal: 0 };
+                    }
+                    data.portfolio_stocks[id].cantidad += cantidadAComprar;
+                    data.portfolio_stocks[id].costoTotal += Number(costoTotalCompra);
+                    if (!data.transactions) data.transactions = [];
+                    data.transactions.push({
+                        id: Date.now(),
+                        type: `Compra Acciones (${cantidadAComprar}x ${id})`,
+                        total: -costoTotalCompra,
+                        timestamp: new Date().toLocaleString()
+                    });
+                    transaction.update(userRef, {
+                        cash: Number(cash.toFixed(2)),
+                        portfolio_stocks: data.portfolio_stocks,
+                        transactions: data.transactions,
+                        last_active: Date.now()
+                    });
+                    state.cash = cash;
+                    state.portfolio_stocks = data.portfolio_stocks;
+                    state.transactions = data.transactions;
+                });
+                renderAll();
+                showModal("¡Compra Exitosa!", `Has comprado ${cantidadAComprar} unidades de ${id} por ${formatNumber(costoTotalCompra)}.`);
+            } catch (e) {
+                console.error("Error en compra de acciones:", e);
+                showModal("Error", "No se pudo procesar la compra.");
+            }
+        }
+
+        async function venderAccion(id, precio) {
+            if (!currentUserUid || !window.db) return;
+            let input = document.getElementById(`input-stock-qty-${id}`);
+            let cantidadAVender = input ? parseInt(input.value) : NaN;
+            if (isNaN(cantidadAVender) || cantidadAVender <= 0) {
+                showModal("Cantidad Inválida", "Por favor ingresa un número entero válido o presiona 'Max Venta'.");
+                return;
+            }
+            let asset = state.portfolio_stocks[id];
+            if (!asset || asset.cantidad < cantidadAVender) {
+                showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender.`);
+                return;
+            }
+            try {
+                const { doc, runTransaction } = window.fb;
+                const userRef = doc(window.db, "partidas", currentUserUid);
+                await runTransaction(window.db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) return;
+                    let data = userDoc.data();
+                    let portfolio = data.portfolio_stocks || {};
+                    let targetAsset = portfolio[id];
+                    if (!targetAsset || targetAsset.cantidad < cantidadAVender) {
+                        throw new Error("Sin tenencias");
+                    }
+                    let costoPromedioUnitario = targetAsset.costoTotal / targetAsset.cantidad;
+                    let costoReducido = costoPromedioUnitario * cantidadAVender;
+                    targetAsset.cantidad -= cantidadAVender;
+                    targetAsset.costoTotal -= costoReducido;
+                    if (targetAsset.cantidad <= 0) {
+                        delete portfolio[id];
+                    }
+                    let totalVenta = cantidadAVender * precio;
+                    let cash = Number(data.cash || 0) + Number(totalVenta);
+                    if (!data.transactions) data.transactions = [];
+                    data.transactions.push({
+                        id: Date.now(),
+                        type: `Venta Acciones (${cantidadAVender}x ${id})`,
+                        total: Number(totalVenta),
+                        timestamp: new Date().toLocaleString()
+                    });
+                    transaction.update(userRef, {
+                        cash: Number(cash.toFixed(2)),
+                        portfolio_stocks: portfolio,
+                        transactions: data.transactions,
+                        last_active: Date.now()
+                    });
+                    state.cash = cash;
+                    state.portfolio_stocks = portfolio;
+                    state.transactions = data.transactions;
+                });
+                renderAll();
+                showModal("¡Venta Exitosa!", `Has vendido ${cantidadAVender} unidades de ${id} por ${formatNumber(cantidadAVender * precio)}.`);
+            } catch (e) {
+                if (e.message === "Sin tenencias") {
+                    showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender.`);
+                } else {
+                    console.error("Error en venta:", e);
+                    showModal("Error", "No se pudo procesar la venta.");
+                }
+            }
+        }
+
+        async function cobrarDividendosAcciones() {
+            if (!currentUserUid || !window.db) return;
+            try {
+                const { doc, runTransaction } = window.fb;
+                const userRef = doc(window.db, "partidas", currentUserUid);
+                let montoCobrado = 0;
+                await runTransaction(window.db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) throw new Error("No existe la partida");
+                    let data = userDoc.data();
+                    let pendingDiv = Number(data.pending_dividends || 0);
+                    if (pendingDiv <= 0) {
+                        throw new Error("Sin dividendos");
+                    }
+                    montoCobrado = pendingDiv;
+                    let cash = Number(data.cash || 0) + montoCobrado;
+                    let listaTransacciones = Array.isArray(data.transactions) ? data.transactions : [];
+                    listaTransacciones.push({
+                        id: Date.now(),
+                        type: `Cobro de Dividendos`,
+                        total: Number(montoCobrado.toFixed(2)),
+                        timestamp: new Date().toLocaleString()
+                    });
+                    transaction.update(userRef, {
+                        cash: Number(cash.toFixed(2)),
+                        pending_dividends: 0,
+                        transactions: listaTransacciones,
+                        last_active: Date.now()
+                    });
+                    state.cash = cash;
+                    state.pending_dividends = 0;
+                    state.transactions = listaTransacciones;
+                });
+                renderAll();
+                showModal("¡Dividendos Cobrados!", `Has reclamado exitosamente ${formatNumber(montoCobrado)} a tu efectivo disponible.`);
+            } catch (e) {
+                if (e.message === "Sin dividendos") {
+                    showModal("Sin dividendos", "No tienes dividendos acumulados para cobrar.");
+                } else {
+                    console.error("Error al cobrar dividendos:", e);
+                    showModal("Error", "No se pudo procesar el cobro.");
+                }
             }
         }
 
         // ============================================================
-        // 13. FUNCIONES DE AUTENTICACIÓN
+        // 10. RENDERIZADO
+        // ============================================================
+        function renderMarketTable() {
+            const tbody = document.getElementById('marketBody');
+            if (!tbody) return;
+            if (cryptoListCache.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay criptomonedas cargadas.</td></tr>`;
+                return;
+            }
+            let sortedList = [...cryptoListCache];
+            if (marketSortField) {
+                sortedList.sort((a, b) => {
+                    let valA, valB;
+                    if (marketSortField === 'nombre') {
+                        valA = (a.nombre || a.id).toLowerCase();
+                        valB = (b.nombre || b.id).toLowerCase();
+                        return marketSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    } else if (marketSortField === 'precio') {
+                        valA = Number(a.precio || 0);
+                        valB = Number(b.precio || 0);
+                        return marketSortAsc ? valA - valB : valB - valA;
+                    }
+                });
+            }
+            if (preferredMarketAsset) {
+                let index = sortedList.findIndex(c => c.id === preferredMarketAsset);
+                if (index > -1) {
+                    let item = sortedList.splice(index, 1)[0];
+                    sortedList.unshift(item);
+                }
+            }
+            tbody.innerHTML = sortedList.map(crypto => `
+                <tr ${crypto.id === preferredMarketAsset ? 'style="background:rgba(241,196,15,0.08); border-left:3px solid #f1c40f;"' : ''}>
+                    <td><strong>${crypto.nombre || crypto.id}</strong></td>
+                    <td>${formatCryptoPrice(crypto.precio)}</td>
+                    <td>
+                        <button class="btn-max-buy" onclick="setearMaxCompra('${crypto.id}', ${crypto.precio})">Max Compra</button>
+                        <input type="number" id="input-qty-${crypto.id}" class="market-input" placeholder="Cantidad" step="any" min="0">
+                        <button class="btn-max-sell" onclick="setearMaxVenta('${crypto.id}')">Max Venta</button>
+                    </td>
+                    <td>
+                        <button class="btn-buy" onclick="comprarCripto('${crypto.id}', ${crypto.precio})">Comprar</button>
+                        <button class="btn-sell" onclick="venderCripto('${crypto.id}', ${crypto.precio})">Venta</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderStocksTables() {
+            const bvcBody = document.getElementById('stocksBvcBody');
+            const usBody = document.getElementById('stocksUsBody');
+            const euBody = document.getElementById('stocksEuBody');
+            if (!bvcBody || !usBody || !euBody) return;
+            if (stocksListCache.length === 0) {
+                bvcBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
+                usBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
+                euBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
+                return;
+            }
+            let bvcItems = stocksListCache.filter(s => s.mercado === 'BVC');
+            let usItems = stocksListCache.filter(s => s.mercado === 'Wall Street');
+            let euItems = stocksListCache.filter(s => s.mercado === 'Europa');
+            bvcBody.innerHTML = bvcItems.length ? ordenarYRenderizarAccionesMercado(bvcItems, 'BVC') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en BVC</td></tr>`;
+            usBody.innerHTML = usItems.length ? ordenarYRenderizarAccionesMercado(usItems, 'Wall Street') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Wall Street</td></tr>`;
+            euBody.innerHTML = euItems.length ? ordenarYRenderizarAccionesMercado(euItems, 'Europa') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Europa</td></tr>`;
+        }
+
+        function ordenarYRenderizarAccionesMercado(items, mercadoNombre) {
+            let sorted = [...items];
+            let sortConfig = stocksSortFields[mercadoNombre];
+            if (sortConfig.field) {
+                sorted.sort((a, b) => {
+                    let valA, valB;
+                    if (sortConfig.field === 'nombre') {
+                        valA = (a.nombre || a.id).toLowerCase();
+                        valB = (b.nombre || b.id).toLowerCase();
+                        return sortConfig.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    } else if (sortConfig.field === 'precio') {
+                        valA = Number(a.precio || 0);
+                        valB = Number(b.precio || 0);
+                        return sortConfig.asc ? valA - valB : valB - valA;
+                    }
+                });
+            }
+            if (preferredStockAsset) {
+                let index = sorted.findIndex(s => s.id === preferredStockAsset);
+                if (index > -1) {
+                    let item = sorted.splice(index, 1)[0];
+                    sorted.unshift(item);
+                }
+            }
+            return sorted.map(stock => `
+                <tr ${stock.id === preferredStockAsset ? 'style="background:rgba(241,196,15,0.08); border-left:3px solid #f1c40f;"' : ''}>
+                    <td><strong>${stock.nombre || stock.id}</strong></td>
+                    <td>${formatStockPrice(stock.precio)}</td>
+                    <td>
+                        <button class="btn-max-buy" onclick="setearMaxCompraStock('${stock.id}', ${stock.precio})">Max Compra</button>
+                        <input type="number" id="input-stock-qty-${stock.id}" class="market-input" placeholder="Cantidad" step="1" min="1">
+                        <button class="btn-max-sell" onclick="setearMaxVentaStock('${stock.id}')">Max Venta</button>
+                    </td>
+                    <td>
+                        <button class="btn-buy" onclick="comprarAccion('${stock.id}', ${stock.precio})">Comprar</button>
+                        <button class="btn-sell" onclick="venderAccion('${stock.id}', ${stock.precio})">Venta</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPortfolioCryptoTable() {
+            const tbody = document.getElementById('portfolioCryptoBody');
+            if (!tbody) return;
+            const cryptoPortfolio = state.portfolio_crypto || {};
+            let keys = Object.keys(cryptoPortfolio);
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>`;
+                return;
+            }
+            let items = keys.map(id => {
+                const item = cryptoPortfolio[id];
+                const cantidad = item.cantidad || 0;
+                const costoTotal = item.costoTotal || 0;
+                const precioPromedio = cantidad > 0 ? costoTotal / cantidad : 0;
+                const cryptoObj = cryptoListCache.find(c => c.id === id);
+                const precioActual = cryptoObj ? cryptoObj.precio : precioPromedio;
+                const posicion = cantidad * precioActual;
+                const gp = posicion - costoTotal;
+                const roi = costoTotal > 0 ? (gp / costoTotal) * 100 : 0;
+                return { id, cantidad, precioPromedio, precioActual, posicion, gp, roi };
+            });
+            // Ordenar
+            if (portfolioSortField) {
+                items.sort((a, b) => {
+                    let valA = a[portfolioSortField] || 0;
+                    let valB = b[portfolioSortField] || 0;
+                    if (typeof valA === 'string') valA = valA.toLowerCase();
+                    if (typeof valB === 'string') valB = valB.toLowerCase();
+                    return portfolioSortAsc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+                });
+            }
+            tbody.innerHTML = items.map(item => {
+                const gpClass = item.gp >= 0 ? 'text-green' : 'text-red';
+                const roiClass = item.roi >= 0 ? 'text-green' : 'text-red';
+                return `
+                    <tr>
+                        <td><strong class="clickable-asset" onclick="navegarAMercado('${item.id}')">${item.id}</strong></td>
+                        <td>${formatCryptoQty(item.cantidad)}</td>
+                        <td>${formatCryptoPrice(item.precioActual)}</td>
+                        <td>${formatCryptoPrice(item.precioPromedio)}</td>
+                        <td><strong>${formatNumber(item.posicion)}</strong></td>
+                        <td class="${gpClass}">${item.gp >= 0 ? '+' : ''}${formatNumber(item.gp)}</td>
+                        <td class="${roiClass}">${item.roi >= 0 ? '+' : ''}${item.roi.toFixed(2)}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderPortfolioStocksTable() {
+            const tbody = document.getElementById('portfolioStocksBody');
+            if (!tbody) return;
+            const stocksPortfolio = state.portfolio_stocks || {};
+            let keys = Object.keys(stocksPortfolio);
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No tienes acciones en cartera.</td></tr>`;
+                return;
+            }
+            let items = keys.map(id => {
+                const item = stocksPortfolio[id];
+                const cantidad = item.cantidad || 0;
+                const costoTotal = item.costoTotal || 0;
+                const precioPromedio = cantidad > 0 ? costoTotal / cantidad : 0;
+                const stockObj = stocksListCache.find(s => s.id === id);
+                const precioActual = stockObj ? stockObj.precio : precioPromedio;
+                const posicion = cantidad * precioActual;
+                const gp = posicion - costoTotal;
+                const roi = costoTotal > 0 ? (gp / costoTotal) * 100 : 0;
+                return { id, cantidad, precioPromedio, precioActual, posicion, gp, roi };
+            });
+            tbody.innerHTML = items.map(item => {
+                const gpClass = item.gp >= 0 ? 'text-green' : 'text-red';
+                const roiClass = item.roi >= 0 ? 'text-green' : 'text-red';
+                return `
+                    <tr>
+                        <td><strong class="clickable-asset" onclick="navegarAStockMercado('${item.id}')">${item.id}</strong></td>
+                        <td>${item.cantidad}</td>
+                        <td>${formatStockPrice(item.precioActual)}</td>
+                        <td>${formatStockPrice(item.precioPromedio)}</td>
+                        <td><strong>${formatNumber(item.posicion)}</strong></td>
+                        <td class="${gpClass}">${item.gp >= 0 ? '+' : ''}${formatNumber(item.gp)}</td>
+                        <td class="${roiClass}">${item.roi >= 0 ? '+' : ''}${item.roi.toFixed(2)}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderAll() {
+            const cashEl = document.getElementById('cashDisplay');
+            cashEl.textContent = formatNumber(state.cash);
+            if (state.cash < 0) cashEl.className = 'text-red';
+            else cashEl.className = '';
+
+            document.getElementById('pendingDividendsDisplay').textContent = formatNumber(state.pending_dividends);
+
+            let totalCryptoWorth = 0;
+            for (let id in state.portfolio_crypto) {
+                let item = state.portfolio_crypto[id];
+                let cryptoObj = cryptoListCache.find(c => c.id === id);
+                let precio = cryptoObj ? cryptoObj.precio : (item.costoTotal / item.cantidad);
+                totalCryptoWorth += item.cantidad * precio;
+            }
+            let totalStocksWorth = 0;
+            for (let id in state.portfolio_stocks) {
+                let item = state.portfolio_stocks[id];
+                let stockObj = stocksListCache.find(s => s.id === id);
+                let precio = stockObj ? stockObj.precio : (item.costoTotal / item.cantidad);
+                totalStocksWorth += item.cantidad * precio;
+            }
+            const patrimonioTotal = state.cash + totalCryptoWorth + totalStocksWorth;
+            document.getElementById('netWorthDisplay').textContent = formatNumber(patrimonioTotal);
+
+            const jobData = getCurrentJobData();
+            let costToNext = jobData.cost;
+            if (configEmpleosNiveles && configEmpleosNiveles[state.job.level + 1]) {
+                costToNext = Number(configEmpleosNiveles[state.job.level + 1].costo);
+            }
+            document.getElementById('portfolioSummary').innerHTML = `
+                <div>💵 Efectivo: <strong class="${state.cash < 0 ? 'text-red' : ''}">${formatNumber(state.cash)}</strong></div>
+                <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(jobData.salary)}/min bruto)</div>
+                <button class="btn-collect-dividends" onclick="upgradeJob()">📈 Mejorar Empleo (${formatNumber(costToNext)})</button>
+            `;
+
+            const b = state.businesses[0];
+            document.getElementById('businessSummary').innerHTML = `<div>Negocio Activo - Nivel: ${b.level}</div>`;
+            document.getElementById('businessList').innerHTML = `
+                <div class="business-card">
+                    <h3>Puesto de Limonada</h3>
+                    <p>Nivel actual: ${b.level}</p>
+                    <button class="btn-upgrade-business" onclick="upgradeBusiness()">Mejorar</button>
+                </div>
+            `;
+
+            const tbody = document.getElementById('historyBody');
+            tbody.innerHTML = (state.transactions || []).slice(-10).reverse().map(tx => {
+                const isNegative = Number(tx.total) < 0;
+                const totalClass = isNegative ? 'text-red' : 'text-green';
+                return `<tr><td>${tx.timestamp}</td><td>${tx.type}</td><td class="${totalClass}">${formatNumber(tx.total)}</td></tr>`;
+            }).join('');
+
+            renderPortfolioCryptoTable();
+            renderPortfolioStocksTable();
+            renderMarketTable();
+            renderStocksTables();
+        }
+
+        // ============================================================
+        // 11. NAVEGACIÓN ENTRE PESTAÑAS
+        // ============================================================
+        function navegarAMercado(assetId) {
+            preferredMarketAsset = assetId;
+            preferredStockAsset = null;
+            document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            const marketTabBtn = document.querySelector('.main-tabs button[data-section="market"]');
+            if (marketTabBtn) marketTabBtn.classList.add('active');
+            document.getElementById('marketSection').classList.add('active');
+            document.querySelectorAll('.market-sub-tabs button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.market-sub-section').forEach(s => s.classList.remove('active'));
+            document.querySelector('.market-sub-tabs button[data-market-sub="spot"]').classList.add('active');
+            document.getElementById('spotMarketSub').classList.add('active');
+            cargarMercadoCripto();
+        }
+
+        function navegarAStockMercado(stockId) {
+            preferredStockAsset = stockId;
+            preferredMarketAsset = null;
+            document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            const marketTabBtn = document.querySelector('.main-tabs button[data-section="market"]');
+            if (marketTabBtn) marketTabBtn.classList.add('active');
+            document.getElementById('marketSection').classList.add('active');
+            document.querySelectorAll('.market-sub-tabs button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.market-sub-section').forEach(s => s.classList.remove('active'));
+            document.querySelector('.market-sub-tabs button[data-market-sub="stocks"]').classList.add('active');
+            document.getElementById('stocksMarketSub').classList.add('active');
+            cargarMercadoAcciones();
+        }
+
+        // ============================================================
+        // 12. ORDENAMIENTO
+        // ============================================================
+        function sortMarket(field) {
+            if (marketSortField === field) marketSortAsc = !marketSortAsc;
+            else { marketSortField = field; marketSortAsc = true; }
+            renderMarketTable();
+        }
+
+        function sortStocksMarket(mercado, field) {
+            let current = stocksSortFields[mercado];
+            if (current.field === field) current.asc = !current.asc;
+            else { current.field = field; current.asc = true; }
+            renderStocksTables();
+        }
+
+        function sortPortfolio(field) {
+            if (portfolioSortField === field) portfolioSortAsc = !portfolioSortAsc;
+            else { portfolioSortField = field; portfolioSortAsc = true; }
+            renderPortfolioCryptoTable();
+        }
+
+        // ============================================================
+        // 13. MEJORAR EMPLEO / NEGOCIO
+        // ============================================================
+        function upgradeJob() {
+            if (!configEmpleosNiveles || !configEmpleosNiveles[state.job.level + 1]) {
+                showModal("Límite alcanzado", "Has llegado al nivel máximo de empleo disponible.");
+                return;
+            }
+            const costToUpgrade = Number(configEmpleosNiveles[state.job.level + 1].costo);
+            if (state.cash < costToUpgrade) {
+                showModal("Fondos insuficientes", "No tienes suficiente efectivo para mejorar el empleo.");
+                return;
+            }
+            state.cash -= costToUpgrade;
+            state.job.level += 1;
+            saveUserDataToFirebase();
+            renderAll();
+            showModal("¡Mejora Exitosa!", `Has ascendido a Nivel ${state.job.level}`);
+        }
+
+        function upgradeBusiness() {
+            const cost = 500 * Math.pow(2, state.businesses[0].level);
+            if (state.cash < cost) {
+                showModal("Fondos insuficientes", "No tienes suficiente efectivo.");
+                return;
+            }
+            state.cash -= cost;
+            state.businesses[0].level += 1;
+            saveUserDataToFirebase();
+            renderAll();
+            showModal("Negocio Mejorado", `Nivel actual: ${state.businesses[0].level}`);
+        }
+
+        function resetGameData() {
+            if (confirm("¿Seguro que deseas reiniciar tu partida?")) {
+                state = { cash: 100, pending_dividends: 0, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, portfolio_stocks: {} };
+                saveUserDataToFirebase();
+                renderAll();
+                toggleSettings(false);
+            }
+        }
+
+        // ============================================================
+        // 14. CONFIGURACIÓN (panel)
+        // ============================================================
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const settingsOverlay = document.getElementById('settingsOverlay');
+
+        function toggleSettings(show) {
+            settingsPanel.classList.toggle('active', show);
+            settingsOverlay.classList.toggle('active', show);
+        }
+        settingsToggle.addEventListener('click', () => toggleSettings(true));
+        settingsOverlay.addEventListener('click', () => toggleSettings(false));
+
+        // ============================================================
+        // 15. PESTAÑAS PRINCIPALES Y SUBPESTAÑAS
+        // ============================================================
+        document.querySelectorAll('.main-tabs button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(this.dataset.section + 'Section').classList.add('active');
+                if (this.dataset.section === 'market') {
+                    preferredMarketAsset = null;
+                    preferredStockAsset = null;
+                    cargarMercadoCripto();
+                    cargarMercadoAcciones();
+                }
+            });
+        });
+
+        document.querySelectorAll('.market-sub-tabs button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.market-sub-tabs button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.market-sub-section').forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+                const subName = this.dataset.marketSub;
+                document.getElementById(subName + 'MarketSub').classList.add('active');
+                if (subName === 'spot') {
+                    preferredMarketAsset = null;
+                    cargarMercadoCripto();
+                } else if (subName === 'stocks') {
+                    preferredStockAsset = null;
+                    cargarMercadoAcciones();
+                }
+            });
+        });
+
+        // ============================================================
+        // 16. AUTENTICACIÓN
         // ============================================================
         function toggleAuthMode() {
             isRegistering = !isRegistering;
@@ -724,14 +1307,12 @@
 
         async function logoutUser() {
             try {
-                // Guardar antes de salir
                 await saveUserDataToFirebase();
                 await saveCryptoPrices();
                 await saveStockPrices();
                 if (gameInterval) clearInterval(gameInterval);
                 if (marketInterval) clearInterval(marketInterval);
                 if (stockMarketInterval) clearInterval(stockMarketInterval);
-                if (dividendInterval) clearInterval(dividendInterval);
                 if (saveInterval) clearInterval(saveInterval);
                 currentUserUid = null;
                 await window.fb.signOut(window.auth);
@@ -739,8 +1320,75 @@
         }
 
         // ============================================================
-        // 14. INICIALIZACIÓN
+        // 17. INICIO Y CARGA DE DATOS
         // ============================================================
+        async function loadUserData(uid) {
+            try {
+                state = { cash: 100, pending_dividends: 0, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, portfolio_stocks: {} };
+                await loadJobConfigFromFirebase();
+                const { doc, getDoc, setDoc } = window.fb;
+                const userRef = doc(window.db, "partidas", uid);
+                const snap = await getDoc(userRef);
+
+                await cargarMercadoCripto();
+                await cargarMercadoAcciones();
+
+                if (snap.exists()) {
+                    const data = snap.data();
+                    state.cash = (data.cash !== undefined && data.cash !== null) ? Number(data.cash) : 100;
+                    state.pending_dividends = Number(data.pending_dividends || 0);
+                    state.transactions = data.transactions || [];
+                    state.job = data.job || { level: 0, active: true };
+                    state.businesses = data.businesses || [{ id: 'b1', level: 0 }];
+                    let rawCrypto = data.portfolio_crypto || {};
+                    let formattedCrypto = {};
+                    for (let key in rawCrypto) {
+                        if (typeof rawCrypto[key] === 'number') {
+                            formattedCrypto[key] = { cantidad: rawCrypto[key], costoTotal: rawCrypto[key] * 100 };
+                        } else {
+                            formattedCrypto[key] = rawCrypto[key];
+                        }
+                    }
+                    state.portfolio_crypto = formattedCrypto;
+                    state.portfolio_stocks = data.portfolio_stocks || {};
+
+                    if (data.last_active) {
+                        let lastActiveTime = (typeof data.last_active.toDate === 'function') ? data.last_active.toDate().getTime() : Number(data.last_active);
+                        if (!lastActiveTime || lastActiveTime < 1000000000000) lastActiveTime = Date.now();
+                        const nowTime = Date.now();
+                        let diffMinutes = Math.floor((nowTime - lastActiveTime) / 60000);
+                        if (diffMinutes > 10080) diffMinutes = 10080;
+                        if (diffMinutes > 0 && Object.keys(state.portfolio_stocks).length > 0) {
+                            let dividendosOffline = 0;
+                            for (let stockId in state.portfolio_stocks) {
+                                let tenencia = state.portfolio_stocks[stockId];
+                                let cantidad = tenencia.cantidad || 0;
+                                if (cantidad > 0) {
+                                    let stockObj = stocksListCache.find(s => s.id === stockId);
+                                    let precioActual = stockObj ? stockObj.precio : 100;
+                                    let factor = 0.00001 + Math.random() * (0.000015 - 0.00001);
+                                    dividendosOffline += (cantidad * precioActual) * factor * diffMinutes;
+                                }
+                            }
+                            if (dividendosOffline > 0) {
+                                state.pending_dividends += dividendosOffline;
+                                mostrarModalFinanciero(`🏢 Mientras estabas fuera (${diffMinutes} min), tus acciones generaron ${formatNumber(dividendosOffline)} en dividendos.`);
+                            }
+                        }
+                    }
+                }
+
+                startVisualCryptoCycle();
+                startVisualStockCycle();
+                startFinancialAndDividendCycle();
+                startPeriodicSave();
+
+                renderAll();
+            } catch (e) {
+                console.error("Error al cargar datos:", e);
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 if (window.fb && window.auth) {
@@ -752,13 +1400,10 @@
                             loadUserData(user.uid);
                         } else {
                             currentUserUid = null;
-                            // Limpiar intervalos
                             if (gameInterval) clearInterval(gameInterval);
                             if (marketInterval) clearInterval(marketInterval);
                             if (stockMarketInterval) clearInterval(stockMarketInterval);
-                            if (dividendInterval) clearInterval(dividendInterval);
                             if (saveInterval) clearInterval(saveInterval);
-                            // Resetear estado visual
                             state = { cash: 100, pending_dividends: 0, title: 'RichMan Web', transactions: [], job: { level: 0, active: true }, businesses: [{ id: 'b1', level: 0 }], portfolio_crypto: {}, portfolio_stocks: {} };
                             document.getElementById('portfolioCryptoBody').innerHTML = `<tr><td colspan="7" style="text-align:center;">No tienes criptomonedas en cartera.</td></tr>`;
                             document.getElementById('portfolioStocksBody').innerHTML = `<tr><td colspan="7" style="text-align:center;">No tienes acciones en cartera.</td></tr>`;
@@ -771,33 +1416,7 @@
             }, 500);
         });
 
-        // ============================================================
-        // 15. RESTAURAR FUNCIONES FALTANTES (compra/venta, renderizado, etc.)
-        //     Estas funciones ya las tienes en tu código actual.
-        //     Solo asegúrate de que usen las variables cryptoListCache y stocksListCache.
-        //     Las incluyo aquí de forma resumida (debes copiar las que ya tienes)
-        // ============================================================
-        // (A continuación, pega TODAS las funciones de tu versión anterior:
-        //  - renderMarketTable, renderStocksTables, renderPortfolioCryptoTable, renderPortfolioStocksTable, renderAll
-        //  - sortMarket, sortStocksMarket, sortPortfolio
-        //  - comprarCripto, venderCripto, comprarAccion, venderAccion
-        //  - cobrarDividendosAcciones
-        //  - setearMaxCompra, setearMaxVenta, setearMaxCompraStock, setearMaxVentaStock
-        //  - navegarAMercado, navegarAStockMercado
-        //  - upgradeJob, upgradeBusiness, resetGameData
-        //  - toggleSettings
-        //  - etc.
-        // )
-
-        // ============================================================
-        // 16. EJEMPLO DE FUNCIONES (SOLO PARA QUE NO FALTE NADA)
-        //     REEMPLAZA ESTO CON TU CÓDIGO COMPLETO DE FUNCIONES
-        // ============================================================
-        // (Como el mensaje es muy largo, te pido que copies las funciones de tu archivo actual
-        //  y las pegues aquí. Yo solo he modificado los ciclos de actualización y el guardado.
-        //  El resto es idéntico.)
-
-        console.log("✅ Juego actualizado con actualización visual cada minuto y guardado cada 5 minutos.");
+        console.log("🚀 Juego actualizado: precios se actualizan visualmente cada minuto y se guardan en Firebase cada 5 min.");
     </script>
 </body>
 </html>

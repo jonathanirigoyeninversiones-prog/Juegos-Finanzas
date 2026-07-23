@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>333333 RichMan Web - Mi Cartera</title>
+    <title>333 RichMan Web - Mi Cartera</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -28,6 +28,7 @@
         window.fb = { doc, setDoc, getDoc, runTransaction, collection, getDocs, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     </script>
     <style>
+        /* ====== ESTILOS SIN CAMBIOS (son los mismos que tenías) ====== */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Roboto,Arial,Helvetica,sans-serif; }
         body { background:#0b0e14; color:#e0e6ed; padding:2vw; min-height:100vh; display:flex; justify-content:center; align-items:flex-start; overflow-x:auto; }
         #authScreen { width:100%; max-width:400px; background:#121824; padding:2rem; border-radius:12px; border:1px solid #212d3f; text-align:center; margin:auto; }
@@ -325,7 +326,7 @@
     let marketVisualInterval = null;   // actualización visual de cripto (cada minuto)
     let stockVisualInterval = null;    // actualización visual de acciones (cada minuto)
     let dividendInterval = null;       // acumulación de dividendos (cada minuto)
-    let saveInterval = null;           // guardado en Firebase (cada 5 minutos)
+    let saveInterval = null;           // guardado en Firebase (cada 10 minutos)
     let sesionVerificationInterval = null;
 
     let configEmpleosNiveles = [];
@@ -472,7 +473,7 @@
     }
 
     // ============================================================
-    // 4. FUNCIONES DE GUARDADO EN FIREBASE
+    // 4. FUNCIONES DE GUARDADO EN FIREBASE (CADA 10 MINUTOS)
     // ============================================================
     async function saveUserDataToFirebase() {
         if (!currentUserUid || !window.db) return;
@@ -482,7 +483,7 @@
                 ...state,
                 last_active: Date.now()
             }, { merge: true });
-            console.log("✅ Datos de usuario guardados en Firebase");
+            console.log("✅ Datos de usuario guardados en Firebase (cada 10 min)");
         } catch (e) { console.error("❌ Error al guardar en Firebase:", e); }
     }
 
@@ -493,7 +494,7 @@
             const precios = {};
             cryptoListCache.forEach(item => { precios[item.id] = item.precio; });
             await setDoc(doc(window.db, "mercado_cripto", "precios"), precios, { merge: true });
-            console.log("✅ Precios de cripto guardados en Firebase (documento único)");
+            console.log("✅ Precios de cripto guardados en Firebase (documento único) - cada 10 min");
         } catch (e) { console.error("❌ Error guardando precios cripto:", e); }
     }
 
@@ -504,7 +505,7 @@
             const precios = {};
             stocksListCache.forEach(item => { precios[item.id] = item.precio; });
             await setDoc(doc(window.db, "mercado_acciones", "precios"), precios, { merge: true });
-            console.log("✅ Precios de acciones guardados en Firebase (documento único)");
+            console.log("✅ Precios de acciones guardados en Firebase (documento único) - cada 10 min");
         } catch (e) { console.error("❌ Error guardando precios acciones:", e); }
     }
 
@@ -784,7 +785,7 @@
     }
 
     // ============================================================
-    // 6. CARGA DE MERCADO (CRIPTO Y ACCIONES)
+    // 6. CARGA DE MERCADO (CRIPTO Y ACCIONES) - CON CORRECCIÓN DE MERCADO
     // ============================================================
     async function cargarMercadoCripto() {
         try {
@@ -818,22 +819,41 @@
         } catch (e) { console.error("Error al cargar mercado cripto:", e); }
     }
 
+    // ====== FUNCIÓN CORREGIDA PARA ASIGNAR MERCADO AUTOMÁTICAMENTE ======
     async function cargarMercadoAcciones() {
         try {
             const { collection, getDocs, doc, setDoc } = window.fb;
             const querySnapshot = await getDocs(collection(window.db, "mercado_acciones"));
+            
+            // Listas de símbolos conocidos por mercado
+            const wallStreetSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NFLX', 'NVDA', 'JPM', 'V',
+                                       'WMT', 'PG', 'JNJ', 'HD', 'BAC', 'DIS', 'MA', 'PFE', 'TMO', 'ABT',
+                                       'KO', 'PEP', 'XOM', 'CVX', 'UNH', 'PM', 'IBM', 'ORCL', 'CRM', 'ADBE'];
+            const europaSymbols = ['SAP', 'ASML', 'NOVO', 'LVMH', 'TOTAL', 'SAN', 'BNP', 'AIR', 'ENEL', 'ING',
+                                   'DHL', 'BASF', 'BAYER', 'BMW', 'VW', 'SIEMENS', 'ADIDAS', 'ZARA', 'IBERDROLA', 'REPSOL',
+                                   'ALSTOM', 'AXA', 'CAP', 'DANONE', 'ESSILOR', 'HERMES', 'KERING', 'LOREAL', 'MICHELIN', 'PERNOD'];
+
             if (querySnapshot.empty) {
+                // Inicializar con datos por defecto (todos con mercado asignado)
                 const inicial = [
+                    // BVC (20 empresas)
                     { id: 'BVC-A', nombre: 'BVC-A', mercado: 'BVC', precio: 120, historial_velas: [] },
                     { id: 'BVC-B', nombre: 'BVC-B', mercado: 'BVC', precio: 85, historial_velas: [] },
                     { id: 'BVC-C', nombre: 'BVC-C', mercado: 'BVC', precio: 200, historial_velas: [] },
                     { id: 'BVC-D', nombre: 'BVC-D', mercado: 'BVC', precio: 45, historial_velas: [] },
                     { id: 'BVC-E', nombre: 'BVC-E', mercado: 'BVC', precio: 310, historial_velas: [] },
+                    { id: 'BVC-F', nombre: 'BVC-F', mercado: 'BVC', precio: 90, historial_velas: [] },
+                    { id: 'BVC-G', nombre: 'BVC-G', mercado: 'BVC', precio: 150, historial_velas: [] },
+                    { id: 'BVC-H', nombre: 'BVC-H', mercado: 'BVC', precio: 60, historial_velas: [] },
+                    { id: 'BVC-I', nombre: 'BVC-I', mercado: 'BVC', precio: 210, historial_velas: [] },
+                    { id: 'BVC-J', nombre: 'BVC-J', mercado: 'BVC', precio: 130, historial_velas: [] },
+                    // Wall Street (ejemplos)
                     { id: 'AAPL', nombre: 'AAPL', mercado: 'Wall Street', precio: 175, historial_velas: [] },
                     { id: 'MSFT', nombre: 'MSFT', mercado: 'Wall Street', precio: 330, historial_velas: [] },
                     { id: 'GOOGL', nombre: 'GOOGL', mercado: 'Wall Street', precio: 140, historial_velas: [] },
                     { id: 'AMZN', nombre: 'AMZN', mercado: 'Wall Street', precio: 185, historial_velas: [] },
                     { id: 'TSLA', nombre: 'TSLA', mercado: 'Wall Street', precio: 240, historial_velas: [] },
+                    // Europa (ejemplos)
                     { id: 'SAP', nombre: 'SAP', mercado: 'Europa', precio: 130, historial_velas: [] },
                     { id: 'ASML', nombre: 'ASML', mercado: 'Europa', precio: 700, historial_velas: [] },
                     { id: 'NOVO', nombre: 'NOVO', mercado: 'Europa', precio: 80, historial_velas: [] },
@@ -852,7 +872,31 @@
             } else {
                 stocksListCache = [];
                 querySnapshot.forEach((docSnap) => {
-                    stocksListCache.push({ id: docSnap.id, ...docSnap.data() });
+                    const data = docSnap.data();
+                    let mercado = data.mercado || 'BVC'; // por defecto BVC
+                    const id = docSnap.id;
+                    
+                    // Si no tiene mercado, inferirlo por el ID
+                    if (!data.mercado) {
+                        if (wallStreetSymbols.includes(id)) {
+                            mercado = 'Wall Street';
+                        } else if (europaSymbols.includes(id)) {
+                            mercado = 'Europa';
+                        } else if (id.startsWith('BVC-') || id.startsWith('BVC_')) {
+                            mercado = 'BVC';
+                        } else {
+                            // Si no se puede inferir, mantener el que venga (o BVC por defecto)
+                            mercado = 'BVC';
+                        }
+                    }
+                    
+                    stocksListCache.push({
+                        id: id,
+                        nombre: data.nombre || id,
+                        precio: data.precio || 0,
+                        mercado: mercado,
+                        historial_velas: data.historial_velas || []
+                    });
                 });
             }
             renderStocksTables();
@@ -941,17 +985,17 @@
     }
 
     // ============================================================
-    // 9. GUARDADO PERIÓDICO EN FIREBASE (CADA 5 MINUTOS)
+    // 9. GUARDADO PERIÓDICO EN FIREBASE (CADA 10 MINUTOS)
     // ============================================================
     function startPeriodicSave() {
         if (saveInterval) clearInterval(saveInterval);
         saveInterval = setInterval(async () => {
-            console.log("⏳ Guardado periódico (5 min)");
+            console.log("⏳ Guardado periódico (10 min)");
             await saveUserDataToFirebase();
             await saveCryptoPricesToFirebase();
             await saveStockPricesToFirebase();
             console.log("✅ Guardado periódico completado");
-        }, 300000); // 5 minutos
+        }, 600000); // 10 minutos
     }
 
     // ============================================================
@@ -1529,7 +1573,7 @@
         renderMarketTable();
         renderStocksTables();
 
-        // ====== CÁLCULO DE TOTALES (INCLUYE EFECTIVO PARA QUE COINCIDA CON PATRIMONIO) ======
+        // ====== CÁLCULO DE TOTALES (INCLUYE EFECTIVO) ======
         let stocksTotal = 0, stocksGp = 0;
         for (let id in state.portfolio_stocks) {
             let item = state.portfolio_stocks[id];
@@ -1554,9 +1598,8 @@
             cryptoGp += posicion - costoTotal;
         }
 
-        // AHORA EL TOTAL INCLUYE EL EFECTIVO
         let totalGeneral = stocksTotal + cryptoTotal + state.cash;
-        let totalGp = stocksGp + cryptoGp;  // El efectivo no tiene ganancia
+        let totalGp = stocksGp + cryptoGp;
 
         const stocksTotalEl = getSafe('stocksTotalDisplay');
         if (stocksTotalEl) stocksTotalEl.textContent = formatNumber(stocksTotal);
@@ -1789,9 +1832,7 @@
                 state.portfolio_crypto = formattedCrypto;
                 state.portfolio_stocks = data.portfolio_stocks || {};
 
-                // ============================================================
-                // OFFLINE: Dividendos y Negocios (NO se suma el empleo)
-                // ============================================================
+                // OFFLINE: Dividendos y Negocios
                 if (data.last_active) {
                     let lastActiveTime = (typeof data.last_active.toDate === 'function')
                         ? data.last_active.toDate().getTime()
@@ -1959,6 +2000,9 @@
         });
     });
 
+    // ====== ELIMINADO EL EVENTO `visibilitychange` ======
+    // Ya no se guarda al cambiar de pestaña.
+
     window.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             if (window.fb && window.auth) {
@@ -2000,7 +2044,7 @@
         }, 500);
     });
 
-    console.log("🚀 Juego optimizado: cálculos en memoria cada minuto, guardado en Firebase cada 5 minutos. (Sin guardado al cambiar de pestaña)");
+    console.log("🚀 Juego optimizado: cálculos en memoria cada minuto, guardado en Firebase cada 10 minutos. (Sin guardado al cambiar de pestaña)");
 </script>
 </body>
 </html>

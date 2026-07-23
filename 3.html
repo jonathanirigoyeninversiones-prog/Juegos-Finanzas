@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>3 RichMan Web - Mi Cartera</title>
+    <title>333 RichMan Web - Mi Cartera</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -473,7 +473,7 @@
     }
 
     // ============================================================
-    // 4. FUNCIONES DE GUARDADO EN FIREBASE (CADA 10 MINUTOS)
+    // 4. FUNCIONES DE GUARDADO EN FIREBASE
     // ============================================================
     async function saveUserDataToFirebase() {
         if (!currentUserUid || !window.db) return;
@@ -1904,25 +1904,34 @@
     }
 
     // ============================================================
-    // 15. LOGOUT Y AUTENTICACIÓN
+    // 15. LOGOUT Y AUTENTICACIÓN (CORREGIDO)
     // ============================================================
     async function logoutUser() {
         try {
+            // --- FORZAR GUARDADO DEL ESTADO COMPLETO ANTES DE CERRAR SESIÓN ---
             if (currentUserUid && window.db) {
-                const { doc, setDoc } = window.fb;
-                await setDoc(doc(window.db, "partidas", currentUserUid), {
-                    last_active: Date.now()
-                }, { merge: true });
+                // Guardar datos del usuario (cash, carteras, etc.)
+                await saveUserDataToFirebase();
+                // Guardar precios de cripto y acciones
+                await saveCryptoPricesToFirebase();
+                await saveStockPricesToFirebase();
+                console.log("✅ Estado guardado antes de salir.");
             }
+
+            // Limpiar intervalos
             if (gameInterval) clearInterval(gameInterval);
             if (marketVisualInterval) clearInterval(marketVisualInterval);
             if (stockVisualInterval) clearInterval(stockVisualInterval);
             if (dividendInterval) clearInterval(dividendInterval);
             if (saveInterval) clearInterval(saveInterval);
             if (sesionVerificationInterval) clearInterval(sesionVerificationInterval);
+
+            // Cerrar sesión en Firebase Auth
             currentUserUid = null;
             await window.fb.signOut(window.auth);
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error("Error al cerrar sesión:", e);
+        }
     }
 
     function toggleAuthMode() {

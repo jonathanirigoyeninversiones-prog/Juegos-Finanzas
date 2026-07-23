@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>1000 RichMan Web - Mi Cartera</title>
+    <title>RichMan Web - Mi Cartera</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -184,7 +184,7 @@
                     </table>
                 </div>
 
-                <!-- ========== NUEVO: RESUMEN DE TOTALES ========== -->
+                <!-- ========== RESUMEN DE TOTALES ========== -->
                 <div class="portfolio-summary" id="portfolioTotals" style="margin-top: 1rem;">
                     <div>📊 Acciones: <strong id="stocksTotalDisplay">0,00 Bs</strong> (G/P: <span id="stocksGpDisplay" class="text-green">+0,00 Bs</span>)</div>
                     <div>🪙 Criptos: <strong id="cryptoTotalDisplay">0,00 Bs</strong> (G/P: <span id="cryptoGpDisplay" class="text-green">+0,00 Bs</span>)</div>
@@ -325,12 +325,16 @@
 </div>
 
 <script>
+    // ============================================================
+    // 0. VARIABLES GLOBALES
+    // ============================================================
     let isRegistering = false;
     let currentUserUid = null;
     let gameInterval = null;
     let marketInterval = null;
     let stockMarketInterval = null;
     let dividendInterval = null;
+    let sesionVerificationInterval = null; // NUEVO: intervalo de verificación de sesión
 
     let configEmpleosNiveles = [];
     let configImpuestos = { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 };
@@ -362,6 +366,77 @@
         portfolio_stocks: {}
     };
 
+    // ============================================================
+    // 1. FUNCIONES DE UTILIDAD Y SESIÓN
+    // ============================================================
+    function generarSessionId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    async function registrarSesionUnica(uid) {
+        const { doc, runTransaction } = window.fb;
+        const userRef = doc(window.db, "partidas", uid);
+        const sessionIdLocal = localStorage.getItem('richman_sessionId');
+
+        try {
+            await runTransaction(window.db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) {
+                    transaction.set(userRef, { sessionId: sessionIdLocal, sessionTimestamp: Date.now() }, { merge: true });
+                    return;
+                }
+                const data = userDoc.data();
+                const currentSessionId = data.sessionId || null;
+
+                if (currentSessionId && currentSessionId !== sessionIdLocal) {
+                    throw new Error("SESION_ACTIVA_EN_OTRO_DISPOSITIVO");
+                }
+
+                if (!currentSessionId) {
+                    transaction.update(userRef, {
+                        sessionId: sessionIdLocal,
+                        sessionTimestamp: Date.now()
+                    });
+                }
+            });
+            return true;
+        } catch (error) {
+            if (error.message === "SESION_ACTIVA_EN_OTRO_DISPOSITIVO") {
+                throw error;
+            }
+            console.error("Error al registrar sesión:", error);
+            return false;
+        }
+    }
+
+    function iniciarVerificacionSesion(uid) {
+        if (sesionVerificationInterval) clearInterval(sesionVerificationInterval);
+        sesionVerificationInterval = setInterval(async () => {
+            try {
+                const { doc, getDoc } = window.fb;
+                const userRef = doc(window.db, "partidas", uid);
+                const snap = await getDoc(userRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    const currentSessionId = data.sessionId || null;
+                    const localSessionId = localStorage.getItem('richman_sessionId');
+                    if (currentSessionId && currentSessionId !== localSessionId) {
+                        showModal("Sesión expirada", "Tu sesión ha sido tomada en otro dispositivo. Serás desconectado.");
+                        await logoutUser();
+                    }
+                }
+            } catch (e) {
+                console.error("Error verificando sesión:", e);
+            }
+        }, 30000);
+    }
+
+    // ============================================================
+    // 2. FORMATO Y UTILIDADES (sin cambios)
+    // ============================================================
     function formatNumber(num) {
         const parts = (num || 0).toFixed(2).split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -400,21 +475,16 @@
         const modal = document.getElementById('financial-notification-modal');
         const msgElement = document.getElementById('financial-msg');
         msgElement.innerText = texto;
-        
         modal.classList.remove('slide-out');
         modal.style.display = 'block';
-
         if (financialModalTimer) clearTimeout(financialModalTimer);
-
         financialModalTimer = setTimeout(() => {
             cerrarModalDeslizando(modal);
         }, 15000);
-
         modal.onclick = function() {
             clearTimeout(financialModalTimer);
             cerrarModalDeslizando(modal);
         };
-        
         document.getElementById('close-financial-modal').onclick = function(e) {
             e.stopPropagation();
             clearTimeout(financialModalTimer);
@@ -429,6 +499,9 @@
         }, 500); 
     }
 
+    // ============================================================
+    // 3. CONFIGURACIÓN DE EMPLEO
+    // ============================================================
     async function loadJobConfigFromFirebase() {
         try {
             const { doc, getDoc } = window.fb;
@@ -480,10 +553,8 @@
         try {
             const { doc, setDoc } = window.fb;
             let nivelesArray = [];
-            
             let salarioActual = 127.50;
             let costoActual = 532.40;
-
             for (let i = 0; i <= 1000; i++) {
                 nivelesArray.push({
                     nivel: i,
@@ -493,12 +564,10 @@
                 salarioActual *= 1.05; 
                 costoActual *= 1.06;   
             }
-
             await setDoc(doc(window.db, "configuracion", "empleos"), {
                 niveles: nivelesArray,
                 impuestosConfig: { minPorcentaje: 0.05, maxPorcentaje: 0.20, maxGastos: 1.2 }
             }, { merge: true });
-
             await loadJobConfigFromFirebase();
             showModal("¡Éxito!", "Se han generado y guardado 1000 niveles de empleo en Firebase exitosamente.");
             toggleSettings(false);
@@ -509,6 +578,9 @@
         }
     }
 
+    // ============================================================
+    // 4. CARGA DE USUARIO (con sesión única)
+    // ============================================================
     async function loadUserData(uid) {
         try {
             state = {
@@ -521,6 +593,21 @@
                 portfolio_crypto: {},
                 portfolio_stocks: {}
             };
+
+            // ---- Control de sesión única ----
+            let sessionIdLocal = localStorage.getItem('richman_sessionId');
+            if (!sessionIdLocal) {
+                sessionIdLocal = generarSessionId();
+                localStorage.setItem('richman_sessionId', sessionIdLocal);
+            }
+
+            const sesionOk = await registrarSesionUnica(uid);
+            if (!sesionOk) {
+                showModal("Sesión activa", "Esta cuenta ya está abierta en otro dispositivo. Se cerrará esta sesión.");
+                await logoutUser();
+                return;
+            }
+            // ---------------------------------
 
             await loadJobConfigFromFirebase(); 
             const { doc, getDoc, setDoc } = window.fb;
@@ -557,18 +644,12 @@
                     } else {
                         lastActiveTime = Number(dataRemota.last_active);
                     }
-
                     if (!lastActiveTime || lastActiveTime < 1000000000000) {
                         lastActiveTime = Date.now();
                     }
-
                     const nowTime = Date.now();
                     let diffMinutes = Math.floor((nowTime - lastActiveTime) / 60000);
-
-                    if (diffMinutes > 10080) {
-                        diffMinutes = 10080;
-                    }
-
+                    if (diffMinutes > 10080) diffMinutes = 10080;
                     if (diffMinutes > 0 && Object.keys(state.portfolio_stocks).length > 0) {
                         let dividendosOfflineTotal = 0;
                         for (let stockId in state.portfolio_stocks) {
@@ -581,7 +662,6 @@
                                 dividendosOfflineTotal += (cantidad * precioActual) * factorAleatorio * diffMinutes;
                             }
                         }
-
                         if (dividendosOfflineTotal > 0) {
                             state.pending_dividends += dividendosOfflineTotal;
                             mostrarModalFinanciero(`🏢 Mientras estabas fuera (${diffMinutes} min), tus acciones generaron ${formatNumber(dividendosOfflineTotal)} en dividendos.`);
@@ -607,27 +687,31 @@
             startServerSideCryptoCycle();
             startServerSideStockCycle();
             startServerSideDividendCycle();
+
+            // Iniciar verificación de sesión cada 30 segundos
+            iniciarVerificacionSesion(uid);
+
         } catch (e) {
             console.error("Error al cargar de Firebase:", e);
         }
     }
 
+    // ============================================================
+    // 5. CICLOS DE SERVIDOR (sin cambios)
+    // ============================================================
     function startServerSideCryptoCycle() {
         if (marketInterval) clearInterval(marketInterval);
-
         marketInterval = setInterval(async () => {
             if (!window.db) return;
             try {
                 const { collection, getDocs, doc, setDoc } = window.fb;
                 const querySnapshot = await getDocs(collection(window.db, "mercado_cripto"));
-                
                 for (let documentSnap of querySnapshot.docs) {
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 10);
                     let variacionPorcentual = (Math.random() * 0.102) - 0.051;
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
                     if (nuevoPrecio < 0.001) nuevoPrecio = 0.001;
-
                     let velas = data.historial_velas || [];
                     if (velas.length > 0) {
                         let nuevaVela = {
@@ -639,7 +723,6 @@
                         velas.push(nuevaVela);
                         if (velas.length > 210) velas.shift();
                     }
-
                     await setDoc(doc(window.db, "mercado_cripto", documentSnap.id), {
                         precio: Number(nuevoPrecio.toFixed(4)),
                         historial_velas: velas
@@ -654,20 +737,17 @@
 
     function startServerSideStockCycle() {
         if (stockMarketInterval) clearInterval(stockMarketInterval);
-
         stockMarketInterval = setInterval(async () => {
             if (!window.db) return;
             try {
                 const { collection, getDocs, doc, setDoc } = window.fb;
                 const querySnapshot = await getDocs(collection(window.db, "mercado_acciones"));
-                
                 for (let documentSnap of querySnapshot.docs) {
                     let data = documentSnap.data();
                     let precioActual = Number(data.precio || 100);
                     let variacionPorcentual = (Math.random() * 0.04) - 0.02; 
                     let nuevoPrecio = precioActual * (1 + variacionPorcentual);
                     if (nuevoPrecio < 1) nuevoPrecio = 1;
-
                     let velas = data.historial_velas || [];
                     if (velas.length > 0) {
                         let nuevaVela = {
@@ -679,7 +759,6 @@
                         velas.push(nuevaVela);
                         if (velas.length > 210) velas.shift();
                     }
-
                     await setDoc(doc(window.db, "mercado_acciones", documentSnap.id), {
                         precio: Number(nuevoPrecio.toFixed(2)),
                         historial_velas: velas
@@ -694,21 +773,17 @@
 
     function startServerSideDividendCycle() {
         if (dividendInterval) clearInterval(dividendInterval);
-
         dividendInterval = setInterval(async () => {
             if (!currentUserUid || !window.db) return;
             try {
                 const { doc, runTransaction } = window.fb;
                 const userRef = doc(window.db, "partidas", currentUserUid);
-
                 await runTransaction(window.db, async (transaction) => {
                     const userDoc = await transaction.get(userRef);
                     if (!userDoc.exists()) return;
-
                     let data = userDoc.data();
                     let portfolioStocks = data.portfolio_stocks || {};
                     let pendingDiv = Number(data.pending_dividends || 0);
-
                     let acumuladoMinuto = 0;
                     for (let stockId in portfolioStocks) {
                         let tenencia = portfolioStocks[stockId];
@@ -720,7 +795,6 @@
                             acumuladoMinuto += (cantidad * precioActual) * factorAleatorio;
                         }
                     }
-
                     if (acumuladoMinuto > 0) {
                         pendingDiv += acumuladoMinuto;
                         transaction.update(userRef, {
@@ -730,7 +804,6 @@
                         state.pending_dividends = pendingDiv;
                     }
                 });
-
                 renderAll();
             } catch (e) {
                 console.error("Error acumulando dividendos en servidor:", e);
@@ -738,48 +811,42 @@
         }, 60000);
     }
 
+    // ============================================================
+    // 6. FUNCIONES DE COMPRA / VENTA
+    // ============================================================
     async function cobrarDividendosAcciones() {
         if (!currentUserUid || !window.db) return;
-
         try {
             const { doc, runTransaction } = window.fb;
             const userRef = doc(window.db, "partidas", currentUserUid);
             let montoCobrado = 0;
-
             await runTransaction(window.db, async (transaction) => {
                 const userDoc = await transaction.get(userRef);
                 if (!userDoc.exists()) throw new Error("No existe la partida");
-
                 let data = userDoc.data();
                 let pendingDiv = Number(data.pending_dividends || 0);
-
                 if (pendingDiv <= 0) {
                     throw new Error("Sin dividendos");
                 }
-
                 montoCobrado = pendingDiv;
                 let cash = Number(data.cash || 0) + montoCobrado;
                 let listaTransacciones = Array.isArray(data.transactions) ? data.transactions : [];
-
                 listaTransacciones.push({
                     id: Date.now(),
                     type: `Cobro de Dividendos`,
                     total: Number(montoCobrado.toFixed(2)),
                     timestamp: new Date().toLocaleString()
                 });
-
                 transaction.update(userRef, {
                     cash: Number(cash.toFixed(2)),
                     pending_dividends: 0,
                     transactions: listaTransacciones,
                     last_active: Date.now()
                 });
-
                 state.cash = cash;
                 state.pending_dividends = 0;
                 state.transactions = listaTransacciones;
             });
-
             renderAll();
             showModal("¡Dividendos Cobrados!", `Has reclamado exitosamente ${formatNumber(montoCobrado)} a tu efectivo disponible.`);
         } catch (e) {
@@ -822,24 +889,23 @@
         }
     }
 
+    // ============================================================
+    // 7. RENDERIZADO (sin cambios)
+    // ============================================================
     function renderStocksTables() {
         const bvcBody = document.getElementById('stocksBvcBody');
         const usBody = document.getElementById('stocksUsBody');
         const euBody = document.getElementById('stocksEuBody');
-
         if (!bvcBody || !usBody || !euBody) return;
-
         if (stocksListCache.length === 0) {
             bvcBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas. Ve a Configuración y presiona Generar 1000 Niveles de Empleo.</td></tr>`;
             usBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
             euBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay acciones registradas.</td></tr>`;
             return;
         }
-
         let bvcItems = stocksListCache.filter(s => s.mercado === 'BVC');
         let usItems = stocksListCache.filter(s => s.mercado === 'Wall Street');
         let euItems = stocksListCache.filter(s => s.mercado === 'Europa');
-
         bvcBody.innerHTML = bvcItems.length ? ordenarYRenderizarAccionesMercado(bvcItems, 'BVC') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en BVC</td></tr>`;
         usBody.innerHTML = usItems.length ? ordenarYRenderizarAccionesMercado(usItems, 'Wall Street') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Wall Street</td></tr>`;
         euBody.innerHTML = euItems.length ? ordenarYRenderizarAccionesMercado(euItems, 'Europa') : `<tr><td colspan="4" style="text-align:center;">Sin acciones en Europa</td></tr>`;
@@ -859,7 +925,6 @@
     function ordenarYRenderizarAccionesMercado(items, mercadoNombre) {
         let sorted = [...items];
         let sortConfig = stocksSortFields[mercadoNombre];
-
         if (sortConfig.field) {
             sorted.sort((a, b) => {
                 let valA, valB;
@@ -874,7 +939,6 @@
                 }
             });
         }
-
         if (preferredStockAsset) {
             let index = sorted.findIndex(s => s.id === preferredStockAsset);
             if (index > -1) {
@@ -882,8 +946,6 @@
                 sorted.unshift(item);
             }
         }
-
-        // Generar HTML con IDs únicos para los inputs
         return sorted.map(stock => {
             const safeId = stock.id.replace(/[^a-zA-Z0-9_-]/g, '');
             return `
@@ -1066,9 +1128,7 @@
         }
     };
 
-    // ========== FUNCIONES PARA CRIPTO (ya existentes, las dejamos igual) ==========
-    // ============================================================
-
+    // ========== FUNCIONES PARA CRIPTO ==========
     function setearMaxCompra(id, precio) {
         let input = document.getElementById(`input-qty-${id}`);
         if (!input) return;
@@ -1089,34 +1149,26 @@
         if (!currentUserUid || !window.db) return;
         let input = document.getElementById(`input-qty-${id}`);
         let cantidadAComprar = input ? parseFloat(input.value) : NaN;
-
         if (isNaN(cantidadAComprar) || cantidadAComprar <= 0) {
             showModal("Cantidad Inválida", "Por favor ingresa una cantidad válida o presiona 'Max Compra'.");
             return;
         }
-
         let costoTotalCompra = cantidadAComprar * precio;
-
         try {
             const { doc, runTransaction } = window.fb;
             const userRef = doc(window.db, "partidas", currentUserUid);
-
             await runTransaction(window.db, async (transaction) => {
                 const userDoc = await transaction.get(userRef);
                 if (!userDoc.exists()) return;
-
                 let data = userDoc.data();
                 let cash = Number(data.cash || 0);
-
                 cash -= costoTotalCompra;
                 if (!data.portfolio_crypto) data.portfolio_crypto = {};
                 if (!data.portfolio_crypto[id]) {
                     data.portfolio_crypto[id] = { cantidad: 0, costoTotal: 0 };
                 }
-
                 data.portfolio_crypto[id].cantidad += cantidadAComprar;
                 data.portfolio_crypto[id].costoTotal += Number(costoTotalCompra);
-
                 if (!data.transactions) data.transactions = [];
                 data.transactions.push({
                     id: Date.now(),
@@ -1124,19 +1176,16 @@
                     total: -costoTotalCompra,
                     timestamp: new Date().toLocaleString()
                 });
-
                 transaction.update(userRef, {
                     cash: Number(cash.toFixed(2)),
                     portfolio_crypto: data.portfolio_crypto,
                     transactions: data.transactions,
                     last_active: Date.now()
                 });
-
                 state.cash = cash;
                 state.portfolio_crypto = data.portfolio_crypto;
                 state.transactions = data.transactions;
             });
-
             renderAll();
             saveStateToLocalStorage();
             showModal("¡Compra Exitosa!", `Has comprado ${formatCryptoQty(cantidadAComprar)} ${id} por ${formatNumber(costoTotalCompra)}.`);
@@ -1150,47 +1199,36 @@
         if (!currentUserUid || !window.db) return;
         let input = document.getElementById(`input-qty-${id}`);
         let cantidadAVender = input ? parseFloat(input.value) : NaN;
-
         if (isNaN(cantidadAVender) || cantidadAVender <= 0) {
             showModal("Cantidad Inválida", "Por favor ingresa una cantidad válida o presiona 'Max Venta'.");
             return;
         }
-
         let asset = state.portfolio_crypto[id];
         if (!asset || asset.cantidad < cantidadAVender) {
             showModal("Sin tenencias", `No posees suficientes unidades de ${id} para vender esa cantidad.`);
             return;
         }
-
         try {
             const { doc, runTransaction } = window.fb;
             const userRef = doc(window.db, "partidas", currentUserUid);
-
             await runTransaction(window.db, async (transaction) => {
                 const userDoc = await transaction.get(userRef);
                 if (!userDoc.exists()) return;
-
                 let data = userDoc.data();
                 let portfolio = data.portfolio_crypto || {};
                 let targetAsset = portfolio[id];
-
                 if (!targetAsset || targetAsset.cantidad < cantidadAVender) {
                     throw new Error("Sin tenencias");
                 }
-
                 let costoPromedioUnitario = targetAsset.costoTotal / targetAsset.cantidad;
                 let costoReducido = costoPromedioUnitario * cantidadAVender;
-
                 targetAsset.cantidad -= cantidadAVender;
                 targetAsset.costoTotal -= costoReducido;
-
                 if (targetAsset.cantidad <= 0.00000001) {
                     delete portfolio[id];
                 }
-
                 let totalVenta = cantidadAVender * precio;
                 let cash = Number(data.cash || 0) + Number(totalVenta);
-
                 if (!data.transactions) data.transactions = [];
                 data.transactions.push({
                     id: Date.now(),
@@ -1198,19 +1236,16 @@
                     total: Number(totalVenta),
                     timestamp: new Date().toLocaleString()
                 });
-
                 transaction.update(userRef, {
                     cash: Number(cash.toFixed(2)),
                     portfolio_crypto: portfolio,
                     transactions: data.transactions,
                     last_active: Date.now()
                 });
-
                 state.cash = cash;
                 state.portfolio_crypto = portfolio;
                 state.transactions = data.transactions;
             });
-
             renderAll();
             saveStateToLocalStorage();
             showModal("¡Venta Exitosa!", `Has vendido ${formatCryptoQty(cantidadAVender)} ${id} por ${formatNumber(cantidadAVender * precio)}.`);
@@ -1224,7 +1259,9 @@
         }
     }
 
-    // ========== FUNCIONES DE RENDERIZADO Y ORDEN ==========
+    // ============================================================
+    // 8. RENDERIZADO DE TABLAS Y OTROS (sin cambios)
+    // ============================================================
     function sortMarket(field) {
         if (marketSortField === field) {
             marketSortAsc = !marketSortAsc;
@@ -1242,9 +1279,7 @@
             tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 1rem;">No hay criptomonedas cargadas en Firebase.</td></tr>`;
             return;
         }
-
         let sortedList = [...cryptoListCache];
-
         if (marketSortField) {
             sortedList.sort((a, b) => {
                 let valA, valB;
@@ -1259,7 +1294,6 @@
                 }
             });
         }
-
         if (preferredMarketAsset) {
             let index = sortedList.findIndex(c => c.id === preferredMarketAsset);
             if (index > -1) {
@@ -1267,7 +1301,6 @@
                 sortedList.unshift(item);
             }
         }
-
         tbody.innerHTML = sortedList.map(crypto => `
             <tr ${crypto.id === preferredMarketAsset ? 'style="background: rgba(241, 196, 15, 0.08); border-left: 3px solid #f1c40f;"' : ''}>
                 <td><strong>${crypto.nombre || crypto.id}</strong></td>
@@ -1288,38 +1321,30 @@
     function navegarAMercado(assetId) {
         preferredMarketAsset = assetId;
         preferredStockAsset = null;
-        
         document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        
         const marketTabBtn = document.querySelector('.main-tabs button[data-section="market"]');
         if (marketTabBtn) marketTabBtn.classList.add('active');
         document.getElementById('marketSection').classList.add('active');
-
         document.querySelectorAll('.market-sub-tabs button').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.market-sub-section').forEach(s => s.classList.remove('active'));
         document.querySelector('.market-sub-tabs button[data-market-sub="spot"]').classList.add('active');
         document.getElementById('spotMarketSub').classList.add('active');
-
         cargarMercadoCripto();
     }
 
     function navegarAStockMercado(stockId) {
         preferredStockAsset = stockId;
         preferredMarketAsset = null;
-        
         document.querySelectorAll('.main-tabs button').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        
         const marketTabBtn = document.querySelector('.main-tabs button[data-section="market"]');
         if (marketTabBtn) marketTabBtn.classList.add('active');
         document.getElementById('marketSection').classList.add('active');
-
         document.querySelectorAll('.market-sub-tabs button').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.market-sub-section').forEach(s => s.classList.remove('active'));
         document.querySelector('.market-sub-tabs button[data-market-sub="stocks"]').classList.add('active');
         document.getElementById('stocksMarketSub').classList.add('active');
-
         cargarMercadoAcciones();
     }
 
@@ -1336,15 +1361,12 @@
     function renderPortfolioCryptoTable() {
         const tbody = document.getElementById('portfolioCryptoBody');
         if (!tbody) return;
-
         const cryptoPortfolio = state.portfolio_crypto || {};
         let keys = Object.keys(cryptoPortfolio);
-
         if (keys.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 1rem;">No tienes criptomonedas en cartera.</td></tr>`;
             return;
         }
-
         let items = keys.map(id => {
             const item = cryptoPortfolio[id];
             const cantidad = item.cantidad || 0;
@@ -1357,7 +1379,6 @@
             const roi = costoTotal > 0 ? (gp / costoTotal) * 100 : 0;
             return { id, cantidad, precioPromedio, precioActual, posicion, gp, roi };
         });
-
         if (portfolioSortField) {
             items.sort((a, b) => {
                 let valA = a[portfolioSortField] || 0;
@@ -1367,7 +1388,6 @@
                 return portfolioSortAsc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
             });
         }
-
         tbody.innerHTML = items.map(item => {
             const gpClass = item.gp >= 0 ? 'text-green' : 'text-red';
             const roiClass = item.roi >= 0 ? 'text-green' : 'text-red';
@@ -1388,15 +1408,12 @@
     function renderPortfolioStocksTable() {
         const tbody = document.getElementById('portfolioStocksBody');
         if (!tbody) return;
-
         const stocksPortfolio = state.portfolio_stocks || {};
         let keys = Object.keys(stocksPortfolio);
-
         if (keys.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 1rem;">No tienes acciones en cartera.</td></tr>`;
             return;
         }
-
         let items = keys.map(id => {
             const item = stocksPortfolio[id];
             const cantidad = item.cantidad || 0;
@@ -1409,7 +1426,6 @@
             const roi = costoTotal > 0 ? (gp / costoTotal) * 100 : 0;
             return { id, cantidad, precioPromedio, precioActual, posicion, gp, roi };
         });
-
         tbody.innerHTML = items.map(item => {
             const gpClass = item.gp >= 0 ? 'text-green' : 'text-red';
             const roiClass = item.roi >= 0 ? 'text-green' : 'text-red';
@@ -1429,38 +1445,27 @@
 
     function startServerSideFinancialCycle() {
         if (gameInterval) clearInterval(gameInterval);
-        
         gameInterval = setInterval(async () => {
             if (!currentUserUid || !window.db || !state.job.active) return;
-
             const jobData = getCurrentJobData();
             const ingresosBrutos = jobData.salary;
-
             try {
                 const { doc, runTransaction } = window.fb;
                 const userRef = doc(window.db, "partidas", currentUserUid);
-
                 let netoCalculado = 0;
                 let deduccionesTotales = 0;
-
                 await runTransaction(window.db, async (transaction) => {
                     const userDoc = await transaction.get(userRef);
                     if (!userDoc.exists()) return;
-
                     let currentData = userDoc.data();
                     let currentCash = (currentData.cash !== undefined && currentData.cash !== null) ? Number(currentData.cash) : 100;
-
                     const porcentajeImpuesto = Math.random() * ((configImpuestos.maxPorcentaje ?? 0.20) - (configImpuestos.minPorcentaje ?? 0.05)) + (configImpuestos.minPorcentaje ?? 0.05);
                     const deduccionImpuestos = ingresosBrutos * porcentajeImpuesto;
-                    
                     const factorGastoAleatorio = Math.random() * (configImpuestos.maxGastos ?? 1.2);
                     const gastosVarios = ingresosBrutos * factorGastoAleatorio;
-                    
                     deduccionesTotales = deduccionImpuestos + gastosVarios;
                     netoCalculado = ingresosBrutos - deduccionesTotales;
-                    
                     currentCash += netoCalculado;
-
                     if (!currentData.transactions) currentData.transactions = [];
                     currentData.transactions.push({
                         id: Date.now(),
@@ -1468,22 +1473,17 @@
                         total: netoCalculado,
                         timestamp: new Date().toLocaleString()
                     });
-
                     currentData.cash = Number(currentCash.toFixed(2));
-
                     transaction.update(userRef, {
                         cash: currentData.cash,
                         transactions: currentData.transactions,
                         last_active: Date.now()
                     });
-
                     state.cash = currentData.cash;
                     state.transactions = currentData.transactions;
                 });
-
                 renderAll();
                 mostrarModalFinanciero(`Ingreso: ${formatNumber(ingresosBrutos)} | Imp./Gastos: -${formatNumber(deduccionesTotales)} | Neto: ${formatNumber(netoCalculado)}`);
-
             } catch (e) {
                 console.error("Error en la transacción segura de Firebase:", e);
             }
@@ -1498,7 +1498,6 @@
         } else {
             cashEl.className = '';
         }
-        
         document.getElementById('pendingDividendsDisplay').textContent = formatNumber(state.pending_dividends);
         
         let totalCryptoWorth = 0;
@@ -1508,7 +1507,6 @@
             let precio = cryptoObj ? cryptoObj.precio : (item.costoTotal / item.cantidad);
             totalCryptoWorth += item.cantidad * precio;
         }
-
         let totalStocksWorth = 0;
         for (let id in state.portfolio_stocks) {
             let item = state.portfolio_stocks[id];
@@ -1516,7 +1514,6 @@
             let precio = stockObj ? stockObj.precio : (item.costoTotal / item.cantidad);
             totalStocksWorth += item.cantidad * precio;
         }
-
         const patrimonioTotal = state.cash + totalCryptoWorth + totalStocksWorth;
         document.getElementById('netWorthDisplay').textContent = formatNumber(patrimonioTotal);
 
@@ -1525,7 +1522,6 @@
         if (configEmpleosNiveles && configEmpleosNiveles[state.job.level + 1]) {
             costToNext = Number(configEmpleosNiveles[state.job.level + 1].costo);
         }
-
         document.getElementById('portfolioSummary').innerHTML = `
             <div>💵 Efectivo: <strong class="${state.cash < 0 ? 'text-red' : ''}">${formatNumber(state.cash)}</strong></div>
             <div>💼 Empleo: Nivel ${state.job.level} (${formatNumber(jobData.salary)}/min bruto)</div>
@@ -1554,7 +1550,7 @@
         renderMarketTable();
         renderStocksTables();
 
-        // ========== NUEVO: ACTUALIZAR TOTALES DE CARTERA ==========
+        // ========== ACTUALIZAR TOTALES DE CARTERA ==========
         let stocksTotal = 0, stocksGp = 0;
         for (let id in state.portfolio_stocks) {
             let item = state.portfolio_stocks[id];
@@ -1598,14 +1594,15 @@
         grandGpSpan.className = totalGp >= 0 ? 'text-green' : 'text-red';
     }
 
+    // ============================================================
+    // 9. MEJORAS Y RESET
+    // ============================================================
     function upgradeJob() {
         if (!configEmpleosNiveles || !configEmpleosNiveles[state.job.level + 1]) {
             showModal("Límite alcanzado", "Has llegado al nivel máximo de empleo disponible.");
             return;
         }
-
         const costToUpgrade = Number(configEmpleosNiveles[state.job.level + 1].costo);
-
         if (state.cash < costToUpgrade) {
             showModal("Fondos insuficientes", "No tienes suficiente efectivo para mejorar el empleo.");
             return;
@@ -1639,7 +1636,9 @@
         }
     }
 
-    // ========== GUARDADO EN LOCALSTORAGE ==========
+    // ============================================================
+    // 10. LOCALSTORAGE Y UI
+    // ============================================================
     function saveStateToLocalStorage() {
         try {
             const dataToSave = {
@@ -1660,11 +1659,9 @@
         }
     }
 
-    // ========== EVENTOS DE UI ==========
     const settingsToggle = document.getElementById('settingsToggle');
     const settingsPanel = document.getElementById('settingsPanel');
     const settingsOverlay = document.getElementById('settingsOverlay');
-    
     function toggleSettings(show) {
         settingsPanel.classList.toggle('active', show);
         settingsOverlay.classList.toggle('active', show);
@@ -1704,7 +1701,76 @@
         });
     });
 
-    // ========== AUTENTICACIÓN ==========
+    // ============================================================
+    // 11. AUTENTICACIÓN Y CIERRE DE SESIÓN
+    // ============================================================
+    function toggleAuthMode() {
+        isRegistering = !isRegistering;
+        document.getElementById('authTitle').textContent = isRegistering ? "Crear Cuenta Nueva" : "Iniciar Sesión";
+        document.getElementById('authSubmitBtn').textContent = isRegistering ? "Registrarse" : "Entrar";
+        document.querySelector('.auth-toggle').textContent = isRegistering ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate aquí";
+        document.getElementById('authError').textContent = "";
+    }
+
+    async function handleAuth() {
+        const email = document.getElementById('emailInput').value.trim();
+        const password = document.getElementById('passwordInput').value.trim();
+        const errorDiv = document.getElementById('authError');
+        errorDiv.textContent = "";
+        if (!email || !password) {
+            errorDiv.textContent = "Por favor ingresa correo y contraseña.";
+            return;
+        }
+        try {
+            const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = window.fb;
+            if (isRegistering) {
+                await createUserWithEmailAndPassword(window.auth, email, password);
+            } else {
+                await signInWithEmailAndPassword(window.auth, email, password);
+            }
+        } catch (err) {
+            errorDiv.textContent = "Error: " + err.message;
+        }
+    }
+
+    async function logoutUser() {
+        try {
+            // ----- Liberar sesión en Firebase -----
+            if (currentUserUid && window.db) {
+                const { doc, updateDoc } = window.fb;
+                const userRef = doc(window.db, "partidas", currentUserUid);
+                await updateDoc(userRef, {
+                    sessionId: null,
+                    sessionTimestamp: null
+                });
+            }
+            if (sesionVerificationInterval) {
+                clearInterval(sesionVerificationInterval);
+                sesionVerificationInterval = null;
+            }
+            // ----- Fin liberación de sesión -----
+
+            // Guardar datos antes de salir
+            if (currentUserUid && window.db) {
+                const { doc, setDoc } = window.fb;
+                await setDoc(doc(window.db, "partidas", currentUserUid), {
+                    last_active: Date.now()
+                }, { merge: true });
+            }
+            if (gameInterval) clearInterval(gameInterval);
+            if (marketInterval) clearInterval(marketInterval);
+            if (stockMarketInterval) clearInterval(stockMarketInterval);
+            if (dividendInterval) clearInterval(dividendInterval);
+            currentUserUid = null;
+            await window.fb.signOut(window.auth);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // ============================================================
+    // 12. EVENTO DE CARGA DE LA PÁGINA
+    // ============================================================
     window.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             if (window.fb && window.auth) {
@@ -1720,6 +1786,10 @@
                         if (marketInterval) clearInterval(marketInterval);
                         if (stockMarketInterval) clearInterval(stockMarketInterval);
                         if (dividendInterval) clearInterval(dividendInterval);
+                        if (sesionVerificationInterval) {
+                            clearInterval(sesionVerificationInterval);
+                            sesionVerificationInterval = null;
+                        }
                         state = {
                             cash: 100,
                             pending_dividends: 0,
@@ -1741,57 +1811,7 @@
         }, 500);
     });
 
-    function toggleAuthMode() {
-        isRegistering = !isRegistering;
-        document.getElementById('authTitle').textContent = isRegistering ? "Crear Cuenta Nueva" : "Iniciar Sesión";
-        document.getElementById('authSubmitBtn').textContent = isRegistering ? "Registrarse" : "Entrar";
-        document.querySelector('.auth-toggle').textContent = isRegistering ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate aquí";
-        document.getElementById('authError').textContent = "";
-    }
-
-    async function handleAuth() {
-        const email = document.getElementById('emailInput').value.trim();
-        const password = document.getElementById('passwordInput').value.trim();
-        const errorDiv = document.getElementById('authError');
-        errorDiv.textContent = "";
-
-        if (!email || !password) {
-            errorDiv.textContent = "Por favor ingresa correo y contraseña.";
-            return;
-        }
-
-        try {
-            const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = window.fb;
-            if (isRegistering) {
-                await createUserWithEmailAndPassword(window.auth, email, password);
-            } else {
-                await signInWithEmailAndPassword(window.auth, email, password);
-            }
-        } catch (err) {
-            errorDiv.textContent = "Error: " + err.message;
-        }
-    }
-
-    async function logoutUser() {
-        try {
-            if (currentUserUid && window.db) {
-                const { doc, setDoc } = window.fb;
-                await setDoc(doc(window.db, "partidas", currentUserUid), {
-                    last_active: Date.now()
-                }, { merge: true });
-            }
-            if (gameInterval) clearInterval(gameInterval);
-            if (marketInterval) clearInterval(marketInterval);
-            if (stockMarketInterval) clearInterval(stockMarketInterval);
-            if (dividendInterval) clearInterval(dividendInterval);
-            currentUserUid = null;
-            await window.fb.signOut(window.auth);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    console.log("🚀 Juego actualizado: funciones de compra/venta de acciones añadidas y funcionando.");
+    console.log("🚀 Juego actualizado: funciones de compra/venta de acciones añadidas, sesión única implementada.");
 </script>
 
 </body>

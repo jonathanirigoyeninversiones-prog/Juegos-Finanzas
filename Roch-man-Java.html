@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rich Man - Versión Financiera Local</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --text: #f8fafc;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        .stat-box h3 {
+            margin: 0 0 5px 0;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        .stat-box p {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        button {
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .console {
+            background: #020617;
+            padding: 15px;
+            border-radius: 8px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            border: 1px solid #334155;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h2>Rich Man: Módulo Financiero Local</h2>
+            <div>
+                <span id="user-display">Usuario: Invitado</span>
+                <button onclick="guardarEstadoSalida()" style="margin-left: 10px; background: var(--success);">Guardar y Salir</button>
+            </div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <h3>Capital Líquido</h3>
+                <p id="txt-capital">$10,000.00</p>
+            </div>
+            <div class="stat-box">
+                <h3>Ingreso Pasivo / Turno</h3>
+                <p id="txt-ingreso">$500.00</p>
+            </div>
+            <div class="stat-box">
+                <h3>Acciones del Mercado</h3>
+                <p id="txt-acciones">0 Unidades</p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button onclick="ejecutarTurnoFinanciero()">Avanzar Turno (Cálculo Local)</button>
+            <button onclick="comprarActivo()" style="background: var(--success);">Invertir en Activo ($2,000)</button>
+        </div>
+
+        <div class="console" id="game-console">
+            [Sistema] Motor matemático inicializado en el cliente. Cero consultas repetitivas a base de datos externa.\n
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "tu-proyecto.firebaseapp.com",
+            projectId: "tu-proyecto",
+            storageBucket: "tu-proyecto.appspot.com",
+            messagingSenderId: "tu-id",
+            appId: "tu-id"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-display').innerText = `Usuario: ${user.uid.substring(0, 6)}...`;
+                await cargarEstado(user.uid);
+            } else {
+                signInAnonymously(auth).catch((error) => {
+                    logConsole(`[Error Auth]: ${error.message}`);
+                });
+            }
+        });
+
+        window.guardarEstadoSalida = async function() {
+            if (!currentUser) return;
+            try {
+                await setDoc(doc(db, "saves", currentUser.uid), {
+                    capital: gameState.capital,
+                    ingresoPasivo: gameState.ingresoPasivo,
+                    acciones: gameState.acciones,
+                    ultimaActualizacion: new Date().toISOString()
+                });
+                logConsole("[Firebase] Archivo de juego guardado correctamente al salir.");
+            } catch (e) {
+                logConsole(`[Error Guardado]: ${e.message}`);
+            }
+        };
+
+        async function cargarEstado(uid) {
+            try {
+                const docRef = doc(db, "saves", uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    gameState.capital = data.capital;
+                    gameState.ingresoPasivo = data.ingresoPasivo;
+                    gameState.acciones = data.acciones;
+                    actualizarInterfaz();
+                    logConsole("[Firebase] Estado de partida recuperado con éxito.");
+                }
+            } catch (e) {
+                logConsole(`[Error Carga]: ${e.message}`);
+            }
+        }
+    </script>
+
+    <script>
+        // Lógica de Negocio y Fórmulas Matemáticas 100% en el Navegador (Cliente)
+        let gameState = {
+            capital: 10000.00,
+            ingresoPasivo: 500.00,
+            acciones: 0
+        };
+
+        function logConsole(mensaje) {
+            const consoleDiv = document.getElementById('game-console');
+            consoleDiv.innerHTML += mensaje + "<br>";
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function actualizarInterfaz() {
+            document.getElementById('txt-capital').innerText = `$${gameState.capital.toFixed(2)}`;
+            document.getElementById('txt-ingreso').innerText = `$${gameState.ingresoPasivo.toFixed(2)}`;
+            document.getElementById('txt-acciones').innerText = `${gameState.acciones} Unidades`;
+        }
+
+        window.ejecutarTurnoFinanciero = function() {
+            // Cálculo matemático procesado localmente sin consumir cuota de Firebase
+            const fluctuacionMercado = (Math.random() * 0.2 - 0.1); // -10% a +10%
+            const rendimientoAcciones = gameState.acciones * 50 * (1 + fluctuacionMercado);
+            
+            gameState.capital += gameState.ingresoPasivo + rendimientoAcciones;
+            
+            logConsole(`[Turno] Ingreso pasivo aplicado. Variación de mercado: ${(fluctuacionMercado * 100).toFixed(1)}%`);
+            actualizarInterfaz();
+        };
+
+        window.comprarActivo = function() {
+            const costo = 2000.00;
+            if (gameState.capital >= costo) {
+                gameState.capital -= costo;
+                gameState.ingresoPasivo += 150.00;
+                gameState.acciones += 1;
+                logConsole("[Finanzas] Activo adquirido con éxito. Ingreso pasivo incrementado.");
+                actualizarInterfaz();
+            } else {
+                logConsole("[Finanzas] Capital insuficiente para completar la transacción.");
+            }
+        };
+    </script>
+</body>
+</html>
